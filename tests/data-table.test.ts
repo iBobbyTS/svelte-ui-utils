@@ -56,6 +56,33 @@ function mockWindowScroll(initialX: number, initialY: number) {
   };
 }
 
+function makeRect(overrides: Partial<DOMRect> = {}): DOMRect {
+  const left = overrides.left ?? overrides.x ?? 0;
+  const top = overrides.top ?? overrides.y ?? 0;
+  const width = overrides.width ?? 0;
+  const height = overrides.height ?? 0;
+  const right = overrides.right ?? left + width;
+  const bottom = overrides.bottom ?? top + height;
+
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    right,
+    bottom,
+    width,
+    height,
+    toJSON() {
+      return this;
+    }
+  } as DOMRect;
+}
+
+async function flushAnimationFrame() {
+  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
 describe('data table state helpers', () => {
   it('toggles sort and exposes aria-sort values', () => {
     const first = toggleSort(null, 'name');
@@ -177,6 +204,7 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table--vertical-separators')).toBeTruthy();
     expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
     expect(container.querySelector('.suu-table--sticky-header')).toBeTruthy();
+    expect(container.querySelector('.suu-table__sticky-offset-probe')).toBeTruthy();
     expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 4rem');
     expect(container.querySelector('tr[data-row-id="42"]')).toBeTruthy();
     expect(container.querySelector('td[data-nowrap="false"]')).toBeTruthy();
@@ -194,20 +222,56 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table--sticky-header')).toBeFalsy();
   });
 
-  it('passes table layout and sticky header options through DataTable', () => {
+  it('shows the fixed header as soon as the original header reaches the sticky offset', async () => {
+    const { container } = render(Table, {
+      props: {
+        rows: [{ id: 1, name: 'Jane' }],
+        columns: [
+          { key: 'id', header: 'ID', sortable: true },
+          { key: 'name', header: 'Name', sortable: true }
+        ],
+        stickyHeaderOffset: '64px'
+      }
+    });
+
+    const table = container.querySelector('.suu-table-wrap > table.suu-table') as HTMLTableElement;
+    const header = table.tHead as HTMLTableSectionElement;
+    const probe = container.querySelector('.suu-table__sticky-offset-probe') as HTMLElement;
+    const [firstHeaderCell, secondHeaderCell] = Array.from(table.querySelectorAll('thead th')) as HTMLElement[];
+    const spies = [
+      vi.spyOn(table, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 63, bottom: 520, width: 320, height: 457 })),
+      vi.spyOn(header, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 63, bottom: 107, width: 320, height: 44 })),
+      vi.spyOn(probe, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 64, bottom: 64 })),
+      vi.spyOn(firstHeaderCell, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 63, bottom: 107, width: 140, height: 44 })),
+      vi.spyOn(secondHeaderCell, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 63, bottom: 107, width: 180, height: 44 }))
+    ];
+
+    try {
+      window.dispatchEvent(new Event('scroll'));
+      await flushAnimationFrame();
+
+      expect(container.querySelector('.suu-table__sticky-clone')).toBeTruthy();
+      expect(table.classList.contains('suu-table--sticky-header-shadowed')).toBe(true);
+    } finally {
+      spies.forEach((spy) => spy.mockRestore());
+    }
+  });
+
+  it('passes table layout and sticky header offset options through DataTable', () => {
     const { container } = render(DataTable, {
       props: {
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
         totalRows: 1,
         tableLayout: 'fixed',
-        stickyHeaderTop: '3rem'
+        stickyHeaderTop: '3rem',
+        stickyHeaderOffset: '64px'
       }
     });
 
     expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
     expect(container.querySelector('.suu-table--sticky-header')).toBeTruthy();
-    expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 3rem');
+    expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 64px');
   });
 
   it('waits for DataTable state changes before restoring sort scroll', async () => {

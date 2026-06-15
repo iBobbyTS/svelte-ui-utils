@@ -20,6 +20,7 @@
   export let tableLayout: DataTableLayout = 'auto';
   export let stickyHeader = true;
   export let stickyHeaderTop: string | undefined = undefined;
+  export let stickyHeaderOffset: string | undefined = undefined;
   export let preserveScrollOnSort = true;
   export let emptyText = 'No records';
   export let rowKey: DataTableRowKey | undefined = undefined;
@@ -34,6 +35,8 @@
   let stickyHeaderWidth = 0;
   let stickyHeaderColumnWidths: number[] = [];
   let stickyHeaderUpdateFrame: number | null = null;
+  let stickyHeaderOffsetProbe: HTMLSpanElement | undefined = undefined;
+  $: resolvedStickyHeaderTop = stickyHeaderOffset ?? stickyHeaderTop;
 
   function restoreScrollPosition(scrollX: number, scrollY: number, sequence: number) {
     if (!preserveScrollOnSort || typeof window === 'undefined' || sequence !== scrollRestoreSequence) {
@@ -70,8 +73,8 @@
 
     const tableRect = tableElement.getBoundingClientRect();
     const headerRect = header.getBoundingClientRect();
-    const stickyTop = Number.parseFloat(window.getComputedStyle(firstHeaderCell).top) || 0;
-    const nextVisible = tableRect.top < stickyTop && tableRect.bottom > stickyTop + headerRect.height;
+    const stickyTop = stickyHeaderOffsetProbe?.getBoundingClientRect().top ?? 0;
+    const nextVisible = headerRect.top <= stickyTop && tableRect.bottom > stickyTop + headerRect.height;
     stickyHeaderVisible = nextVisible;
 
     if (!nextVisible) {
@@ -181,11 +184,14 @@
     columns;
     sort;
     stickyHeader;
+    resolvedStickyHeaderTop;
     queueStickyHeaderUpdate();
   }
 </script>
 
-<div class:suu-table-wrap--borderless={!bordered} class="suu-table-wrap" style:--suu-table-sticky-top={stickyHeaderTop}>
+<div class:suu-table-wrap--borderless={!bordered} class="suu-table-wrap" style:--suu-table-sticky-top={resolvedStickyHeaderTop}>
+  <span bind:this={stickyHeaderOffsetProbe} class="suu-table__sticky-offset-probe" aria-hidden="true"></span>
+
   {#if stickyHeaderVisible}
     <div
       class="suu-table__sticky-clone"
@@ -249,6 +255,7 @@
     class:suu-table--layout-auto={tableLayout === 'auto'}
     class:suu-table--layout-fixed={tableLayout === 'fixed'}
     class:suu-table--sticky-header={stickyHeader}
+    class:suu-table--sticky-header-shadowed={stickyHeaderVisible}
     class:suu-table--zebra={zebra}
     class:suu-table--vertical-separators={verticalSeparators}
     class="suu-table"

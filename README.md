@@ -152,7 +152,7 @@ page:
   rowKey="id"
   tableLayout="fixed"
   stickyHeader={true}
-  stickyHeaderTop="4rem"
+  stickyHeaderOffset="4rem"
   verticalSeparators={true}
   preserveScrollOnSort={true}
   rowAttributes={(row) => ({ 'data-row-id': row.id })}
@@ -172,8 +172,12 @@ Sortable headers preserve the current window scroll position by default. Set
 `preserveScrollOnSort={false}` when a page should intentionally return to the
 top after sorting.
 Table headers are sticky by default. Use `stickyHeader={false}` to disable this,
-or set `stickyHeaderTop` / `--suu-table-sticky-top` when an app has a fixed or
-sticky navbar.
+or set `stickyHeaderOffset` when an app has a fixed or sticky navbar. The offset
+accepts any browser CSS length such as `64px`, `4rem`, or `calc(...)`, and it is
+used both for the fixed header position and for the scroll threshold. When the
+original header top reaches the offset, a synchronized fixed header takes over
+while the original header keeps its layout space. The older `stickyHeaderTop`
+prop and `--suu-table-sticky-top` CSS variable remain supported.
 
 ## Theme variables
 
