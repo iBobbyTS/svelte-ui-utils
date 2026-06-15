@@ -18,6 +18,7 @@ export type {
   DataTableColumn,
   DataTableCellValue,
   DataTableClassValue,
+  DataTableLayout,
   DataTableRowAttributes,
   DataTableRowKey,
   DataTableState,

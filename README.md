@@ -131,6 +131,7 @@ component files.
   {columns}
   totalRows={totalRows}
   {state}
+  tableLayout="auto"
   onStateChange={(next) => (state = next)}
 />
 ```
@@ -146,6 +147,7 @@ page:
   rows={rows}
   {columns}
   rowKey="id"
+  tableLayout="fixed"
   verticalSeparators={true}
   rowAttributes={(row) => ({ 'data-row-id': row.id })}
   onSortChange={(sort) => updateUrl(sort)}

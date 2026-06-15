@@ -2,6 +2,8 @@ import type { DropdownSearchLoadOptions } from '../dropdown-search/types.js';
 
 export type SortDirection = 'asc' | 'desc';
 
+export type DataTableLayout = 'auto' | 'fixed';
+
 export interface SortState {
   key: string;
   direction: SortDirection;

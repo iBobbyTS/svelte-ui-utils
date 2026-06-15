@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getAriaSort, getCellValue, toggleSort } from './state.js';
-  import type { DataTableCellValue, DataTableColumn, DataTableRowAttributes, DataTableRowKey, SortState } from './types.js';
+  import type { DataTableCellValue, DataTableColumn, DataTableLayout, DataTableRowAttributes, DataTableRowKey, SortState } from './types.js';
 
   export let rows: unknown[] = [];
   export let columns: DataTableColumn[] = [];
@@ -8,6 +8,7 @@
   export let zebra = true;
   export let bordered = true;
   export let verticalSeparators = false;
+  export let tableLayout: DataTableLayout = 'auto';
   export let emptyText = 'No records';
   export let rowKey: DataTableRowKey | undefined = undefined;
   export let rowClass: string | ((row: unknown, index: number) => string | undefined | null) | undefined = undefined;
@@ -57,6 +58,8 @@
 
 <div class:suu-table-wrap--borderless={!bordered} class="suu-table-wrap">
   <table
+    class:suu-table--layout-auto={tableLayout === 'auto'}
+    class:suu-table--layout-fixed={tableLayout === 'fixed'}
     class:suu-table--zebra={zebra}
     class:suu-table--vertical-separators={verticalSeparators}
     class="suu-table"
@@ -74,10 +77,16 @@
               <button class="suu-table__sort-button" type="button" on:click={() => handleSort(column)}>
                 <span><slot name="header" {column} {sort}>{column.header}</slot></span>
                 <span class="suu-table__sort-indicator" aria-hidden="true">
-                  {#if sort?.key === column.key}
-                    {sort.direction === 'asc' ? '▲' : '▼'}
+                  {#if sort?.key === column.key && sort.direction === 'asc'}
+                    <svg class="suu-table__sort-icon suu-table__sort-icon--asc" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path d="M5 9.5 8 6.5l3 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
+                    </svg>
+                  {:else if sort?.key === column.key}
+                    <svg class="suu-table__sort-icon suu-table__sort-icon--desc" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                      <path d="m5 6.5 3 3 3-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
+                    </svg>
                   {:else}
-                    <svg class="suu-table__sort-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <svg class="suu-table__sort-icon suu-table__sort-icon--both" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                       <path d="M5 6.5 8 3.5l3 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
                       <path d="m5 9.5 3 3 3-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
                     </svg>

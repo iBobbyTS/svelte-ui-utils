@@ -377,6 +377,14 @@
   background: var(--suu-color-bg);
 }
 
+.suu-table--layout-auto {
+  table-layout: auto;
+}
+
+.suu-table--layout-fixed {
+  table-layout: fixed;
+}
+
 .suu-table th,
 .suu-table td {
   padding: 10px 12px;

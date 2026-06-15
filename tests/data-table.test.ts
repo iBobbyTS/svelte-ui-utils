@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
+import DataTable from '../src/lib/data-table/DataTable.svelte';
 import FilterBox from '../src/lib/data-table/FilterBox.svelte';
 import Pagination from '../src/lib/data-table/Pagination.svelte';
 import Table from '../src/lib/data-table/Table.svelte';
@@ -54,10 +55,36 @@ describe('data table components', () => {
     });
 
     expect(screen.queryByText('↕')).toBeNull();
-    expect(container.querySelector('.suu-table__sort-icon')).toBeTruthy();
+    expect(screen.queryByText('▲')).toBeNull();
+    expect(screen.queryByText('▼')).toBeNull();
+    expect(container.querySelector('.suu-table__sort-icon--both')).toBeTruthy();
 
     await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
     expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
+  });
+
+  it('renders sorted states with single-direction svg arrows', async () => {
+    const { container, rerender } = render(Table, {
+      props: {
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name', sortable: true }],
+        sort: { key: 'name', direction: 'asc' }
+      }
+    });
+
+    expect(screen.queryByText('▲')).toBeNull();
+    expect(screen.queryByText('▼')).toBeNull();
+    expect(container.querySelector('.suu-table__sort-icon--asc')).toBeTruthy();
+    expect(container.querySelector('.suu-table__sort-icon--desc')).toBeFalsy();
+
+    await rerender({
+      rows: [{ name: 'Jane' }],
+      columns: [{ key: 'name', header: 'Name', sortable: true }],
+      sort: { key: 'name', direction: 'desc' }
+    });
+
+    expect(container.querySelector('.suu-table__sort-icon--asc')).toBeFalsy();
+    expect(container.querySelector('.suu-table__sort-icon--desc')).toBeTruthy();
   });
 
   it('renders row attributes and optional table styling classes', () => {
@@ -67,6 +94,7 @@ describe('data table components', () => {
         columns: [{ key: 'name', header: 'Name', nowrap: false }],
         bordered: false,
         verticalSeparators: true,
+        tableLayout: 'fixed',
         rowKey: 'id',
         rowAttributes: (row) => ({ 'data-row-id': (row as { id: number }).id })
       }
@@ -74,8 +102,22 @@ describe('data table components', () => {
 
     expect(container.querySelector('.suu-table-wrap--borderless')).toBeTruthy();
     expect(container.querySelector('.suu-table--vertical-separators')).toBeTruthy();
+    expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
     expect(container.querySelector('tr[data-row-id="42"]')).toBeTruthy();
     expect(container.querySelector('td[data-nowrap="false"]')).toBeTruthy();
+  });
+
+  it('passes table layout through DataTable', () => {
+    const { container } = render(DataTable, {
+      props: {
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }],
+        totalRows: 1,
+        tableLayout: 'fixed'
+      }
+    });
+
+    expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
   });
 
   it('emits pagination changes and resets to page 1 when page size changes', async () => {

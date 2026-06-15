@@ -3,7 +3,7 @@
   import Pagination from './Pagination.svelte';
   import Table from './Table.svelte';
   import { setDataTableFilters, setDataTablePageSize, setDataTablePagination, setDataTableSort } from './state.js';
-  import type { DataTableColumn, DataTableState, FilterDefinition, FilterState, PaginationState, SortState } from './types.js';
+  import type { DataTableColumn, DataTableLayout, DataTableState, FilterDefinition, FilterState, PaginationState, SortState } from './types.js';
 
   export let rows: unknown[] = [];
   export let columns: DataTableColumn[] = [];
@@ -17,6 +17,7 @@
   export let pageSizeOptions: number[] = [10, 20, 50, 100];
   export let zebra = true;
   export let verticalSeparators = false;
+  export let tableLayout: DataTableLayout = 'auto';
   export let emptyText = 'No records';
   export let onStateChange: ((nextState: DataTableState) => void) | undefined = undefined;
 
@@ -45,7 +46,7 @@
 
   <slot name="filters" {state} onFiltersChange={updateFilters}></slot>
 
-  <Table {rows} {columns} sort={state.sort} {zebra} {verticalSeparators} {emptyText} onSortChange={updateSort}>
+  <Table {rows} {columns} sort={state.sort} {zebra} {verticalSeparators} {tableLayout} {emptyText} onSortChange={updateSort}>
     <slot name="cell" slot="cell" let:row let:column let:value {row} {column} {value}>{value}</slot>
   </Table>
 
