@@ -54,3 +54,8 @@ jobs:
           test -f node_modules/@ibobbyts/svelte-ui-utils/dist/toast/index.js
           test -f node_modules/@ibobbyts/svelte-ui-utils/dist/dropdown-search/index.js
           test -f node_modules/@ibobbyts/svelte-ui-utils/dist/data-table/index.js
+
+      - name: Show Bun lock entry
+        working-directory: consumer
+        run: |
+          sed -n '1,120p' bun.lock
