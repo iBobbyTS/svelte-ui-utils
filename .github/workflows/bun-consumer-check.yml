@@ -1,0 +1,56 @@
+name: Bun Consumer Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_version:
+        description: Package version to install
+        required: true
+        default: 0.1.0
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  bun-install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Create consumer project
+        run: |
+          mkdir consumer
+          cd consumer
+          cat > package.json <<'JSON'
+          {
+            "name": "svelte-ui-utils-bun-consumer-check",
+            "private": true,
+            "type": "module",
+            "dependencies": {
+              "@ibobbyts/svelte-ui-utils": "${{ inputs.package_version }}",
+              "svelte": "^5.55.3"
+            }
+          }
+          JSON
+          cat > .npmrc <<'NPMRC'
+          @ibobbyts:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
+          NPMRC
+
+      - name: Install with Bun
+        working-directory: consumer
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun install
+
+      - name: Verify installed package files
+        working-directory: consumer
+        run: |
+          test -f node_modules/@ibobbyts/svelte-ui-utils/dist/style.css
+          test -f node_modules/@ibobbyts/svelte-ui-utils/dist/toast/index.js
+          test -f node_modules/@ibobbyts/svelte-ui-utils/dist/dropdown-search/index.js
+          test -f node_modules/@ibobbyts/svelte-ui-utils/dist/data-table/index.js
