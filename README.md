@@ -138,6 +138,8 @@ component files.
 
 `FilterBox` supports custom slots and built-in filter definitions for
 `checkbox`, `radio`, and `dropdownSearch`.
+`onStateChange` may return a promise; sortable headers wait for it before
+restoring scroll position.
 
 Use `Table` directly when pagination and filters are owned by the consuming
 page:

@@ -23,6 +23,7 @@ export type {
   DataTableRowKey,
   DataTableSortChangeHandler,
   DataTableState,
+  DataTableStateChangeHandler,
   DropdownSearchFilterDefinition,
   FilterDefinition,
   FilterOption,

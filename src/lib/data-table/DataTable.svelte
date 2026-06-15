@@ -3,7 +3,16 @@
   import Pagination from './Pagination.svelte';
   import Table from './Table.svelte';
   import { setDataTableFilters, setDataTablePageSize, setDataTablePagination, setDataTableSort } from './state.js';
-  import type { DataTableColumn, DataTableLayout, DataTableState, FilterDefinition, FilterState, PaginationState, SortState } from './types.js';
+  import type {
+    DataTableColumn,
+    DataTableLayout,
+    DataTableState,
+    DataTableStateChangeHandler,
+    FilterDefinition,
+    FilterState,
+    PaginationState,
+    SortState
+  } from './types.js';
 
   export let rows: unknown[] = [];
   export let columns: DataTableColumn[] = [];
@@ -20,23 +29,23 @@
   export let tableLayout: DataTableLayout = 'auto';
   export let preserveScrollOnSort = true;
   export let emptyText = 'No records';
-  export let onStateChange: ((nextState: DataTableState) => void) | undefined = undefined;
+  export let onStateChange: DataTableStateChangeHandler | undefined = undefined;
 
   function emit(nextState: DataTableState) {
-    onStateChange?.(nextState);
+    return onStateChange?.(nextState);
   }
 
   function updateSort(sort: SortState) {
-    emit({ ...setDataTableSort(state, sort.key), sort });
+    return emit({ ...setDataTableSort(state, sort.key), sort });
   }
 
   function updateFilters(filters: FilterState) {
-    emit(setDataTableFilters(state, filters));
+    return emit(setDataTableFilters(state, filters));
   }
 
   function updatePagination(pagination: PaginationState) {
     const pageSizeChanged = pagination.pageSize !== state.pagination.pageSize;
-    emit(pageSizeChanged ? setDataTablePageSize(state, pagination.pageSize, totalRows) : setDataTablePagination(state, pagination, totalRows));
+    return emit(pageSizeChanged ? setDataTablePageSize(state, pagination.pageSize, totalRows) : setDataTablePagination(state, pagination, totalRows));
   }
 </script>
 

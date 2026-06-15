@@ -11,6 +11,8 @@ export interface SortState {
 
 export type DataTableSortChangeHandler = (sort: SortState) => void | Promise<void>;
 
+export type DataTableStateChangeHandler = (nextState: DataTableState) => void | Promise<void>;
+
 export interface PaginationState {
   page: number;
   pageSize: number;

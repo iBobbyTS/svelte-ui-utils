@@ -192,6 +192,38 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
   });
 
+  it('waits for DataTable state changes before restoring sort scroll', async () => {
+    const scroll = mockWindowScroll(6, 320);
+    const onStateChange = vi.fn(async () => {
+      scroll.setScroll(0, 0);
+      await Promise.resolve();
+      scroll.setScroll(0, 0);
+    });
+
+    try {
+      render(DataTable, {
+        props: {
+          rows: [{ name: 'Jane' }],
+          columns: [{ key: 'name', header: 'Name', sortable: true }],
+          totalRows: 1,
+          onStateChange
+        }
+      });
+
+      await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
+      await new Promise((resolve) => setTimeout(resolve, 80));
+
+      expect(onStateChange).toHaveBeenCalledWith({
+        sort: { key: 'name', direction: 'asc' },
+        pagination: { page: 1, pageSize: 20 },
+        filters: {}
+      });
+      expect(scroll.getScroll()).toEqual({ x: 6, y: 320 });
+    } finally {
+      scroll.restore();
+    }
+  });
+
   it('emits pagination changes and resets to page 1 when page size changes', async () => {
     const onPaginationChange = vi.fn();
 
