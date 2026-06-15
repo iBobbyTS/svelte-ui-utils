@@ -419,6 +419,29 @@
   font-weight: 700;
 }
 
+.suu-table--sticky-header thead th {
+  position: sticky;
+  top: var(--suu-table-sticky-top, 0px);
+  z-index: 2;
+}
+
+.suu-table__sticky-clone {
+  position: fixed;
+  top: var(--suu-table-sticky-top, 0px);
+  z-index: var(--suu-table-sticky-z-index, 30);
+  overflow: hidden;
+  pointer-events: none;
+  box-shadow: 0 1px 0 var(--suu-color-border);
+}
+
+.suu-table__sticky-clone .suu-table {
+  table-layout: fixed;
+}
+
+.suu-table__sticky-clone .suu-table__sort-button {
+  pointer-events: auto;
+}
+
 .suu-table--zebra tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--suu-color-surface) 70%, transparent);
 }

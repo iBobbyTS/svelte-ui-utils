@@ -27,6 +27,8 @@
   export let zebra = true;
   export let verticalSeparators = false;
   export let tableLayout: DataTableLayout = 'auto';
+  export let stickyHeader = true;
+  export let stickyHeaderTop: string | undefined = undefined;
   export let preserveScrollOnSort = true;
   export let emptyText = 'No records';
   export let onStateChange: DataTableStateChangeHandler | undefined = undefined;
@@ -56,7 +58,7 @@
 
   <slot name="filters" {state} onFiltersChange={updateFilters}></slot>
 
-  <Table {rows} {columns} sort={state.sort} {zebra} {verticalSeparators} {tableLayout} {preserveScrollOnSort} {emptyText} onSortChange={updateSort}>
+  <Table {rows} {columns} sort={state.sort} {zebra} {verticalSeparators} {tableLayout} {stickyHeader} {stickyHeaderTop} {preserveScrollOnSort} {emptyText} onSortChange={updateSort}>
     <slot name="cell" slot="cell" let:row let:column let:value {row} {column} {value}>{value}</slot>
   </Table>
 

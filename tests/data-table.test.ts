@@ -167,6 +167,7 @@ describe('data table components', () => {
         bordered: false,
         verticalSeparators: true,
         tableLayout: 'fixed',
+        stickyHeaderTop: '4rem',
         rowKey: 'id',
         rowAttributes: (row) => ({ 'data-row-id': (row as { id: number }).id })
       }
@@ -175,21 +176,38 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table-wrap--borderless')).toBeTruthy();
     expect(container.querySelector('.suu-table--vertical-separators')).toBeTruthy();
     expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
+    expect(container.querySelector('.suu-table--sticky-header')).toBeTruthy();
+    expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 4rem');
     expect(container.querySelector('tr[data-row-id="42"]')).toBeTruthy();
     expect(container.querySelector('td[data-nowrap="false"]')).toBeTruthy();
   });
 
-  it('passes table layout through DataTable', () => {
+  it('can disable sticky headers', () => {
+    const { container } = render(Table, {
+      props: {
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }],
+        stickyHeader: false
+      }
+    });
+
+    expect(container.querySelector('.suu-table--sticky-header')).toBeFalsy();
+  });
+
+  it('passes table layout and sticky header options through DataTable', () => {
     const { container } = render(DataTable, {
       props: {
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
         totalRows: 1,
-        tableLayout: 'fixed'
+        tableLayout: 'fixed',
+        stickyHeaderTop: '3rem'
       }
     });
 
     expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
+    expect(container.querySelector('.suu-table--sticky-header')).toBeTruthy();
+    expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 3rem');
   });
 
   it('waits for DataTable state changes before restoring sort scroll', async () => {

@@ -132,6 +132,7 @@ component files.
   totalRows={totalRows}
   {state}
   tableLayout="auto"
+  stickyHeader={true}
   onStateChange={(next) => (state = next)}
 />
 ```
@@ -150,6 +151,8 @@ page:
   {columns}
   rowKey="id"
   tableLayout="fixed"
+  stickyHeader={true}
+  stickyHeaderTop="4rem"
   verticalSeparators={true}
   preserveScrollOnSort={true}
   rowAttributes={(row) => ({ 'data-row-id': row.id })}
@@ -168,6 +171,9 @@ page:
 Sortable headers preserve the current window scroll position by default. Set
 `preserveScrollOnSort={false}` when a page should intentionally return to the
 top after sorting.
+Table headers are sticky by default. Use `stickyHeader={false}` to disable this,
+or set `stickyHeaderTop` / `--suu-table-sticky-top` when an app has a fixed or
+sticky navbar.
 
 ## Theme variables
 
