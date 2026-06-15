@@ -21,6 +21,7 @@ export type {
   DataTableLayout,
   DataTableRowAttributes,
   DataTableRowKey,
+  DataTableSortChangeHandler,
   DataTableState,
   DropdownSearchFilterDefinition,
   FilterDefinition,

@@ -149,6 +149,7 @@ page:
   rowKey="id"
   tableLayout="fixed"
   verticalSeparators={true}
+  preserveScrollOnSort={true}
   rowAttributes={(row) => ({ 'data-row-id': row.id })}
   onSortChange={(sort) => updateUrl(sort)}
 >
@@ -161,6 +162,10 @@ page:
   </svelte:fragment>
 </Table>
 ```
+
+Sortable headers preserve the current window scroll position by default. Set
+`preserveScrollOnSort={false}` when a page should intentionally return to the
+top after sorting.
 
 ## Theme variables
 

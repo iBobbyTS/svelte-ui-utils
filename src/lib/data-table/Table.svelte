@@ -1,6 +1,14 @@
 <script lang="ts">
   import { getAriaSort, getCellValue, toggleSort } from './state.js';
-  import type { DataTableCellValue, DataTableColumn, DataTableLayout, DataTableRowAttributes, DataTableRowKey, SortState } from './types.js';
+  import type {
+    DataTableCellValue,
+    DataTableColumn,
+    DataTableLayout,
+    DataTableRowAttributes,
+    DataTableRowKey,
+    DataTableSortChangeHandler,
+    SortState
+  } from './types.js';
 
   export let rows: unknown[] = [];
   export let columns: DataTableColumn[] = [];
@@ -9,18 +17,57 @@
   export let bordered = true;
   export let verticalSeparators = false;
   export let tableLayout: DataTableLayout = 'auto';
+  export let preserveScrollOnSort = true;
   export let emptyText = 'No records';
   export let rowKey: DataTableRowKey | undefined = undefined;
   export let rowClass: string | ((row: unknown, index: number) => string | undefined | null) | undefined = undefined;
   export let rowAttributes: DataTableRowAttributes | undefined = undefined;
-  export let onSortChange: ((sort: SortState) => void) | undefined = undefined;
+  export let onSortChange: DataTableSortChangeHandler | undefined = undefined;
 
-  function handleSort(column: DataTableColumn) {
+  let scrollRestoreSequence = 0;
+
+  function restoreScrollPosition(scrollX: number, scrollY: number, sequence: number) {
+    if (!preserveScrollOnSort || typeof window === 'undefined' || sequence !== scrollRestoreSequence) {
+      return;
+    }
+
+    window.scrollTo(scrollX, scrollY);
+  }
+
+  function queueScrollRestore(scrollX: number, scrollY: number, sequence: number) {
+    if (!preserveScrollOnSort || typeof window === 'undefined') {
+      return;
+    }
+
+    const restore = () => restoreScrollPosition(scrollX, scrollY, sequence);
+    restore();
+    window.requestAnimationFrame?.(restore);
+    setTimeout(restore, 0);
+    setTimeout(restore, 50);
+  }
+
+  async function handleSort(column: DataTableColumn) {
     if (!column.sortable) {
       return;
     }
 
-    onSortChange?.(toggleSort(sort, column.key));
+    const shouldPreserveScroll = preserveScrollOnSort && typeof window !== 'undefined';
+    const scrollX = shouldPreserveScroll ? window.scrollX : 0;
+    const scrollY = shouldPreserveScroll ? window.scrollY : 0;
+    const sequence = shouldPreserveScroll ? scrollRestoreSequence + 1 : scrollRestoreSequence;
+    scrollRestoreSequence = sequence;
+
+    const sortResult = onSortChange?.(toggleSort(sort, column.key));
+    if (!shouldPreserveScroll) {
+      return;
+    }
+
+    queueScrollRestore(scrollX, scrollY, sequence);
+    try {
+      await sortResult;
+    } finally {
+      queueScrollRestore(scrollX, scrollY, sequence);
+    }
   }
 
   function resolveRowKey(row: unknown, index: number) {

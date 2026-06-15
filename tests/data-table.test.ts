@@ -14,6 +14,48 @@ import {
 } from '../src/lib/data-table/index.js';
 import type { DataTableState, FilterDefinition } from '../src/lib/data-table/index.js';
 
+function mockWindowScroll(initialX: number, initialY: number) {
+  const originalScrollTo = window.scrollTo;
+  const originalScrollX = Object.getOwnPropertyDescriptor(window, 'scrollX');
+  const originalScrollY = Object.getOwnPropertyDescriptor(window, 'scrollY');
+  let scrollX = initialX;
+  let scrollY = initialY;
+  const scrollTo = vi.fn((nextX?: number | ScrollToOptions, nextY?: number) => {
+    if (typeof nextX === 'object') {
+      scrollX = nextX.left ?? scrollX;
+      scrollY = nextX.top ?? scrollY;
+      return;
+    }
+
+    scrollX = nextX ?? scrollX;
+    scrollY = nextY ?? scrollY;
+  });
+
+  Object.defineProperty(window, 'scrollX', { configurable: true, get: () => scrollX });
+  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => scrollY });
+  window.scrollTo = scrollTo;
+
+  return {
+    scrollTo,
+    setScroll(nextX: number, nextY: number) {
+      scrollX = nextX;
+      scrollY = nextY;
+    },
+    getScroll() {
+      return { x: scrollX, y: scrollY };
+    },
+    restore() {
+      window.scrollTo = originalScrollTo;
+      if (originalScrollX) {
+        Object.defineProperty(window, 'scrollX', originalScrollX);
+      }
+      if (originalScrollY) {
+        Object.defineProperty(window, 'scrollY', originalScrollY);
+      }
+    }
+  };
+}
+
 describe('data table state helpers', () => {
   it('toggles sort and exposes aria-sort values', () => {
     const first = toggleSort(null, 'name');
@@ -50,6 +92,7 @@ describe('data table components', () => {
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', sortable: true }],
         sort: null,
+        preserveScrollOnSort: false,
         onSortChange
       }
     });
@@ -61,6 +104,35 @@ describe('data table components', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
     expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
+  });
+
+  it('preserves window scroll around async sort changes', async () => {
+    const scroll = mockWindowScroll(12, 480);
+    const onSortChange = vi.fn(async () => {
+      scroll.setScroll(0, 0);
+      await Promise.resolve();
+      scroll.setScroll(0, 0);
+    });
+
+    try {
+      render(Table, {
+        props: {
+          rows: [{ name: 'Jane' }],
+          columns: [{ key: 'name', header: 'Name', sortable: true }],
+          sort: null,
+          onSortChange
+        }
+      });
+
+      await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
+      await new Promise((resolve) => setTimeout(resolve, 80));
+
+      expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
+      expect(scroll.scrollTo).toHaveBeenCalledWith(12, 480);
+      expect(scroll.getScroll()).toEqual({ x: 12, y: 480 });
+    } finally {
+      scroll.restore();
+    }
   });
 
   it('renders sorted states with single-direction svg arrows', async () => {

@@ -9,6 +9,8 @@ export interface SortState {
   direction: SortDirection;
 }
 
+export type DataTableSortChangeHandler = (sort: SortState) => void | Promise<void>;
+
 export interface PaginationState {
   page: number;
   pageSize: number;
