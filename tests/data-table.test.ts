@@ -57,6 +57,22 @@ describe('data table components', () => {
     expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
   });
 
+  it('renders row attributes and respects borderless tables', () => {
+    const { container } = render(Table, {
+      props: {
+        rows: [{ id: 42, name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name', nowrap: false }],
+        bordered: false,
+        rowKey: 'id',
+        rowAttributes: (row) => ({ 'data-row-id': (row as { id: number }).id })
+      }
+    });
+
+    expect(container.querySelector('.suu-table-wrap--borderless')).toBeTruthy();
+    expect(container.querySelector('tr[data-row-id="42"]')).toBeTruthy();
+    expect(container.querySelector('td[data-nowrap="false"]')).toBeTruthy();
+  });
+
   it('emits pagination changes and resets to page 1 when page size changes', async () => {
     const onPaginationChange = vi.fn();
 

@@ -29,14 +29,30 @@ export interface DataTableState {
   filters: FilterState;
 }
 
-export interface DataTableColumn<Row = Record<string, unknown>> {
+export type DataTableCellValue = unknown;
+
+export type DataTableClassValue<Row = unknown> =
+  | string
+  | undefined
+  | null
+  | ((row: Row, value: DataTableCellValue, column: DataTableColumn<Row>) => string | undefined | null);
+
+export type DataTableRowKey<Row = unknown> = string | ((row: Row, index: number) => string | number);
+
+export type DataTableRowAttributes<Row = unknown> = (
+  row: Row,
+  index: number
+) => Record<string, string | number | boolean | null | undefined>;
+
+export interface DataTableColumn<Row = unknown> {
   key: string;
   header: string;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
-  class?: string;
+  class?: DataTableClassValue<Row>;
   headerClass?: string;
-  render?: (row: Row, column: DataTableColumn<Row>) => string | number | null | undefined;
+  nowrap?: boolean;
+  render?: (row: Row, column: DataTableColumn<Row>) => DataTableCellValue;
 }
 
 export interface FilterOption {

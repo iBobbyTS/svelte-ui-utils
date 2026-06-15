@@ -5,6 +5,7 @@ export interface DropdownSearchItem {
   title: string;
   param_dict?: Record<string, string | number | null>;
   disabled?: boolean;
+  [key: string]: unknown;
 }
 
 export interface DropdownSearchLoadContext {
@@ -27,3 +28,5 @@ export interface DropdownSearchChangeDetail {
   selectedItem: DropdownSearchItem | null;
   status: DropdownSearchStatus;
 }
+
+export type DropdownSearchItemValueGetter = (item: DropdownSearchItem) => string;

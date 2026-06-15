@@ -37,7 +37,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-  import { DataTable } from '@ibobbyts/svelte-ui-utils/data-table';
+  import { DataTable, Table } from '@ibobbyts/svelte-ui-utils/data-table';
 </script>
 ```
 
@@ -64,7 +64,7 @@ import { ToastManager, DropdownSearch, DataTable } from '@ibobbyts/svelte-ui-uti
   }
 </script>
 
-<ToastManager />
+<ToastManager closeLabel="Close" />
 <button on:click={save}>Save</button>
 ```
 
@@ -83,7 +83,12 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
   }
 </script>
 
-<DropdownSearch placeholder="Search" debounceMs={500} {loadOptions} />
+<DropdownSearch
+  placeholder="Search"
+  debounceMs={500}
+  {loadOptions}
+  searchOnExternalValueChange={true}
+/>
 ```
 
 `loadOptions` returns `{ options, exactMatch }`. An item uses this shape:
@@ -98,6 +103,10 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
 
 The input is valid when the server returns one unique `exactMatch`, or when the
 user selects an item. Non-empty text without a unique match is invalid.
+Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
+Server-side code and Node tests that only need pure helpers should import from
+`@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte
+component files.
 
 ## DataTable
 
@@ -128,6 +137,27 @@ user selects an item. Non-empty text without a unique match is invalid.
 
 `FilterBox` supports custom slots and built-in filter definitions for
 `checkbox`, `radio`, and `dropdownSearch`.
+
+Use `Table` directly when pagination and filters are owned by the consuming
+page:
+
+```svelte
+<Table
+  rows={rows}
+  {columns}
+  rowKey="id"
+  rowAttributes={(row) => ({ 'data-row-id': row.id })}
+  onSortChange={(sort) => updateUrl(sort)}
+>
+  <svelte:fragment slot="cell" let:row let:column let:value>
+    {#if column.key === 'actions'}
+      <button type="button">Open</button>
+    {:else}
+      {value}
+    {/if}
+  </svelte:fragment>
+</Table>
+```
 
 ## Theme variables
 

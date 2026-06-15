@@ -1,8 +1,15 @@
 export { default as DropdownSearch } from './DropdownSearch.svelte';
-export { formatParamDict, isUsableExactMatch, resolveDropdownSearchStatus } from './state.js';
+export {
+  clampDropdownSearchLimit,
+  formatParamDict,
+  isUsableExactMatch,
+  normalizeDropdownSearchValue,
+  resolveDropdownSearchStatus
+} from './state.js';
 export type {
   DropdownSearchChangeDetail,
   DropdownSearchItem,
+  DropdownSearchItemValueGetter,
   DropdownSearchLoadContext,
   DropdownSearchLoadOptions,
   DropdownSearchResult,

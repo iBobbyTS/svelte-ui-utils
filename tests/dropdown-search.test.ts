@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DropdownSearch from '../src/lib/dropdown-search/DropdownSearch.svelte';
-import { formatParamDict, resolveDropdownSearchStatus } from '../src/lib/dropdown-search/index.js';
+import { clampDropdownSearchLimit, formatParamDict, resolveDropdownSearchStatus } from '../src/lib/dropdown-search/index.js';
 import type { DropdownSearchItem, DropdownSearchLoadOptions } from '../src/lib/dropdown-search/index.js';
 
 const jane: DropdownSearchItem = {
@@ -18,6 +18,9 @@ describe('dropdown search state', () => {
     expect(resolveDropdownSearchStatus({ value: 'Jane', loading: true })).toBe('loading');
     expect(resolveDropdownSearchStatus({ value: 'Jane', exactMatch: jane })).toBe('valid');
     expect(resolveDropdownSearchStatus({ value: 'Jane' })).toBe('invalid');
+    expect(clampDropdownSearchLimit(-3)).toBe(1);
+    expect(clampDropdownSearchLimit(8.7)).toBe(8);
+    expect(clampDropdownSearchLimit(100)).toBe(50);
   });
 });
 
@@ -106,5 +109,25 @@ describe('DropdownSearch component', () => {
 
     await vi.advanceTimersByTimeAsync(100);
     expect(changes).not.toContain('valid:Stale Jane');
+  });
+
+  it('searches when a controlled value changes externally', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+    const changes: string[] = [];
+
+    const { rerender } = render(DropdownSearch, {
+      props: {
+        value: '',
+        loadOptions,
+        searchOnExternalValueChange: true,
+        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
+      }
+    });
+
+    await rerender({ value: 'M-123' });
+
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('M-123', expect.objectContaining({ limit: 10 })));
+    await waitFor(() => expect(changes).toContain('valid:Jane Doe'));
+    expect(changes).not.toContain('invalid:');
   });
 });

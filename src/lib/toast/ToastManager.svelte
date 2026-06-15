@@ -5,6 +5,7 @@
 
   export let store: ToastStore = defaultToastStore;
   export let positions: ToastPosition[] = TOAST_POSITIONS;
+  export let closeLabel = 'Close notification';
 
   $: groups = groupToastsByPosition($store);
 </script>
@@ -19,7 +20,7 @@
       aria-live={position.includes('top') ? 'polite' : 'off'}
     >
       {#each items as item (item.id)}
-        <Toast toast={item} onDismiss={store.dismiss} />
+        <Toast toast={item} onDismiss={store.dismiss} {closeLabel} />
       {/each}
     </div>
   {/if}

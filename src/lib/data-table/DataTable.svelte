@@ -5,8 +5,8 @@
   import { setDataTableFilters, setDataTablePageSize, setDataTablePagination, setDataTableSort } from './state.js';
   import type { DataTableColumn, DataTableState, FilterDefinition, FilterState, PaginationState, SortState } from './types.js';
 
-  export let rows: Record<string, unknown>[] = [];
-  export let columns: DataTableColumn<Record<string, unknown>>[] = [];
+  export let rows: unknown[] = [];
+  export let columns: DataTableColumn[] = [];
   export let totalRows = 0;
   export let state: DataTableState = {
     sort: null,

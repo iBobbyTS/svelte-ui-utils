@@ -3,6 +3,7 @@
 
   export let toast: ToastItem;
   export let onDismiss: (id: string) => void = () => {};
+  export let closeLabel = 'Close notification';
 
   $: countdownStyle = `--suu-toast-duration: ${toast.duration}ms`;
 </script>
@@ -22,7 +23,7 @@
     {/if}
   </div>
   {#if toast.dismissible}
-    <button class="suu-toast__close" type="button" aria-label="Close notification" on:click={() => onDismiss(toast.id)}>
+    <button class="suu-toast__close" type="button" aria-label={closeLabel} on:click={() => onDismiss(toast.id)}>
       <span aria-hidden="true">&times;</span>
     </button>
   {/if}

@@ -366,6 +366,11 @@
   border-radius: var(--suu-radius);
 }
 
+.suu-table-wrap--borderless {
+  border: 0;
+  border-radius: 0;
+}
+
 .suu-table {
   width: 100%;
   border-collapse: collapse;
@@ -378,6 +383,10 @@
   border-bottom: 1px solid var(--suu-color-border);
   text-align: left;
   vertical-align: top;
+}
+
+.suu-table th[data-nowrap='true'],
+.suu-table td[data-nowrap='true'] {
   white-space: nowrap;
 }
 
@@ -403,6 +412,10 @@
 
 .suu-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.suu-table tbody tr:hover {
+  background: color-mix(in srgb, var(--suu-color-surface) 88%, transparent);
 }
 
 .suu-table__sort-button {

@@ -61,11 +61,14 @@ export function setDataTableFilters(state: DataTableState, filters: FilterState)
   };
 }
 
-export function getCellValue<Row extends Record<string, unknown>>(row: Row, column: DataTableColumn<Row>) {
+export function getCellValue<Row = unknown>(row: Row, column: DataTableColumn<Row>) {
   if (column.render) {
     return column.render(row, column);
   }
 
-  const value = row[column.key];
+  const value =
+    row && typeof row === 'object' && column.key in row
+      ? (row as Record<string, unknown>)[column.key]
+      : undefined;
   return value === null || value === undefined ? '' : value;
 }

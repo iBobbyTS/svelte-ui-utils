@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { formatParamDict, resolveDropdownSearchStatus } from './state.js';
+  import { formatParamDict, normalizeDropdownSearchValue, resolveDropdownSearchStatus } from './state.js';
   import type {
     DropdownSearchChangeDetail,
     DropdownSearchItem,
+    DropdownSearchItemValueGetter,
     DropdownSearchLoadOptions,
     DropdownSearchStatus
   } from './types.js';
@@ -18,12 +19,17 @@
   export let loadOptions: DropdownSearchLoadOptions;
   export let id: string | undefined = undefined;
   export let name: string | undefined = undefined;
+  export let ariaLabel: string | undefined = undefined;
+  export let listboxId: string | undefined = undefined;
   export let disabled = false;
   export let noResultsText = 'No results';
   export let loadingText = 'Loading...';
+  export let searchOnExternalValueChange = false;
+  export let getItemValue: DropdownSearchItemValueGetter = (item) => item.title;
   export let onChange: ((detail: DropdownSearchChangeDetail) => void) | undefined = undefined;
   export let onSelect: ((item: DropdownSearchItem) => void) | undefined = undefined;
   export let onStatusChange: ((status: DropdownSearchStatus) => void) | undefined = undefined;
+  export let onInputBlur: ((event: FocusEvent) => void) | undefined = undefined;
 
   let options: DropdownSearchItem[] = [];
   let exactMatch: DropdownSearchItem | null = null;
@@ -31,9 +37,14 @@
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let activeController: AbortController | undefined;
   let requestId = 0;
+  let lastHandledValue = value;
 
-  $: hasQuery = value.trim().length > 0;
+  $: resolvedListboxId = listboxId ?? (id ? `${id}-options` : undefined);
+  $: hasQuery = normalizeDropdownSearchValue(value).length > 0;
   $: showOptions = focused && !disabled && (options.length > 0 || status === 'loading' || (hasQuery && status === 'invalid'));
+  $: if (searchOnExternalValueChange && value !== lastHandledValue) {
+    handleExternalValue(value);
+  }
 
   function emitChange() {
     const detail = { value, selectedItem, status };
@@ -48,6 +59,7 @@
   }
 
   function resetSearchState(nextValue: string) {
+    lastHandledValue = nextValue;
     value = nextValue;
     selectedItem = null;
     exactMatch = null;
@@ -71,7 +83,7 @@
   }
 
   async function runSearch(query: string) {
-    const trimmed = query.trim();
+    const trimmed = normalizeDropdownSearchValue(query);
 
     if (!trimmed || trimmed.length < minLength) {
       abortActiveSearch();
@@ -140,11 +152,28 @@
     abortActiveSearch();
     selectedItem = item;
     exactMatch = item;
-    value = item.title;
+    value = getItemValue(item);
+    lastHandledValue = value;
     setStatus('valid');
     focused = false;
     emitChange();
     onSelect?.(item);
+  }
+
+  function handleExternalValue(nextValue: string) {
+    lastHandledValue = nextValue;
+    selectedItem = null;
+    exactMatch = null;
+    options = [];
+
+    clearSearchTimer();
+    if (!normalizeDropdownSearchValue(nextValue) || normalizeDropdownSearchValue(nextValue).length < minLength) {
+      setStatus(resolveDropdownSearchStatus({ value: nextValue, selectedItem, exactMatch, minLength }));
+      emitChange();
+      return;
+    }
+
+    void runSearch(nextValue);
   }
 
   onDestroy(() => {
@@ -161,20 +190,25 @@
       {name}
       {value}
       {placeholder}
+      aria-label={ariaLabel}
       {disabled}
       autocomplete="off"
       aria-autocomplete="list"
+      aria-controls={resolvedListboxId}
       aria-expanded={showOptions}
       aria-invalid={status === 'invalid' || status === 'error'}
       on:input={handleInput}
       on:focus={() => (focused = true)}
-      on:blur={() => setTimeout(() => (focused = false), 120)}
+      on:blur={(event) => {
+        onInputBlur?.(event);
+        setTimeout(() => (focused = false), 120);
+      }}
     />
     <span class="suu-dropdown-search__status" aria-hidden="true"></span>
   </div>
 
   {#if showOptions}
-    <div class="suu-dropdown-search__menu" role="listbox">
+    <div class="suu-dropdown-search__menu" id={resolvedListboxId} role="listbox">
       {#if status === 'loading'}
         <div class="suu-dropdown-search__empty">{loadingText}</div>
       {:else if options.length > 0}

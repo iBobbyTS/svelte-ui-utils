@@ -1,5 +1,17 @@
 import type { DropdownSearchItem, DropdownSearchStatus } from './types.js';
 
+export function normalizeDropdownSearchValue(value: string): string {
+  return value.trim();
+}
+
+export function clampDropdownSearchLimit(limit: number): number {
+  if (!Number.isFinite(limit)) {
+    return 10;
+  }
+
+  return Math.min(50, Math.max(1, Math.floor(limit)));
+}
+
 export function isUsableExactMatch(item: DropdownSearchItem | null | undefined): item is DropdownSearchItem {
   return Boolean(item && !item.disabled);
 }
@@ -12,7 +24,7 @@ export function resolveDropdownSearchStatus(params: {
   errored?: boolean;
   minLength?: number;
 }): DropdownSearchStatus {
-  const trimmed = params.value.trim();
+  const trimmed = normalizeDropdownSearchValue(params.value);
   const minLength = params.minLength ?? 1;
 
   if (!trimmed) {

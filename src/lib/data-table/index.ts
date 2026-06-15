@@ -16,6 +16,10 @@ export {
 export type {
   CheckboxFilterDefinition,
   DataTableColumn,
+  DataTableCellValue,
+  DataTableClassValue,
+  DataTableRowAttributes,
+  DataTableRowKey,
   DataTableState,
   DropdownSearchFilterDefinition,
   FilterDefinition,
