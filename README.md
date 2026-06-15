@@ -146,6 +146,7 @@ page:
   rows={rows}
   {columns}
   rowKey="id"
+  verticalSeparators={true}
   rowAttributes={(row) => ({ 'data-row-id': row.id })}
   onSortChange={(sort) => updateUrl(sort)}
 >

@@ -385,6 +385,11 @@
   vertical-align: top;
 }
 
+.suu-table--vertical-separators th:not(:first-child),
+.suu-table--vertical-separators td:not(:first-child) {
+  border-left: 1px solid var(--suu-color-border);
+}
+
 .suu-table th[data-nowrap='true'],
 .suu-table td[data-nowrap='true'] {
   white-space: nowrap;
@@ -438,8 +443,16 @@
 }
 
 .suu-table__sort-indicator {
+  display: inline-flex;
+  align-items: center;
   color: var(--suu-color-muted);
   font-size: 0.75rem;
+}
+
+.suu-table__sort-icon {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .suu-table__empty {

@@ -44,7 +44,7 @@ describe('data table components', () => {
   it('emits sort changes from sortable headers', async () => {
     const onSortChange = vi.fn();
 
-    render(Table, {
+    const { container } = render(Table, {
       props: {
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', sortable: true }],
@@ -53,22 +53,27 @@ describe('data table components', () => {
       }
     });
 
+    expect(screen.queryByText('↕')).toBeNull();
+    expect(container.querySelector('.suu-table__sort-icon')).toBeTruthy();
+
     await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
     expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
   });
 
-  it('renders row attributes and respects borderless tables', () => {
+  it('renders row attributes and optional table styling classes', () => {
     const { container } = render(Table, {
       props: {
         rows: [{ id: 42, name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', nowrap: false }],
         bordered: false,
+        verticalSeparators: true,
         rowKey: 'id',
         rowAttributes: (row) => ({ 'data-row-id': (row as { id: number }).id })
       }
     });
 
     expect(container.querySelector('.suu-table-wrap--borderless')).toBeTruthy();
+    expect(container.querySelector('.suu-table--vertical-separators')).toBeTruthy();
     expect(container.querySelector('tr[data-row-id="42"]')).toBeTruthy();
     expect(container.querySelector('td[data-nowrap="false"]')).toBeTruthy();
   });
