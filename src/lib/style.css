@@ -360,6 +360,104 @@
   align-items: center;
 }
 
+.suu-date-range-filter,
+.suu-number-range-filter {
+  display: grid;
+  gap: 10px;
+}
+
+.suu-date-range-filter {
+  min-width: min(100%, 420px);
+}
+
+.suu-number-range-filter {
+  min-width: min(100%, 260px);
+}
+
+.suu-range-field {
+  display: grid;
+  gap: 5px;
+  color: var(--suu-color-text);
+  font-size: 0.875rem;
+}
+
+.suu-range-field span {
+  color: var(--suu-color-muted);
+}
+
+.suu-range-field input {
+  min-height: 36px;
+  width: 100%;
+  border: 1px solid var(--suu-color-border);
+  border-radius: var(--suu-radius);
+  background: var(--suu-color-bg);
+  color: var(--suu-color-text);
+  font: inherit;
+}
+
+.suu-range-field input {
+  padding: 7px 9px;
+}
+
+.suu-range-field input:focus {
+  border-color: var(--suu-color-accent);
+  outline: 2px solid color-mix(in srgb, var(--suu-color-accent) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.suu-filter-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.suu-filter-preset {
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--suu-color-border);
+  border-radius: var(--suu-radius);
+  background: var(--suu-color-bg);
+  color: var(--suu-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.suu-filter-preset:hover,
+.suu-filter-preset:focus-visible,
+.suu-filter-preset--active {
+  border-color: var(--suu-color-accent);
+  outline: none;
+}
+
+.suu-filter-preset--active {
+  background: color-mix(in srgb, var(--suu-color-accent) 12%, var(--suu-color-bg));
+}
+
+.suu-input-affix {
+  display: flex;
+  align-items: stretch;
+}
+
+.suu-input-affix__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--suu-color-border);
+  border-right: 0;
+  border-radius: var(--suu-radius) 0 0 var(--suu-radius);
+  background: var(--suu-color-surface);
+  color: var(--suu-color-muted);
+}
+
+.suu-input-affix input {
+  min-width: 0;
+}
+
+.suu-input-affix:has(.suu-input-affix__label) input {
+  border-radius: 0 var(--suu-radius) var(--suu-radius) 0;
+}
+
 .suu-table-wrap {
   overflow: auto;
   border: 1px solid var(--suu-color-border);

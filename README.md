@@ -22,7 +22,7 @@ npm install @ibobbyts/svelte-ui-utils
 With Bun:
 
 ```bash
-GITHUB_PACKAGES_TOKEN=<token> bun add @ibobbyts/svelte-ui-utils@0.1.0
+GITHUB_PACKAGES_TOKEN=<token> bun add @ibobbyts/svelte-ui-utils@0.1.1
 ```
 
 Import the stylesheet once in your app entry:
@@ -37,7 +37,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-  import { DataTable, Table } from '@ibobbyts/svelte-ui-utils/data-table';
+  import { DataTable, DateRangeFilter, NumberRangeFilter, Table } from '@ibobbyts/svelte-ui-utils/data-table';
 </script>
 ```
 
@@ -138,9 +138,19 @@ component files.
 ```
 
 `FilterBox` supports custom slots and built-in filter definitions for
-`checkbox`, `radio`, and `dropdownSearch`.
+`checkbox`, `radio`, `dropdownSearch`, `dateRange`, and `numberRange`.
 `onStateChange` may return a promise; sortable headers wait for it before
 restoring scroll position.
+
+`dateRange` renders two browser date inputs plus preset buttons:
+`last 24 hours`, `last 7 days`, `last 30 days`, `today`, `this week`,
+`this month`, and `this year`. Manual changes emit `{ startDate, endDate,
+preset: null }`. The `last24Hours` preset also emits `startDateTime` and
+`endDateTime` so a consuming app can run an exact timestamp query while still
+showing the covered dates in the inputs.
+
+`numberRange` renders min/max number inputs and supports `prefixLabel`, for
+example `$` for currency filters.
 
 Use `Table` directly when pagination and filters are owned by the consuming
 page:
@@ -206,9 +216,9 @@ Publishing is release-driven:
 
 ```bash
 gh repo create iBobbyTS/svelte-ui-utils --public --source . --remote origin --push
-git tag v0.1.0
-git push origin v0.1.0
-gh release create v0.1.0 --title "v0.1.0" --notes "Initial Toast, DropdownSearch, and DataTable release"
+git tag v0.1.1
+git push origin v0.1.1
+gh release create v0.1.1 --title "v0.1.1" --notes "Add DateRangeFilter and NumberRangeFilter"
 gh run watch
 ```
 

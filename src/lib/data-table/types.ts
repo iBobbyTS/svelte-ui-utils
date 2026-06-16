@@ -24,6 +24,8 @@ export type FilterValue =
   | boolean
   | null
   | undefined
+  | DateRangeFilterValue
+  | NumberRangeFilterValue
   | Array<string | number>
   | Record<string, unknown>;
 
@@ -67,6 +69,28 @@ export interface FilterOption {
   disabled?: boolean;
 }
 
+export type DateRangePreset =
+  | 'last24Hours'
+  | 'last7Days'
+  | 'last30Days'
+  | 'today'
+  | 'thisWeek'
+  | 'thisMonth'
+  | 'thisYear';
+
+export interface DateRangeFilterValue {
+  startDate: string;
+  endDate: string;
+  preset: DateRangePreset | null;
+  startDateTime?: string;
+  endDateTime?: string;
+}
+
+export interface NumberRangeFilterValue {
+  min: number | null;
+  max: number | null;
+}
+
 export interface CheckboxFilterDefinition {
   type: 'checkbox';
   key: string;
@@ -92,4 +116,32 @@ export interface DropdownSearchFilterDefinition {
   loadOptions: DropdownSearchLoadOptions;
 }
 
-export type FilterDefinition = CheckboxFilterDefinition | RadioFilterDefinition | DropdownSearchFilterDefinition;
+export interface DateRangeFilterDefinition {
+  type: 'dateRange';
+  key: string;
+  label: string;
+  startLabel?: string;
+  endLabel?: string;
+  presetLabels?: Partial<Record<DateRangePreset, string>>;
+  now?: () => Date;
+  weekStartsOn?: 0 | 1;
+}
+
+export interface NumberRangeFilterDefinition {
+  type: 'numberRange';
+  key: string;
+  label: string;
+  minLabel?: string;
+  maxLabel?: string;
+  prefixLabel?: string;
+  min?: number;
+  max?: number;
+  step?: number | string;
+}
+
+export type FilterDefinition =
+  | CheckboxFilterDefinition
+  | RadioFilterDefinition
+  | DropdownSearchFilterDefinition
+  | DateRangeFilterDefinition
+  | NumberRangeFilterDefinition;

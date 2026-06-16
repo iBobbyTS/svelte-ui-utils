@@ -1,5 +1,7 @@
 export { default as DataTable } from './DataTable.svelte';
+export { default as DateRangeFilter } from './DateRangeFilter.svelte';
 export { default as FilterBox } from './FilterBox.svelte';
+export { default as NumberRangeFilter } from './NumberRangeFilter.svelte';
 export { default as Pagination } from './Pagination.svelte';
 export { default as Table } from './Table.svelte';
 export {
@@ -19,6 +21,9 @@ export type {
   DataTableCellValue,
   DataTableClassValue,
   DataTableLayout,
+  DateRangeFilterDefinition,
+  DateRangeFilterValue,
+  DateRangePreset,
   DataTableRowAttributes,
   DataTableRowKey,
   DataTableSortChangeHandler,
@@ -29,6 +34,8 @@ export type {
   FilterOption,
   FilterState,
   FilterValue,
+  NumberRangeFilterDefinition,
+  NumberRangeFilterValue,
   PaginationState,
   RadioFilterDefinition,
   SortDirection,

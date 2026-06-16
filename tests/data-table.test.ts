@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import DataTable from '../src/lib/data-table/DataTable.svelte';
+import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
 import FilterBox from '../src/lib/data-table/FilterBox.svelte';
+import NumberRangeFilter from '../src/lib/data-table/NumberRangeFilter.svelte';
 import Pagination from '../src/lib/data-table/Pagination.svelte';
 import Table from '../src/lib/data-table/Table.svelte';
 import {
@@ -361,5 +363,107 @@ describe('data table components', () => {
 
     await fireEvent.click(screen.getByLabelText('Member'));
     expect(onFiltersChange).toHaveBeenLastCalledWith({ status: ['active'], role: 'member' });
+  });
+
+  it('emits date range changes and exact last 24 hour values', async () => {
+    const onChange = vi.fn();
+
+    render(DateRangeFilter, {
+      props: {
+        startLabel: 'Start',
+        endLabel: 'End',
+        now: () => new Date(2026, 5, 16, 10, 30, 15),
+        onChange
+      }
+    });
+
+    await fireEvent.change(screen.getByLabelText('Start'), { target: { value: '2026-06-01' } });
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-06-01',
+      endDate: '',
+      preset: null
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'last 24 hours' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-06-15',
+      endDate: '2026-06-16',
+      preset: 'last24Hours',
+      startDateTime: '2026-06-15T10:30:15',
+      endDateTime: '2026-06-16T10:30:15'
+    });
+
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-06-15');
+    expect(screen.getByLabelText('End')).toHaveValue('2026-06-16');
+  });
+
+  it('emits number range changes with prefix labels', async () => {
+    const onChange = vi.fn();
+    const { container } = render(NumberRangeFilter, {
+      props: {
+        minLabel: 'Minimum',
+        maxLabel: 'Maximum',
+        prefixLabel: '$',
+        step: '0.01',
+        onChange
+      }
+    });
+
+    expect(container.querySelectorAll('.suu-input-affix__label')).toHaveLength(2);
+    await fireEvent.input(screen.getByLabelText('Minimum'), { target: { value: '25.5' } });
+    expect(onChange).toHaveBeenLastCalledWith({ min: 25.5, max: null });
+
+    await fireEvent.input(screen.getByLabelText('Maximum'), { target: { value: '80' } });
+    expect(onChange).toHaveBeenLastCalledWith({ min: 25.5, max: 80 });
+  });
+
+  it('emits date and number range filter state from definitions', async () => {
+    const onFiltersChange = vi.fn();
+    const definitions: FilterDefinition[] = [
+      {
+        type: 'dateRange',
+        key: 'issueDate',
+        label: 'Issue date',
+        startLabel: 'From',
+        endLabel: 'To',
+        now: () => new Date(2026, 5, 16, 9, 0, 0)
+      },
+      {
+        type: 'numberRange',
+        key: 'amount',
+        label: 'Amount',
+        minLabel: 'Min amount',
+        maxLabel: 'Max amount',
+        prefixLabel: '$',
+        step: '0.01'
+      }
+    ];
+
+    render(FilterBox, {
+      props: {
+        definitions,
+        filters: {},
+        onFiltersChange
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'today' }));
+    expect(onFiltersChange).toHaveBeenLastCalledWith({
+      issueDate: {
+        startDate: '2026-06-16',
+        endDate: '2026-06-16',
+        preset: 'today'
+      }
+    });
+
+    await fireEvent.input(screen.getByLabelText('Min amount'), { target: { value: '10' } });
+    expect(onFiltersChange).toHaveBeenLastCalledWith({
+      issueDate: {
+        startDate: '2026-06-16',
+        endDate: '2026-06-16',
+        preset: 'today'
+      },
+      amount: { min: 10, max: null }
+    });
   });
 });
