@@ -214,6 +214,10 @@ inside a theme root:
 
 Publishing is release-driven:
 
+Do not publish this package as part of consumer-app local integration work.
+Create tags, GitHub Releases, or package publishes only when a release is
+explicitly requested.
+
 ```bash
 gh repo create iBobbyTS/svelte-ui-utils --public --source . --remote origin --push
 git tag v0.1.1
