@@ -20,6 +20,7 @@ declare const DropdownSearch: $$__sveltets_2_IsomorphicComponent<{
     debounceMs?: number;
     limit?: number;
     minLength?: number;
+    validate?: boolean;
     loadOptions: DropdownSearchLoadOptions;
     id?: string | undefined;
     name?: string | undefined;

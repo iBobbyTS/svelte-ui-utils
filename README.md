@@ -112,6 +112,9 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
 
 The input is valid when the server returns one unique `exactMatch`, or when the
 user selects an item. Non-empty text without a unique match is invalid.
+Set `validate={false}` when the field should only show selectable options and
+stay visually neutral instead of turning green or red. In that mode the
+component ignores `exactMatch` for status and auto-selection.
 Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
 Server-side code and Node tests that only need pure helpers should import from
 `@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte

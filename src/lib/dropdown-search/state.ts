@@ -23,20 +23,26 @@ export function resolveDropdownSearchStatus(params: {
   loading?: boolean;
   errored?: boolean;
   minLength?: number;
+  validate?: boolean;
 }): DropdownSearchStatus {
   const trimmed = normalizeDropdownSearchValue(params.value);
   const minLength = params.minLength ?? 1;
+  const validate = params.validate ?? true;
 
   if (!trimmed) {
     return 'empty';
   }
 
-  if (params.errored) {
-    return 'error';
-  }
-
   if (params.loading) {
     return 'loading';
+  }
+
+  if (!validate) {
+    return 'empty';
+  }
+
+  if (params.errored) {
+    return 'error';
   }
 
   if (trimmed.length < minLength) {

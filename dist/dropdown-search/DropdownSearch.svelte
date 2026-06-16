@@ -16,6 +16,7 @@
   export let debounceMs = 500;
   export let limit = 10;
   export let minLength = 1;
+  export let validate = true;
   export let loadOptions: DropdownSearchLoadOptions;
   export let id: string | undefined = undefined;
   export let name: string | undefined = undefined;
@@ -42,6 +43,9 @@
   $: resolvedListboxId = listboxId ?? (id ? `${id}-options` : undefined);
   $: hasQuery = normalizeDropdownSearchValue(value).length > 0;
   $: showOptions = focused && !disabled && (options.length > 0 || status === 'loading' || (hasQuery && status === 'invalid'));
+  $: if (!validate && status !== 'empty' && status !== 'loading') {
+    setStatus('empty');
+  }
   $: if (searchOnExternalValueChange && value !== lastHandledValue) {
     handleExternalValue(value);
   }
@@ -64,7 +68,7 @@
     selectedItem = null;
     exactMatch = null;
     options = [];
-    setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength }));
+    setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength, validate }));
     emitChange();
   }
 
@@ -89,7 +93,7 @@
       abortActiveSearch();
       options = [];
       exactMatch = null;
-      setStatus(resolveDropdownSearchStatus({ value: query, minLength }));
+      setStatus(resolveDropdownSearchStatus({ value: query, minLength, validate }));
       emitChange();
       return;
     }
@@ -109,9 +113,9 @@
       }
 
       options = result.options ?? [];
-      exactMatch = result.exactMatch ?? null;
-      selectedItem = exactMatch && !exactMatch.disabled ? exactMatch : null;
-      setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength }));
+      exactMatch = validate ? (result.exactMatch ?? null) : null;
+      selectedItem = validate && exactMatch && !exactMatch.disabled ? exactMatch : null;
+      setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength, validate }));
       emitChange();
     } catch (error) {
       if (controller.signal.aborted || currentRequestId !== requestId) {
@@ -121,7 +125,7 @@
       options = [];
       exactMatch = null;
       selectedItem = null;
-      setStatus('error');
+      setStatus(resolveDropdownSearchStatus({ value: query, errored: true, minLength, validate }));
       emitChange();
     } finally {
       if (activeController === controller) {
@@ -151,10 +155,10 @@
     clearSearchTimer();
     abortActiveSearch();
     selectedItem = item;
-    exactMatch = item;
+    exactMatch = validate ? item : null;
     value = getItemValue(item);
     lastHandledValue = value;
-    setStatus('valid');
+    setStatus(validate ? 'valid' : 'empty');
     focused = false;
     emitChange();
     onSelect?.(item);
@@ -168,7 +172,7 @@
 
     clearSearchTimer();
     if (!normalizeDropdownSearchValue(nextValue) || normalizeDropdownSearchValue(nextValue).length < minLength) {
-      setStatus(resolveDropdownSearchStatus({ value: nextValue, selectedItem, exactMatch, minLength }));
+      setStatus(resolveDropdownSearchStatus({ value: nextValue, selectedItem, exactMatch, minLength, validate }));
       emitChange();
       return;
     }

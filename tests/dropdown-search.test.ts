@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DropdownSearch from '../src/lib/dropdown-search/DropdownSearch.svelte';
 import { clampDropdownSearchLimit, formatParamDict, resolveDropdownSearchStatus } from '../src/lib/dropdown-search/index.js';
@@ -18,6 +19,8 @@ describe('dropdown search state', () => {
     expect(resolveDropdownSearchStatus({ value: 'Jane', loading: true })).toBe('loading');
     expect(resolveDropdownSearchStatus({ value: 'Jane', exactMatch: jane })).toBe('valid');
     expect(resolveDropdownSearchStatus({ value: 'Jane' })).toBe('invalid');
+    expect(resolveDropdownSearchStatus({ value: 'Jane', exactMatch: jane, validate: false })).toBe('empty');
+    expect(resolveDropdownSearchStatus({ value: 'Jane', errored: true, validate: false })).toBe('empty');
     expect(clampDropdownSearchLimit(-3)).toBe(1);
     expect(clampDropdownSearchLimit(8.7)).toBe(8);
     expect(clampDropdownSearchLimit(100)).toBe(50);
@@ -129,5 +132,70 @@ describe('DropdownSearch component', () => {
     await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('M-123', expect.objectContaining({ limit: 10 })));
     await waitFor(() => expect(changes).toContain('valid:Jane Doe'));
     expect(changes).not.toContain('invalid:');
+  });
+
+  it('keeps a neutral status when validation is disabled', async () => {
+    vi.useFakeTimers();
+    const changes: string[] = [];
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+
+    const { container } = render(DropdownSearch, {
+      props: {
+        debounceMs: 10,
+        loadOptions,
+        validate: false,
+        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    await fireEvent.input(input, { target: { value: 'Jane' } });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Jane', expect.objectContaining({ limit: 10 })));
+    await tick();
+    expect(screen.getByRole('option', { name: /Jane Doe/ })).toBeInTheDocument();
+    const root = container.querySelector('.suu-dropdown-search');
+    expect(root).toHaveAttribute('data-status', 'empty');
+    expect(root).not.toHaveClass('suu-dropdown-search--valid');
+    expect(root).not.toHaveClass('suu-dropdown-search--invalid');
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+    expect(changes).toContain('loading:');
+    expect(changes).toContain('empty:');
+    expect(changes).not.toContain('valid:Jane Doe');
+
+    await fireEvent.mouseDown(screen.getByRole('option', { name: /Jane Doe/ }));
+
+    expect(root).toHaveAttribute('data-status', 'empty');
+    expect(root).not.toHaveClass('suu-dropdown-search--valid');
+    expect(input).toHaveValue('Jane Doe');
+    expect(changes).toContain('empty:Jane Doe');
+  });
+
+  it('does not mark missing matches invalid when validation is disabled', async () => {
+    vi.useFakeTimers();
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+
+    const { container } = render(DropdownSearch, {
+      props: {
+        debounceMs: 10,
+        loadOptions,
+        validate: false
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    await fireEvent.input(input, { target: { value: 'Nobody' } });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Nobody', expect.objectContaining({ limit: 10 })));
+    await tick();
+    const root = container.querySelector('.suu-dropdown-search');
+    expect(root).toHaveAttribute('data-status', 'empty');
+    expect(root).not.toHaveClass('suu-dropdown-search--invalid');
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.queryByText('No results')).not.toBeInTheDocument();
   });
 });

@@ -9,6 +9,7 @@ export declare function resolveDropdownSearchStatus(params: {
     loading?: boolean;
     errored?: boolean;
     minLength?: number;
+    validate?: boolean;
 }): DropdownSearchStatus;
 export declare function formatParamDict(paramDict: DropdownSearchItem['param_dict']): string[];
 //# sourceMappingURL=state.d.ts.map
