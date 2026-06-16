@@ -46,7 +46,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-  import { DataTable, DateRangeFilter, NumberRangeFilter, Table } from '@ibobbyts/svelte-ui-utils/data-table';
+  import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/data-table';
 </script>
 ```
 
@@ -149,8 +149,10 @@ component files.
 />
 ```
 
-`FilterBox` supports custom slots and built-in filter definitions for
-`checkbox`, `radio`, `dropdownSearch`, `dateRange`, and `numberRange`.
+`FilterTable` supports built-in filter definitions for `checkbox`, `radio`,
+`dropdownSearch`, `dateRange`, and `numberRange`. Filters render as a two-column
+table: the first column is the filter label, and the second column contains the
+filter controls.
 `onStateChange` may return a promise; sortable headers wait for it before
 restoring scroll position.
 
@@ -164,13 +166,13 @@ showing the covered dates in the inputs.
 `numberRange` renders min/max number inputs and supports `prefixLabel`, for
 example `$` for currency filters.
 
-Use `Table` directly when pagination and filters are owned by the consuming
-page:
+Use `FilterTable` directly when pagination is owned by the consuming page:
 
 ```svelte
-<Table
+<FilterTable
   rows={rows}
   {columns}
+  filterDefinitions={filters}
   rowKey="id"
   tableLayout="fixed"
   stickyHeader={true}
@@ -187,13 +189,13 @@ page:
       {value}
     {/if}
   </svelte:fragment>
-</Table>
+</FilterTable>
 ```
 
 Sortable headers preserve the current window scroll position by default. Set
 `preserveScrollOnSort={false}` when a page should intentionally return to the
 top after sorting.
-Table headers are sticky by default. Use `stickyHeader={false}` to disable this,
+`FilterTable` and `Table` headers are sticky by default. Use `stickyHeader={false}` to disable this,
 or set `stickyHeaderOffset` when an app has a fixed or sticky navbar. The offset
 accepts any browser CSS length such as `64px`, `4rem`, or `calc(...)`, and it is
 used both for the fixed header position and for the scroll threshold. When the

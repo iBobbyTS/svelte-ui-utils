@@ -1,7 +1,6 @@
 <script lang="ts">
-  import FilterBox from './FilterBox.svelte';
+  import FilterTable from './FilterTable.svelte';
   import Pagination from './Pagination.svelte';
-  import Table from './Table.svelte';
   import { setDataTableFilters, setDataTablePageSize, setDataTablePagination, setDataTableSort } from './state.js';
   import type {
     DataTableColumn,
@@ -53,15 +52,9 @@
 </script>
 
 <div class="suu-data-table">
-  {#if filterDefinitions.length > 0}
-    <FilterBox definitions={filterDefinitions} filters={state.filters} onFiltersChange={updateFilters} />
-  {/if}
-
-  <slot name="filters" {state} onFiltersChange={updateFilters}></slot>
-
-  <Table {rows} {columns} sort={state.sort} {zebra} {verticalSeparators} {tableLayout} {stickyHeader} {stickyHeaderTop} {stickyHeaderOffset} {preserveScrollOnSort} {emptyText} onSortChange={updateSort}>
+  <FilterTable {rows} {columns} {filterDefinitions} filters={state.filters} sort={state.sort} {zebra} {verticalSeparators} {tableLayout} {stickyHeader} {stickyHeaderTop} {stickyHeaderOffset} {preserveScrollOnSort} {emptyText} onFiltersChange={updateFilters} onSortChange={updateSort}>
     <slot name="cell" slot="cell" let:row let:column let:value {row} {column} {value}>{value}</slot>
-  </Table>
+  </FilterTable>
 
   <Pagination pagination={state.pagination} {totalRows} {pageSizeOptions} onPaginationChange={updatePagination} />
 </div>

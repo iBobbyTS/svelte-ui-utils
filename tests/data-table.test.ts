@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import DataTable from '../src/lib/data-table/DataTable.svelte';
 import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
-import FilterBox from '../src/lib/data-table/FilterBox.svelte';
+import FilterTable from '../src/lib/data-table/FilterTable.svelte';
 import NumberRangeFilter from '../src/lib/data-table/NumberRangeFilter.svelte';
 import Pagination from '../src/lib/data-table/Pagination.svelte';
 import Table from '../src/lib/data-table/Table.svelte';
@@ -350,14 +350,18 @@ describe('data table components', () => {
     ];
     const onFiltersChange = vi.fn();
 
-    render(FilterBox, {
+    const { container } = render(FilterTable, {
       props: {
-        definitions,
+        filterDefinitions: definitions,
+        rows: [],
+        columns: [{ key: 'name', header: 'Name' }],
         filters: {},
         onFiltersChange
       }
     });
 
+    expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
+    expect(screen.getByRole('rowheader', { name: 'Status' })).toBeTruthy();
     await fireEvent.click(screen.getByLabelText('Active'));
     expect(onFiltersChange).toHaveBeenLastCalledWith({ status: ['active'] });
 
@@ -439,14 +443,18 @@ describe('data table components', () => {
       }
     ];
 
-    render(FilterBox, {
+    const { container } = render(FilterTable, {
       props: {
-        definitions,
+        filterDefinitions: definitions,
+        rows: [],
+        columns: [{ key: 'name', header: 'Name' }],
         filters: {},
         onFiltersChange
       }
     });
 
+    expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
+    expect(screen.getByRole('rowheader', { name: 'Issue date' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'today' }));
     expect(onFiltersChange).toHaveBeenLastCalledWith({
       issueDate: {
