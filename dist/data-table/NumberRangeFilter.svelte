@@ -1,0 +1,73 @@
+<script lang="ts">
+  import type { NumberRangeFilterValue } from './types.js';
+
+  export let value: NumberRangeFilterValue = {
+    min: null,
+    max: null
+  };
+  export let minLabel = 'Min';
+  export let maxLabel = 'Max';
+  export let prefixLabel = '';
+  export let min: number | undefined = undefined;
+  export let max: number | undefined = undefined;
+  export let step: number | string = 'any';
+  export let onChange: ((value: NumberRangeFilterValue) => void) | undefined = undefined;
+
+  function parseNumber(input: string): number | null {
+    if (input.trim() === '') {
+      return null;
+    }
+
+    const parsed = Number(input);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function emit(next: NumberRangeFilterValue) {
+    value = next;
+    onChange?.(next);
+  }
+
+  function update(part: 'min' | 'max', input: string) {
+    emit({
+      min: part === 'min' ? parseNumber(input) : value.min,
+      max: part === 'max' ? parseNumber(input) : value.max
+    });
+  }
+</script>
+
+<div class="suu-number-range-filter">
+  <label class="suu-range-field">
+    <span>{minLabel}</span>
+    <div class="suu-input-affix">
+      {#if prefixLabel}
+        <span class="suu-input-affix__label">{prefixLabel}</span>
+      {/if}
+      <input
+        type="number"
+        aria-label={minLabel}
+        {min}
+        {max}
+        {step}
+        value={value.min ?? ''}
+        on:input={(event) => update('min', (event.currentTarget as HTMLInputElement).value)}
+      />
+    </div>
+  </label>
+  <label class="suu-range-field">
+    <span>{maxLabel}</span>
+    <div class="suu-input-affix">
+      {#if prefixLabel}
+        <span class="suu-input-affix__label">{prefixLabel}</span>
+      {/if}
+      <input
+        type="number"
+        aria-label={maxLabel}
+        {min}
+        {max}
+        {step}
+        value={value.max ?? ''}
+        on:input={(event) => update('max', (event.currentTarget as HTMLInputElement).value)}
+      />
+    </div>
+  </label>
+</div>

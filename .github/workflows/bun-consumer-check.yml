@@ -3,14 +3,13 @@ name: Bun Consumer Check
 on:
   workflow_dispatch:
     inputs:
-      package_version:
-        description: Package version to install
+      package_ref:
+        description: Package ref to install
         required: true
-        default: 0.1.0
+        default: github:iBobbyTS/svelte-ui-utils
 
 permissions:
   contents: read
-  packages: read
 
 jobs:
   bun-install:
@@ -31,20 +30,14 @@ jobs:
             "private": true,
             "type": "module",
             "dependencies": {
-              "@ibobbyts/svelte-ui-utils": "${{ inputs.package_version }}",
+              "@ibobbyts/svelte-ui-utils": "${{ inputs.package_ref }}",
               "svelte": "^5.55.3"
             }
           }
           JSON
-          cat > .npmrc <<'NPMRC'
-          @ibobbyts:registry=https://npm.pkg.github.com
-          //npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
-          NPMRC
 
       - name: Install with Bun
         working-directory: consumer
-        env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun install
 
       - name: Verify installed package files

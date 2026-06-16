@@ -4,9 +4,18 @@ Reusable Svelte 5 UI utilities published as `@ibobbyts/svelte-ui-utils`.
 
 ## Install
 
-GitHub Packages' npm registry requires authentication for installing public
-packages. Add GitHub Packages registry mapping and an auth token to the
-consuming project:
+Install the public GitHub source package with Bun:
+
+```bash
+bun add github:iBobbyTS/svelte-ui-utils
+```
+
+The package keeps built `dist/` files in the repository so GitHub installs work
+without an npm or GitHub Packages token.
+
+GitHub Packages' npm registry is also available, but it requires authentication
+for installing public packages. Add GitHub Packages registry mapping and an auth
+token to the consuming project:
 
 ```ini
 @ibobbyts:registry=https://npm.pkg.github.com
@@ -233,11 +242,10 @@ visibility to public in GitHub package settings.
 ## Bun install verification
 
 The repository includes a `Bun Consumer Check` workflow. It creates a temporary
-consumer project, writes an `.npmrc` that points `@ibobbyts` to GitHub Packages,
-uses the workflow `GITHUB_TOKEN`, and runs:
+consumer project and installs the public GitHub source package without a token:
 
 ```bash
-bun install
+bun add github:iBobbyTS/svelte-ui-utils svelte
 ```
 
 Use it after each release when a Bun-based project will consume the package.
