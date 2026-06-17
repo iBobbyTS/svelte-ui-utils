@@ -953,21 +953,21 @@
   padding-right: 12px;
 }
 
-.suu-pagination__select-wrap {
-  --suu-pagination-select-space: 14px;
+.suu-dropdown {
+  --suu-dropdown-space: 14px;
 
   position: relative;
   display: inline-flex;
   color: var(--suu-color-text);
 }
 
-.suu-pagination__select-button {
+.suu-dropdown__button {
   display: inline-flex;
-  gap: var(--suu-pagination-select-space);
+  gap: var(--suu-dropdown-space);
   align-items: center;
   justify-content: space-between;
   height: 42px;
-  padding: 0 var(--suu-pagination-select-space);
+  padding: 0 var(--suu-dropdown-space);
   border: 1px solid var(--suu-color-border);
   border-radius: var(--suu-radius);
   background: var(--suu-color-bg);
@@ -977,13 +977,18 @@
   line-height: 1;
 }
 
-.suu-pagination__select-button:hover,
-.suu-pagination__select-button:focus-visible {
+.suu-dropdown__button:hover,
+.suu-dropdown__button:focus-visible {
   border-color: var(--suu-color-accent);
   outline: none;
 }
 
-.suu-pagination__select-chevron {
+.suu-dropdown__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.suu-dropdown__chevron {
   width: 0.58em;
   height: 0.58em;
   border-right: 2px solid currentcolor;
@@ -991,7 +996,7 @@
   transform: translateY(-20%) rotate(45deg);
 }
 
-.suu-pagination__select-menu {
+.suu-dropdown__menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -1004,19 +1009,19 @@
   box-shadow: 0 18px 42px rgb(15 23 42 / 0.16);
 }
 
-.suu-pagination__select-menu--up {
+.suu-dropdown__menu--up {
   top: auto;
   bottom: calc(100% + 6px);
 }
 
-.suu-pagination__select-panel {
+.suu-dropdown__panel {
   max-height: 220px;
   overflow-y: auto;
   background: var(--suu-color-bg);
   overscroll-behavior: contain;
 }
 
-.suu-pagination__select-option {
+.suu-dropdown__option {
   display: block;
   width: 100%;
   padding: 9px 14px;
@@ -1029,20 +1034,26 @@
   text-align: left;
 }
 
-.suu-pagination__select-option:last-child {
+.suu-dropdown__option:last-child {
   border-bottom: 0;
 }
 
-.suu-pagination__select-option:hover,
-.suu-pagination__select-option:focus-visible,
-.suu-pagination__select-option--active {
+.suu-dropdown__option:hover,
+.suu-dropdown__option:focus-visible,
+.suu-dropdown__option--active {
   background: var(--suu-color-surface);
   outline: none;
 }
 
-.suu-pagination__select-option[aria-selected='true'] {
+.suu-dropdown__option[aria-selected='true'] {
   color: var(--suu-color-accent);
   font-weight: 700;
+}
+
+.suu-dropdown__option--disabled,
+.suu-dropdown__option:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 @media (max-width: 640px) {

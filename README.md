@@ -45,15 +45,16 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 ```svelte
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
+  import { Dropdown } from '@ibobbyts/svelte-ui-utils/dropdown';
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
   import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
 ```
 
-The package root also re-exports all three modules:
+The package root also re-exports the public modules:
 
 ```ts
-import { ToastManager, DropdownSearch, DataTable } from '@ibobbyts/svelte-ui-utils';
+import { ToastManager, Dropdown, DropdownSearch, DataTable } from '@ibobbyts/svelte-ui-utils';
 ```
 
 ## Toast
@@ -128,6 +129,36 @@ wrapper is not convenient.
 Server-side code and Node tests that only need pure helpers should import from
 `@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte
 component files.
+
+## Dropdown
+
+```svelte
+<script lang="ts">
+  import { Dropdown, type DropdownOption, type DropdownValue } from '@ibobbyts/svelte-ui-utils/dropdown';
+
+  const pageSizeOptions: DropdownOption[] = [
+    { label: '10', value: 10 },
+    { label: '20', value: 20 },
+    { label: '50', value: 50 }
+  ];
+
+  let pageSize: DropdownValue = 20;
+</script>
+
+<Dropdown
+  value={pageSize}
+  options={pageSizeOptions}
+  ariaLabel="Rows"
+  placement="down"
+  onChange={(next) => {
+    pageSize = next;
+  }}
+/>
+```
+
+`Dropdown` is a controlled select-like component for simple option lists. Use
+`placement="up"` when the menu should open above the trigger, such as bottom
+pagination bars. `DataTable` uses this same component for its page-size picker.
 
 ## DataTable
 

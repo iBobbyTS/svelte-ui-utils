@@ -1,4 +1,5 @@
 import type { DropdownSearchChangeDetail, DropdownSearchItem, DropdownSearchItemValueGetter, DropdownSearchLoadOptions, DropdownSearchStatus } from '../dropdown-search/types.js';
+import type { DropdownPlacement } from '../dropdown/types.js';
 export type SortDirection = 'asc' | 'desc';
 export type DataTableLayout = 'auto' | 'fixed';
 export interface SortState {
@@ -11,7 +12,7 @@ export interface PaginationState {
     page: number;
     pageSize: number;
 }
-export type PaginationDropdownPlacement = 'up' | 'down';
+export type PaginationDropdownPlacement = DropdownPlacement;
 export type PaginationChangeHandler = (pagination: PaginationState) => void | Promise<void>;
 export type FilterValue = string | number | boolean | null | undefined | DateRangeFilterValue | NumberRangeFilterValue | Array<string | number> | Record<string, unknown>;
 export type FilterState = Record<string, FilterValue>;

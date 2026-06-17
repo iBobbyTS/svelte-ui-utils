@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Dropdown from '../dropdown/Dropdown.svelte';
   import { getPageCount, normalizePagination } from '../data-table/state.js';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
+  import type { DropdownValue } from '../dropdown/types.js';
   import type { PaginationChangeHandler, PaginationDropdownPlacement, PaginationState } from '../data-table/types.js';
 
   export let pagination: PaginationState = { page: 1, pageSize: 20 };
@@ -14,19 +16,12 @@
 
   type PaginationItem = { kind: 'page'; page: number } | { kind: 'ellipsis' };
 
-  let pageSizeDropdownOpen = false;
-  let activePageSize = pagination.pageSize;
-  let pageSizeButton: HTMLButtonElement | undefined;
-
   $: messages = getUiMessages(language);
   $: resolvedPageSizeLabel = pageSizeLabel ?? messages.table.pageSizeLabel;
   $: normalized = normalizePagination(pagination, totalRows);
   $: pageCount = getPageCount(totalRows, normalized.pageSize);
   $: pageItems = buildPaginationItems(normalized.page, pageCount, maxPageButtons);
-  $: selectedPageSizeText = String(normalized.pageSize);
-  $: if (!pageSizeDropdownOpen) {
-    activePageSize = normalized.pageSize;
-  }
+  $: pageSizeDropdownOptions = pageSizeOptions.map((option) => ({ label: String(option), value: option }));
 
   function buildPaginationItems(currentPage: number, totalPages: number, maxButtons: number): PaginationItem[] {
     if (totalPages <= 1) {
@@ -77,58 +72,12 @@
     void onPaginationChange?.(normalizePagination({ ...normalized, page }, totalRows));
   }
 
-  function setPageSize(pageSize: number) {
-    pageSizeDropdownOpen = false;
-    activePageSize = pageSize;
+  function setPageSize(nextValue: DropdownValue) {
+    const pageSize = typeof nextValue === 'number' ? nextValue : Number(nextValue);
+    if (!Number.isFinite(pageSize)) {
+      return;
+    }
     void onPaginationChange?.(normalizePagination({ page: 1, pageSize }, totalRows));
-    pageSizeButton?.focus();
-  }
-
-  function currentPageSizeIndex(value: number): number {
-    const index = pageSizeOptions.indexOf(value);
-    return index >= 0 ? index : 0;
-  }
-
-  function moveActivePageSize(offset: number) {
-    if (pageSizeOptions.length === 0) {
-      return;
-    }
-    const currentIndex = currentPageSizeIndex(activePageSize);
-    const nextIndex = (currentIndex + offset + pageSizeOptions.length) % pageSizeOptions.length;
-    activePageSize = pageSizeOptions[nextIndex] ?? activePageSize;
-  }
-
-  function handlePageSizeKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      if (pageSizeDropdownOpen) {
-        event.preventDefault();
-        pageSizeDropdownOpen = false;
-      }
-      return;
-    }
-
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (!pageSizeDropdownOpen) {
-        pageSizeDropdownOpen = true;
-        activePageSize = normalized.pageSize;
-      }
-      moveActivePageSize(event.key === 'ArrowDown' ? 1 : -1);
-      return;
-    }
-
-    if ((event.key === 'Enter' || event.key === ' ') && pageSizeDropdownOpen) {
-      event.preventDefault();
-      setPageSize(activePageSize);
-    }
-  }
-
-  function handlePageSizeFocusout(event: FocusEvent) {
-    const nextTarget = event.relatedTarget;
-    if (nextTarget instanceof Node && event.currentTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
-      return;
-    }
-    pageSizeDropdownOpen = false;
   }
 </script>
 
@@ -152,48 +101,12 @@
   </div>
   <div class="suu-pagination__size">
     <span>{resolvedPageSizeLabel}</span>
-    <span class="suu-pagination__select-wrap" on:focusout={handlePageSizeFocusout}>
-      <button
-        bind:this={pageSizeButton}
-        type="button"
-        class="suu-pagination__select-button"
-        aria-label={resolvedPageSizeLabel}
-        aria-haspopup="listbox"
-        aria-expanded={pageSizeDropdownOpen}
-        on:click={() => {
-          pageSizeDropdownOpen = !pageSizeDropdownOpen;
-          activePageSize = normalized.pageSize;
-        }}
-        on:keydown={handlePageSizeKeydown}
-      >
-        <span>{selectedPageSizeText}</span>
-        <span class="suu-pagination__select-chevron" aria-hidden="true"></span>
-      </button>
-
-      {#if pageSizeDropdownOpen}
-        <div
-          class="suu-pagination__select-menu"
-          class:suu-pagination__select-menu--up={pageSizeDropdownPlacement === 'up'}
-          class:suu-pagination__select-menu--down={pageSizeDropdownPlacement === 'down'}
-        >
-          <div class="suu-pagination__select-panel" role="listbox" aria-label={resolvedPageSizeLabel}>
-            {#each pageSizeOptions as option}
-              <button
-                type="button"
-                class="suu-pagination__select-option"
-                class:suu-pagination__select-option--active={option === activePageSize}
-                role="option"
-                aria-selected={option === normalized.pageSize}
-                on:mousedown|preventDefault={() => undefined}
-                on:mouseenter={() => (activePageSize = option)}
-                on:click={() => setPageSize(option)}
-              >
-                {option}
-              </button>
-            {/each}
-          </div>
-        </div>
-      {/if}
-    </span>
+    <Dropdown
+      value={normalized.pageSize}
+      options={pageSizeDropdownOptions}
+      ariaLabel={resolvedPageSizeLabel}
+      placement={pageSizeDropdownPlacement}
+      onChange={setPageSize}
+    />
   </div>
 </div>

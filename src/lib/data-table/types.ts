@@ -5,6 +5,7 @@ import type {
   DropdownSearchLoadOptions,
   DropdownSearchStatus
 } from '../dropdown-search/types.js';
+import type { DropdownPlacement } from '../dropdown/types.js';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -24,7 +25,7 @@ export interface PaginationState {
   pageSize: number;
 }
 
-export type PaginationDropdownPlacement = 'up' | 'down';
+export type PaginationDropdownPlacement = DropdownPlacement;
 
 export type PaginationChangeHandler = (pagination: PaginationState) => void | Promise<void>;
 

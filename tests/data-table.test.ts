@@ -394,11 +394,11 @@ describe('data table components', () => {
 
     const pageSizeButtons = screen.getAllByRole('button', { name: 'Rows' });
     await fireEvent.click(pageSizeButtons[0]);
-    expect(container.querySelector('.suu-pagination__select-menu')?.classList.contains('suu-pagination__select-menu--down')).toBe(true);
+    expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--down')).toBe(true);
     await fireEvent.click(pageSizeButtons[0]);
 
     await fireEvent.click(pageSizeButtons[1]);
-    expect(container.querySelector('.suu-pagination__select-menu')?.classList.contains('suu-pagination__select-menu--up')).toBe(true);
+    expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--up')).toBe(true);
   });
 
   it('hides DataTable pagination when total rows are below the smallest page size option', () => {
