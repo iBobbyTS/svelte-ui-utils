@@ -386,10 +386,6 @@
   font-family: var(--suu-font);
 }
 
-.suu-table-wrap + .suu-pagination {
-  margin-top: 12px;
-}
-
 .suu-date-range-filter,
 .suu-number-range-filter {
   display: grid;

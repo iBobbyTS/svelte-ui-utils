@@ -16,7 +16,7 @@
 ## Fix
 
 - Changed `.suu-data-table` gap to `0`.
-- Added `.suu-table-wrap + .suu-pagination { margin-top: 12px; }` to preserve spacing before the bottom pagination only.
+- Later removed `.suu-table-wrap + .suu-pagination { margin-top: 12px; }` after it was confirmed to create extra whitespace above the bottom pagination. Both top and bottom pagination now rely on the pagination row's own centered height instead of external table-to-pagination spacing.
 
 ## Verification
 
