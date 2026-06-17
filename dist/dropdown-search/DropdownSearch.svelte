@@ -188,6 +188,10 @@
 
 <div class={`suu-dropdown-search suu-dropdown-search--${status}`} data-status={status}>
   <div class="suu-dropdown-search__field">
+    <svg class="suu-dropdown-search__icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m16 16 4 4"></path>
+    </svg>
     <input
       class="suu-dropdown-search__input"
       {id}

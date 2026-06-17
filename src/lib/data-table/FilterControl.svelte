@@ -42,30 +42,42 @@
 {:else if control.type === 'checkbox'}
   <div class="suu-filter-table__options">
     {#each control.options as option}
-      <label class="suu-filter-table__option">
+      <label class="suu-filter-table__option" class:suu-filter-table__option--checked={control.value.includes(option.value)}>
         <input
+          class="suu-filter-table__option-input"
           type="checkbox"
           value={option.value}
           disabled={option.disabled}
           checked={control.value.includes(option.value)}
           on:change={(event) => toggleCheckbox(option.value, (event.currentTarget as HTMLInputElement).checked)}
         />
-        <span>{option.label}</span>
+        <span class="suu-filter-table__option-label">{option.label}</span>
+        <span class="suu-filter-table__option-check" aria-hidden="true">
+          <svg viewBox="0 0 20 20">
+            <path d="m5 10 3 3 7-7"></path>
+          </svg>
+        </span>
       </label>
     {/each}
   </div>
 {:else if control.type === 'radio'}
   <div class="suu-filter-table__options">
     {#each control.options as option}
-      <label class="suu-filter-table__option">
+      <label class="suu-filter-table__option" class:suu-filter-table__option--checked={control.value === option.value}>
         <input
+          class="suu-filter-table__option-input"
           type="radio"
           value={option.value}
           disabled={option.disabled}
           checked={control.value === option.value}
           on:change={() => control.type === 'radio' && void control.onChange(option.value)}
         />
-        <span>{option.label}</span>
+        <span class="suu-filter-table__option-label">{option.label}</span>
+        <span class="suu-filter-table__option-check" aria-hidden="true">
+          <svg viewBox="0 0 20 20">
+            <path d="m5 10 3 3 7-7"></path>
+          </svg>
+        </span>
       </label>
     {/each}
   </div>
