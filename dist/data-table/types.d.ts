@@ -11,6 +11,8 @@ export interface PaginationState {
     page: number;
     pageSize: number;
 }
+export type PaginationDropdownPlacement = 'up' | 'down';
+export type PaginationChangeHandler = (pagination: PaginationState) => void | Promise<void>;
 export type FilterValue = string | number | boolean | null | undefined | DateRangeFilterValue | NumberRangeFilterValue | Array<string | number> | Record<string, unknown>;
 export type FilterState = Record<string, FilterValue>;
 export interface DataTableState {

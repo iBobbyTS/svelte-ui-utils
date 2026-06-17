@@ -1,6 +1,6 @@
 <script lang="ts">
   import BaseDataTable from './BaseDataTable.svelte';
-  import Pagination from './Pagination.svelte';
+  import Pagination from '../pagination/Pagination.svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type {
     DataTableColumn,
@@ -8,6 +8,7 @@
     DataTableRowAttributes,
     DataTableRowKey,
     DataTableSortChangeHandler,
+    PaginationChangeHandler,
     PaginationState,
     SortState
   } from './types.js';
@@ -26,7 +27,7 @@
   export let pageSizeOptions: number[] = [10, 20, 50, 100];
   export let pageSizeLabel: string | undefined = undefined;
   export let maxPageButtons = 15;
-  export let onPaginationChange: ((pagination: PaginationState) => void | Promise<void>) | undefined = undefined;
+  export let onPaginationChange: PaginationChangeHandler | undefined = undefined;
   export let zebra = true;
   export let bordered = true;
   export let verticalSeparators = true;

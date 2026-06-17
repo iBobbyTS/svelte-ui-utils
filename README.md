@@ -174,6 +174,31 @@ Use `showPagination={false}` for static tables. Sortable headers preserve the
 current window scroll position by default and wait for an async `onSortChange`
 before restoring scroll position.
 
+`Pagination` is also available as a standalone module when an app needs
+pagination outside `DataTable`:
+
+```svelte
+<script lang="ts">
+  import { Pagination, type PaginationState } from '@ibobbyts/svelte-ui-utils/pagination';
+
+  let pagination: PaginationState = { page: 1, pageSize: 20 };
+</script>
+
+<Pagination
+  {pagination}
+  totalRows={totalRows}
+  pageSizeOptions={[10, 20, 50, 100]}
+  pageSizeDropdownPlacement="down"
+  onPaginationChange={(next) => {
+    pagination = next;
+  }}
+/>
+```
+
+Render two synchronized pagination bars by passing both instances the same
+controlled `pagination` value and the same `onPaginationChange` handler. This
+is the same contract `DataTable` uses for its top and bottom pagination.
+
 `FilterTable` is filter-only. It accepts `rows`, where each row has a `title`
 for the left column and a controlled filter created with the `filter` helper:
 

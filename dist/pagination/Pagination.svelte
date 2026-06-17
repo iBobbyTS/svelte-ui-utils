@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getPageCount, normalizePagination } from './state.js';
+  import { getPageCount, normalizePagination } from '../data-table/state.js';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
-  import type { PaginationState } from './types.js';
+  import type { PaginationChangeHandler, PaginationDropdownPlacement, PaginationState } from '../data-table/types.js';
 
   export let pagination: PaginationState = { page: 1, pageSize: 20 };
   export let totalRows = 0;
@@ -9,8 +9,8 @@
   export let language: UiLanguage = 'en_us';
   export let pageSizeLabel: string | undefined = undefined;
   export let maxPageButtons = 15;
-  export let pageSizeDropdownPlacement: 'up' | 'down' = 'down';
-  export let onPaginationChange: ((pagination: PaginationState) => void) | undefined = undefined;
+  export let pageSizeDropdownPlacement: PaginationDropdownPlacement = 'down';
+  export let onPaginationChange: PaginationChangeHandler | undefined = undefined;
 
   type PaginationItem = { kind: 'page'; page: number } | { kind: 'ellipsis' };
 
@@ -74,13 +74,13 @@
   }
 
   function setPage(page: number) {
-    onPaginationChange?.(normalizePagination({ ...normalized, page }, totalRows));
+    void onPaginationChange?.(normalizePagination({ ...normalized, page }, totalRows));
   }
 
   function setPageSize(pageSize: number) {
     pageSizeDropdownOpen = false;
     activePageSize = pageSize;
-    onPaginationChange?.(normalizePagination({ page: 1, pageSize }, totalRows));
+    void onPaginationChange?.(normalizePagination({ page: 1, pageSize }, totalRows));
     pageSizeButton?.focus();
   }
 

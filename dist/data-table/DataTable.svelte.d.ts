@@ -1,5 +1,5 @@
 import { type UiLanguage } from '../i18n.js';
-import type { DataTableColumn, DataTableLayout, DataTableRowAttributes, DataTableRowKey, DataTableSortChangeHandler, PaginationState, SortState } from './types.js';
+import type { DataTableColumn, DataTableLayout, DataTableRowAttributes, DataTableRowKey, DataTableSortChangeHandler, PaginationChangeHandler, SortState } from './types.js';
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
         $$bindings?: Bindings;
@@ -28,7 +28,7 @@ declare const DataTable: $$__sveltets_2_IsomorphicComponent<{
     pageSizeOptions?: number[];
     pageSizeLabel?: string | undefined;
     maxPageButtons?: number;
-    onPaginationChange?: ((pagination: PaginationState) => void | Promise<void>) | undefined;
+    onPaginationChange?: PaginationChangeHandler | undefined;
     zebra?: boolean;
     bordered?: boolean;
     verticalSeparators?: boolean;

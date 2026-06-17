@@ -4,7 +4,7 @@ import DataTable from '../src/lib/data-table/DataTable.svelte';
 import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
 import FilterTable from '../src/lib/data-table/FilterTable.svelte';
 import NumberRangeFilter from '../src/lib/data-table/NumberRangeFilter.svelte';
-import Pagination from '../src/lib/data-table/Pagination.svelte';
+import SyncedPaginationHarness from './fixtures/SyncedPaginationHarness.svelte';
 import {
   filter,
   getAriaSort,
@@ -14,6 +14,7 @@ import {
   setDataTablePageSize,
   toggleSort
 } from '../src/lib/data-table/index.js';
+import { Pagination } from '../src/lib/pagination/index.js';
 import type { DataTableState, FilterTableRow } from '../src/lib/data-table/index.js';
 
 function mockWindowScroll(initialX: number, initialY: number) {
@@ -346,6 +347,34 @@ describe('data table components', () => {
     expect(screen.getByRole('button', { name: '10' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('button', { name: '100' })).toBeTruthy();
     expect(screen.getAllByText('...')).toHaveLength(2);
+  });
+
+  it('keeps two standalone paginations synchronized through controlled state', async () => {
+    render(SyncedPaginationHarness, {
+      props: {
+        totalRows: 42,
+        pageSizeOptions: [10, 20],
+        initialPagination: { page: 1, pageSize: 10 }
+      }
+    });
+
+    await fireEvent.click(screen.getAllByRole('button', { name: '2' })[0] as HTMLElement);
+    expect(screen.getAllByRole('button', { name: '2' }).map((button) => button.getAttribute('aria-current'))).toEqual([
+      'page',
+      'page'
+    ]);
+
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Rows' })[1] as HTMLElement);
+    await fireEvent.click(screen.getByRole('option', { name: '20' }));
+
+    expect(screen.getAllByRole('button', { name: '1' }).map((button) => button.getAttribute('aria-current'))).toEqual([
+      'page',
+      'page'
+    ]);
+    expect(screen.getAllByRole('button', { name: 'Rows' }).map((button) => button.textContent?.trim())).toEqual([
+      '20',
+      '20'
+    ]);
   });
 
   it('renders DataTable pagination above and below the table by default', async () => {
