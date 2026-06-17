@@ -1,4 +1,4 @@
-import type { DropdownSearchChangeDetail, DropdownSearchItem, DropdownSearchLoadOptions, DropdownSearchStatus } from '../dropdown-search/types.js';
+import type { DropdownSearchChangeDetail, DropdownSearchItem, DropdownSearchItemValueGetter, DropdownSearchLoadOptions, DropdownSearchStatus } from '../dropdown-search/types.js';
 export type SortDirection = 'asc' | 'desc';
 export type DataTableLayout = 'auto' | 'fixed';
 export interface SortState {
@@ -104,6 +104,7 @@ export interface DropdownSearchFilterControl {
     width?: string;
     minWidth?: string;
     maxWidth?: string;
+    getItemValue?: DropdownSearchItemValueGetter;
     loadOptions: DropdownSearchLoadOptions;
     onChange: (detail: DropdownSearchChangeDetail) => void | Promise<void>;
 }

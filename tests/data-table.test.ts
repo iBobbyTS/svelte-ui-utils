@@ -455,6 +455,7 @@ describe('data table components', () => {
                 width: '24rem',
                 minWidth: '16rem',
                 maxWidth: '100%',
+                getItemValue: (item) => String(item.id),
                 loadOptions: () => ({ options: [], exactMatch: null }),
                 onChange: onSearchChange
               }),

@@ -101,6 +101,7 @@
     width={control.width}
     minWidth={control.minWidth}
     maxWidth={control.maxWidth}
+    getItemValue={control.getItemValue ?? ((item) => item.title)}
     loadOptions={control.loadOptions}
     onChange={(detail) => control.type === 'dropdownSearch' && void control.onChange(detail)}
   />
