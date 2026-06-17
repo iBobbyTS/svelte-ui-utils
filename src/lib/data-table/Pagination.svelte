@@ -18,6 +18,7 @@
   $: normalized = normalizePagination(pagination, totalRows);
   $: pageCount = getPageCount(totalRows, normalized.pageSize);
   $: pageItems = buildPaginationItems(normalized.page, pageCount, maxPageButtons);
+  $: selectedPageSizeText = String(normalized.pageSize);
 
   function buildPaginationItems(currentPage: number, totalPages: number, maxButtons: number): PaginationItem[] {
     if (totalPages <= 1) {
@@ -95,10 +96,13 @@
   </div>
   <label class="suu-pagination__size">
     <span>{resolvedPageSizeLabel}</span>
-    <select value={normalized.pageSize} on:change={setPageSize}>
-      {#each pageSizeOptions as option}
-        <option value={option}>{option}</option>
-      {/each}
-    </select>
+    <span class="suu-pagination__select-wrap">
+      <span class="suu-pagination__select-measure" aria-hidden="true">{selectedPageSizeText}</span>
+      <select value={normalized.pageSize} on:change={setPageSize}>
+        {#each pageSizeOptions as option}
+          <option value={option}>{option}</option>
+        {/each}
+      </select>
+    </span>
   </label>
 </div>
