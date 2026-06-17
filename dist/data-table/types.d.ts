@@ -100,6 +100,7 @@ export interface DropdownSearchFilterControl {
     noResultsText?: string;
     loadingText?: string;
     clearLabel?: string;
+    searchOnExternalValueChange?: boolean;
     width?: string;
     minWidth?: string;
     maxWidth?: string;

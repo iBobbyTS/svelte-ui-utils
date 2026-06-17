@@ -97,6 +97,7 @@
     noResultsText={control.noResultsText}
     loadingText={control.loadingText}
     clearLabel={control.clearLabel}
+    searchOnExternalValueChange={control.searchOnExternalValueChange ?? false}
     width={control.width}
     minWidth={control.minWidth}
     maxWidth={control.maxWidth}

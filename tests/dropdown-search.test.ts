@@ -165,6 +165,25 @@ describe('DropdownSearch component', () => {
     expect(changes).not.toContain('invalid:');
   });
 
+  it('searches and validates an initial controlled value on mount', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+    const changes: string[] = [];
+
+    render(DropdownSearch, {
+      props: {
+        value: 'M-123',
+        loadOptions,
+        searchOnExternalValueChange: true,
+        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('M-123', expect.objectContaining({ limit: 10 })));
+    await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'false'));
+    await waitFor(() => expect(changes).toContain('valid:Jane Doe'));
+  });
+
   it('clears the current value from the built-in clear button', async () => {
     const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
     const changes: Array<{ value: string; selectedItem: DropdownSearchItem | null; status: string }> = [];

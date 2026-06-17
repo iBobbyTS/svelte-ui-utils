@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import { formatParamDict, normalizeDropdownSearchValue, resolveDropdownSearchStatus } from './state.js';
   import type {
@@ -219,6 +219,12 @@
   onDestroy(() => {
     clearSearchTimer();
     abortActiveSearch();
+  });
+
+  onMount(() => {
+    if (searchOnExternalValueChange && normalizeDropdownSearchValue(value)) {
+      handleExternalValue(value);
+    }
   });
 </script>
 
