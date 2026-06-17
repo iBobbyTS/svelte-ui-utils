@@ -58,6 +58,7 @@
       {pageSizeOptions}
       pageSizeLabel={resolvedPageSizeLabel}
       {maxPageButtons}
+      pageSizeDropdownPlacement="down"
       onPaginationChange={updatePagination}
     />
   {/if}
@@ -93,6 +94,7 @@
       {pageSizeOptions}
       pageSizeLabel={resolvedPageSizeLabel}
       {maxPageButtons}
+      pageSizeDropdownPlacement="up"
       onPaginationChange={updatePagination}
     />
   {/if}

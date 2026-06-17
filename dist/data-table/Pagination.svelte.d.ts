@@ -20,6 +20,7 @@ declare const Pagination: $$__sveltets_2_IsomorphicComponent<{
     language?: UiLanguage;
     pageSizeLabel?: string | undefined;
     maxPageButtons?: number;
+    pageSizeDropdownPlacement?: "up" | "down";
     onPaginationChange?: ((pagination: PaginationState) => void) | undefined;
 }, {
     [evt: string]: CustomEvent<any>;

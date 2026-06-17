@@ -328,7 +328,8 @@ describe('data table components', () => {
     await fireEvent.click(screen.getByRole('button', { name: '3' }));
     expect(onPaginationChange).toHaveBeenCalledWith({ page: 3, pageSize: 10 });
 
-    await fireEvent.change(screen.getByRole('combobox'), { target: { value: '20' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Rows' }));
+    await fireEvent.click(screen.getByRole('option', { name: '20' }));
     expect(onPaginationChange).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
   });
 
@@ -347,7 +348,7 @@ describe('data table components', () => {
     expect(screen.getAllByText('...')).toHaveLength(2);
   });
 
-  it('renders DataTable pagination above and below the table by default', () => {
+  it('renders DataTable pagination above and below the table by default', async () => {
     const { container } = render(DataTable, {
       props: {
         rows: [{ name: 'Jane' }],
@@ -361,6 +362,14 @@ describe('data table components', () => {
     expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: '3' })).toHaveLength(2);
     expect(screen.getByText('Jane')).toBeTruthy();
+
+    const pageSizeButtons = screen.getAllByRole('button', { name: 'Rows' });
+    await fireEvent.click(pageSizeButtons[0]);
+    expect(container.querySelector('.suu-pagination__select-menu')?.classList.contains('suu-pagination__select-menu--down')).toBe(true);
+    await fireEvent.click(pageSizeButtons[0]);
+
+    await fireEvent.click(pageSizeButtons[1]);
+    expect(container.querySelector('.suu-pagination__select-menu')?.classList.contains('suu-pagination__select-menu--up')).toBe(true);
   });
 
   it('uses localized DataTable defaults when labels are not overridden', () => {
