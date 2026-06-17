@@ -13,6 +13,7 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     z_$$bindings?: Bindings;
 }
 declare const Dropdown: $$__sveltets_2_IsomorphicComponent<{
+    id?: string | undefined;
     value?: DropdownValue;
     options?: DropdownOption[];
     ariaLabel?: string | undefined;

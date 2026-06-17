@@ -3,6 +3,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { Dropdown } from '../src/lib/dropdown/index.js';
 
 describe('dropdown', () => {
+  it('passes through the optional button id', () => {
+    render(Dropdown, {
+      props: {
+        id: 'status-dropdown',
+        value: 'active',
+        ariaLabel: 'Status',
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'Status' })).toHaveAttribute('id', 'status-dropdown');
+  });
+
   it('emits selected option changes', async () => {
     const onChange = vi.fn();
 

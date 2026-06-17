@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DropdownChangeHandler, DropdownOption, DropdownPlacement, DropdownValue } from './types.js';
 
+  export let id: string | undefined = undefined;
   export let value: DropdownValue = '';
   export let options: DropdownOption[] = [];
   export let ariaLabel: string | undefined = undefined;
@@ -108,6 +109,7 @@
 <span class="suu-dropdown" on:focusout={handleFocusout}>
   <button
     bind:this={buttonElement}
+    {id}
     type="button"
     class="suu-dropdown__button"
     {disabled}
