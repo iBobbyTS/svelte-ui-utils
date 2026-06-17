@@ -573,7 +573,7 @@ describe('data table components', () => {
       preset: null
     });
 
-    await fireEvent.click(screen.getByRole('button', { name: 'last 24 hours' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Last 24 Hours' }));
     expect(onChange).toHaveBeenLastCalledWith({
       startDate: '2026-06-15',
       endDate: '2026-06-16',
@@ -676,7 +676,7 @@ describe('data table components', () => {
 
     expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Issue date' })).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: 'today' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Today' }));
     expect(onIssueDateChange).toHaveBeenLastCalledWith({
       startDate: '2026-06-16',
       endDate: '2026-06-16',

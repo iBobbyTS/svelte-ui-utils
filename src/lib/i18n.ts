@@ -55,13 +55,13 @@ const messages: Record<UiLanguage, UiMessages> = {
       startLabel: 'Start date',
       endLabel: 'End date',
       presetLabels: {
-        last24Hours: 'last 24 hours',
-        last7Days: 'last 7 days',
-        last30Days: 'last 30 days',
-        today: 'today',
-        thisWeek: 'this week',
-        thisMonth: 'this month',
-        thisYear: 'this year'
+        last24Hours: 'Last 24 Hours',
+        last7Days: 'Last 7 Days',
+        last30Days: 'Last 30 Days',
+        today: 'Today',
+        thisWeek: 'This Week',
+        thisMonth: 'This Month',
+        thisYear: 'This Year'
       }
     },
     numberRange: {
