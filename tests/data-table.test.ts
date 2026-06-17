@@ -436,6 +436,9 @@ describe('data table components', () => {
                 selectedItem: null,
                 status: 'empty',
                 placeholder: 'Search people',
+                width: '24rem',
+                minWidth: '16rem',
+                maxWidth: '100%',
                 loadOptions: () => ({ options: [], exactMatch: null }),
                 onChange: onSearchChange
               }),
@@ -457,6 +460,10 @@ describe('data table components', () => {
     });
 
     expect(container.querySelector('.suu-filter-table__control-row')).toBeTruthy();
+    const dropdown = container.querySelector('.suu-dropdown-search') as HTMLElement | null;
+    expect(dropdown?.style.width).toBe('24rem');
+    expect(dropdown?.style.minWidth).toBe('16rem');
+    expect(dropdown?.style.maxWidth).toBe('100%');
     await fireEvent.click(screen.getByRole('button', { name: /Find/i }));
     expect(onSearchClick).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('link', { name: /Clear/i })).toHaveAttribute('href', '/clear');

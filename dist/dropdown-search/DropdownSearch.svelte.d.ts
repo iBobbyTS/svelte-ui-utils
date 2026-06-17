@@ -30,6 +30,9 @@ declare const DropdownSearch: $$__sveltets_2_IsomorphicComponent<{
     noResultsText?: string;
     loadingText?: string;
     searchOnExternalValueChange?: boolean;
+    width?: string | undefined;
+    minWidth?: string | undefined;
+    maxWidth?: string | undefined;
     getItemValue?: DropdownSearchItemValueGetter;
     onChange?: ((detail: DropdownSearchChangeDetail) => void) | undefined;
     onSelect?: ((item: DropdownSearchItem) => void) | undefined;

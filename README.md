@@ -95,6 +95,8 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
 <DropdownSearch
   placeholder="Search"
   debounceMs={500}
+  width="24rem"
+  maxWidth="100%"
   {loadOptions}
   searchOnExternalValueChange={true}
 />
@@ -116,6 +118,8 @@ Set `validate={false}` when the field should only show selectable options and
 stay visually neutral instead of turning green or red. In that mode the
 component ignores `exactMatch` for status and auto-selection.
 Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
+Use `width`, `minWidth`, and `maxWidth` to size the control directly when a
+wrapper is not convenient.
 Server-side code and Node tests that only need pure helpers should import from
 `@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte
 component files.
@@ -190,6 +194,8 @@ for the left column and a controlled filter created with the `filter` helper:
           value: searchValue,
           selectedItem,
           status: searchStatus,
+          width: '24rem',
+          maxWidth: '100%',
           loadOptions,
           onChange: (detail) => updateSearch(detail)
         }),

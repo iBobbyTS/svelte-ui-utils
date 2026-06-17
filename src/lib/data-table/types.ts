@@ -148,6 +148,9 @@ export interface DropdownSearchFilterControl {
   minLength?: number;
   noResultsText?: string;
   loadingText?: string;
+  width?: string;
+  minWidth?: string;
+  maxWidth?: string;
   loadOptions: DropdownSearchLoadOptions;
   onChange: (detail: DropdownSearchChangeDetail) => void | Promise<void>;
 }

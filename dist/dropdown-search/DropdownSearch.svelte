@@ -26,6 +26,9 @@
   export let noResultsText = 'No results';
   export let loadingText = 'Loading...';
   export let searchOnExternalValueChange = false;
+  export let width: string | undefined = undefined;
+  export let minWidth: string | undefined = undefined;
+  export let maxWidth: string | undefined = undefined;
   export let getItemValue: DropdownSearchItemValueGetter = (item) => item.title;
   export let onChange: ((detail: DropdownSearchChangeDetail) => void) | undefined = undefined;
   export let onSelect: ((item: DropdownSearchItem) => void) | undefined = undefined;
@@ -186,7 +189,13 @@
   });
 </script>
 
-<div class={`suu-dropdown-search suu-dropdown-search--${status}`} data-status={status}>
+<div
+  class={`suu-dropdown-search suu-dropdown-search--${status}`}
+  data-status={status}
+  style:width
+  style:min-width={minWidth}
+  style:max-width={maxWidth}
+>
   <div class="suu-dropdown-search__field">
     <svg class="suu-dropdown-search__icon" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="11" cy="11" r="7"></circle>
@@ -212,7 +221,6 @@
         setTimeout(() => (focused = false), 120);
       }}
     />
-    <span class="suu-dropdown-search__status" aria-hidden="true"></span>
   </div>
 
   {#if showOptions}

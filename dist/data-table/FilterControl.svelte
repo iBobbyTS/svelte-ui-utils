@@ -93,6 +93,9 @@
     minLength={control.minLength ?? 1}
     noResultsText={control.noResultsText ?? 'No results'}
     loadingText={control.loadingText ?? 'Loading...'}
+    width={control.width}
+    minWidth={control.minWidth}
+    maxWidth={control.maxWidth}
     loadOptions={control.loadOptions}
     onChange={(detail) => control.type === 'dropdownSearch' && void control.onChange(detail)}
   />
