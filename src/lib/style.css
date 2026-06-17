@@ -531,12 +531,10 @@
 .suu-filter-table__filters th::after {
   content: "";
   position: absolute;
-  top: 50%;
+  top: var(--suu-filter-table-divider-inset, 20px);
+  bottom: var(--suu-filter-table-divider-inset, 20px);
   right: 0;
   width: 1px;
-  height: 40px;
-  max-height: calc(100% - 24px);
-  transform: translateY(-50%);
   background: var(--suu-color-border);
 }
 
