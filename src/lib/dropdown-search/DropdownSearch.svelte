@@ -48,9 +48,9 @@
   let lastHandledValue = value;
 
   $: messages = getUiMessages(language);
-  $: resolvedNoResultsText = noResultsText ?? messages.dropdownSearch.noResultsText;
-  $: resolvedLoadingText = loadingText ?? messages.dropdownSearch.loadingText;
-  $: resolvedClearLabel = clearLabel ?? messages.dropdownSearch.clearLabel;
+  $: resolvedNoResultsText = noResultsText?.trim() ? noResultsText : messages.dropdownSearch.noResultsText;
+  $: resolvedLoadingText = loadingText?.trim() ? loadingText : messages.dropdownSearch.loadingText;
+  $: resolvedClearLabel = clearLabel?.trim() ? clearLabel : messages.dropdownSearch.clearLabel;
   $: resolvedListboxId = listboxId ?? (id ? `${id}-options` : undefined);
   $: hasQuery = normalizeDropdownSearchValue(value).length > 0;
   $: showOptions = focused && !disabled && (options.length > 0 || status === 'loading' || (hasQuery && status === 'invalid'));
@@ -79,7 +79,14 @@
     selectedItem = null;
     exactMatch = null;
     options = [];
-    setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength, validate }));
+    const trimmed = normalizeDropdownSearchValue(nextValue);
+    if (trimmed && trimmed.length >= minLength) {
+      abortActiveSearch();
+      setStatus('loading');
+    } else {
+      abortActiveSearch();
+      setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength, validate }));
+    }
     emitChange();
   }
 
@@ -268,7 +275,10 @@
   {#if showOptions}
     <div class="suu-dropdown-search__menu" id={resolvedListboxId} role="listbox">
       {#if status === 'loading'}
-        <div class="suu-dropdown-search__empty">{resolvedLoadingText}</div>
+        <div class="suu-dropdown-search__empty suu-dropdown-search__empty--loading" aria-live="polite">
+          <span class="suu-dropdown-search__spinner" aria-hidden="true"></span>
+          <span>{resolvedLoadingText}</span>
+        </div>
       {:else if options.length > 0}
         {#each options as option (option.id)}
           <button

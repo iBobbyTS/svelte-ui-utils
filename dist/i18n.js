@@ -5,7 +5,7 @@ const messages = {
             closeLabel: 'Close notification'
         },
         dropdownSearch: {
-            noResultsText: 'No results',
+            noResultsText: 'Empty',
             loadingText: 'Loading...',
             clearLabel: 'Clear'
         },
@@ -37,7 +37,7 @@ const messages = {
             closeLabel: '关闭通知'
         },
         dropdownSearch: {
-            noResultsText: '没有匹配结果',
+            noResultsText: '空',
             loadingText: '搜索中...',
             clearLabel: '清除'
         },
@@ -69,7 +69,7 @@ const messages = {
             closeLabel: '關閉通知'
         },
         dropdownSearch: {
-            noResultsText: '沒有符合結果',
+            noResultsText: '空',
             loadingText: '搜尋中...',
             clearLabel: '清除'
         },

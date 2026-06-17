@@ -18,6 +18,7 @@ describe('dropdown search state', () => {
     expect(resolveUiLanguage('zh_tw')).toBe('zh_tw');
     expect(resolveUiLanguage('en')).toBe('en_us');
     expect(getUiMessages('zh_cn').dropdownSearch.clearLabel).toBe('清除');
+    expect(getUiMessages('zh_cn').dropdownSearch.noResultsText).toBe('空');
   });
 
   it('formats param_dict and resolves input status', () => {
@@ -82,6 +83,28 @@ describe('DropdownSearch component', () => {
     await vi.advanceTimersByTimeAsync(10);
 
     await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'true'));
+  });
+
+  it('shows a loading row while a debounced search is pending', async () => {
+    vi.useFakeTimers();
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+
+    render(DropdownSearch, {
+      props: {
+        debounceMs: 500,
+        loadOptions
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    await fireEvent.input(input, { target: { value: 'Jane' } });
+
+    expect(loadOptions).not.toHaveBeenCalled();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+
+    await vi.advanceTimersByTimeAsync(500);
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Jane', expect.objectContaining({ limit: 10 })));
   });
 
   it('aborts the previous request and ignores stale responses', async () => {
@@ -188,7 +211,28 @@ describe('DropdownSearch component', () => {
     await fireEvent.focus(input);
 
     expect(screen.getByRole('button', { name: '清除' })).toBeInTheDocument();
-    expect(screen.getByText('沒有符合結果')).toBeInTheDocument();
+    expect(screen.getByText('空')).toBeInTheDocument();
+  });
+
+  it('falls back to default dropdown messages when text overrides are blank', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+
+    render(DropdownSearch, {
+      props: {
+        value: 'Nobody',
+        status: 'invalid',
+        noResultsText: '',
+        loadingText: '',
+        clearLabel: '',
+        loadOptions
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    expect(screen.getByText('Empty')).toBeInTheDocument();
   });
 
   it('only reserves clear-button space when the input has text', async () => {
@@ -280,6 +324,6 @@ describe('DropdownSearch component', () => {
     expect(root).toHaveAttribute('data-status', 'empty');
     expect(root).not.toHaveClass('suu-dropdown-search--invalid');
     expect(input).toHaveAttribute('aria-invalid', 'false');
-    expect(screen.queryByText('No results')).not.toBeInTheDocument();
+    expect(screen.queryByText('Empty')).not.toBeInTheDocument();
   });
 });
