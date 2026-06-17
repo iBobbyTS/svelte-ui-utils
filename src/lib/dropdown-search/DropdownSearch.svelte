@@ -273,32 +273,34 @@
   </div>
 
   {#if showOptions}
-    <div class="suu-dropdown-search__menu" id={resolvedListboxId} role="listbox">
-      {#if status === 'loading'}
-        <div class="suu-dropdown-search__empty suu-dropdown-search__empty--loading" aria-live="polite">
-          <span class="suu-dropdown-search__spinner" aria-hidden="true"></span>
-          <span>{resolvedLoadingText}</span>
-        </div>
-      {:else if options.length > 0}
-        {#each options as option (option.id)}
-          <button
-            type="button"
-            class="suu-dropdown-search__option"
-            class:suu-dropdown-search__option--disabled={option.disabled}
-            role="option"
-            aria-selected={selectedItem?.id === option.id}
-            disabled={option.disabled}
-            on:mousedown|preventDefault={() => selectItem(option)}
-          >
-            <span class="suu-dropdown-search__title">{option.title}</span>
-            {#if formatParamDict(option.param_dict).length > 0}
-              <span class="suu-dropdown-search__meta">{formatParamDict(option.param_dict).join(' · ')}</span>
-            {/if}
-          </button>
-        {/each}
-      {:else}
-        <div class="suu-dropdown-search__empty">{resolvedNoResultsText}</div>
-      {/if}
+    <div class="suu-dropdown-search__menu">
+      <div class="suu-dropdown-search__menu-panel" id={resolvedListboxId} role="listbox">
+        {#if status === 'loading'}
+          <div class="suu-dropdown-search__empty suu-dropdown-search__empty--loading" aria-live="polite">
+            <span class="suu-dropdown-search__spinner" aria-hidden="true"></span>
+            <span>{resolvedLoadingText}</span>
+          </div>
+        {:else if options.length > 0}
+          {#each options as option (option.id)}
+            <button
+              type="button"
+              class="suu-dropdown-search__option"
+              class:suu-dropdown-search__option--disabled={option.disabled}
+              role="option"
+              aria-selected={selectedItem?.id === option.id}
+              disabled={option.disabled}
+              on:mousedown|preventDefault={() => selectItem(option)}
+            >
+              <span class="suu-dropdown-search__title">{option.title}</span>
+              {#if formatParamDict(option.param_dict).length > 0}
+                <span class="suu-dropdown-search__meta">{formatParamDict(option.param_dict).join(' · ')}</span>
+              {/if}
+            </button>
+          {/each}
+        {:else}
+          <div class="suu-dropdown-search__empty">{resolvedNoResultsText}</div>
+        {/if}
+      </div>
     </div>
   {/if}
 </div>
