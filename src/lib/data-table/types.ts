@@ -69,7 +69,7 @@ export type DataTableVerticalAlign = 'top' | 'middle' | 'bottom';
 
 export interface DataTableColumn<Row = unknown> {
   key: string;
-  header: string;
+  header?: string;
   sortable?: boolean;
   headerHorizontalAlign?: DataTableHorizontalAlign;
   headerVerticalAlign?: DataTableVerticalAlign;

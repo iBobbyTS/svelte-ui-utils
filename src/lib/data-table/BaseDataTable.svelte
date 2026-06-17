@@ -15,6 +15,7 @@
   export let rows: unknown[] = [];
   export let columns: DataTableColumn[] = [];
   export let sort: SortState | null = null;
+  export let showHeader = true;
   export let zebra = true;
   export let bordered = true;
   export let verticalSeparators = false;
@@ -63,7 +64,7 @@
   }
 
   function updateStickyHeader() {
-    if (!stickyHeader || typeof window === 'undefined' || !tableElement) {
+    if (!showHeader || !stickyHeader || typeof window === 'undefined' || !tableElement) {
       stickyHeaderVisible = false;
       return;
     }
@@ -203,6 +204,7 @@
     rows;
     columns;
     sort;
+    showHeader;
     stickyHeader;
     resolvedStickyHeaderTop;
     queueStickyHeaderUpdate();
@@ -212,7 +214,7 @@
 <div class:suu-table-wrap--borderless={!bordered} class="suu-table-wrap" style:--suu-table-sticky-top={resolvedStickyHeaderTop}>
   <span bind:this={stickyHeaderOffsetProbe} class="suu-table__sticky-offset-probe" aria-hidden="true"></span>
 
-  {#if stickyHeaderVisible}
+  {#if showHeader && stickyHeaderVisible}
     <div
       class="suu-table__sticky-clone"
       style:left={`${stickyHeaderLeft}px`}
@@ -276,48 +278,50 @@
     class:suu-table--layout-auto={tableLayout === 'auto'}
     class:suu-table--layout-fixed={tableLayout === 'fixed'}
     class:suu-table--sticky-header={stickyHeader}
-    class:suu-table--sticky-header-shadowed={stickyHeaderVisible}
+    class:suu-table--sticky-header-shadowed={showHeader && stickyHeaderVisible}
     class:suu-table--zebra={zebra}
     class:suu-table--vertical-separators={verticalSeparators}
     class="suu-table"
   >
-    <thead>
-      <tr>
-        {#each columns as column (column.key)}
-          <th
-            class={column.headerClass}
-            aria-sort={column.sortable ? getAriaSort(sort, column.key) : undefined}
-            data-horizontal-align={resolveHeaderHorizontalAlign(column)}
-            data-vertical-align={resolveHeaderVerticalAlign(column)}
-            scope="col"
-          >
-            {#if column.sortable}
-              <button class="suu-table__sort-button" type="button" on:click={() => handleSort(column)}>
-                <span><slot name="header" {column} {sort}>{column.header}</slot></span>
-                <span class="suu-table__sort-indicator" aria-hidden="true">
-                  {#if sort?.key === column.key && sort.direction === 'asc'}
-                    <svg class="suu-table__sort-icon suu-table__sort-icon--asc" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                      <path d="M5 9.5 8 6.5l3 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
-                    </svg>
-                  {:else if sort?.key === column.key}
-                    <svg class="suu-table__sort-icon suu-table__sort-icon--desc" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                      <path d="m5 6.5 3 3 3-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
-                    </svg>
-                  {:else}
-                    <svg class="suu-table__sort-icon suu-table__sort-icon--both" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                      <path d="M5 6.5 8 3.5l3 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
-                      <path d="m5 9.5 3 3 3-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
-                    </svg>
-                  {/if}
-                </span>
-              </button>
-            {:else}
-              <slot name="header" {column} {sort}>{column.header}</slot>
-            {/if}
-          </th>
-        {/each}
-      </tr>
-    </thead>
+    {#if showHeader}
+      <thead>
+        <tr>
+          {#each columns as column (column.key)}
+            <th
+              class={column.headerClass}
+              aria-sort={column.sortable ? getAriaSort(sort, column.key) : undefined}
+              data-horizontal-align={resolveHeaderHorizontalAlign(column)}
+              data-vertical-align={resolveHeaderVerticalAlign(column)}
+              scope="col"
+            >
+              {#if column.sortable}
+                <button class="suu-table__sort-button" type="button" on:click={() => handleSort(column)}>
+                  <span><slot name="header" {column} {sort}>{column.header}</slot></span>
+                  <span class="suu-table__sort-indicator" aria-hidden="true">
+                    {#if sort?.key === column.key && sort.direction === 'asc'}
+                      <svg class="suu-table__sort-icon suu-table__sort-icon--asc" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                        <path d="M5 9.5 8 6.5l3 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
+                      </svg>
+                    {:else if sort?.key === column.key}
+                      <svg class="suu-table__sort-icon suu-table__sort-icon--desc" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                        <path d="m5 6.5 3 3 3-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
+                      </svg>
+                    {:else}
+                      <svg class="suu-table__sort-icon suu-table__sort-icon--both" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                        <path d="M5 6.5 8 3.5l3 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
+                        <path d="m5 9.5 3 3 3-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" />
+                      </svg>
+                    {/if}
+                  </span>
+                </button>
+              {:else}
+                <slot name="header" {column} {sort}>{column.header}</slot>
+              {/if}
+            </th>
+          {/each}
+        </tr>
+      </thead>
+    {/if}
     <tbody>
       {#if rows.length > 0}
         {#each rows as row, rowIndex (resolveRowKey(row, rowIndex))}

@@ -20,6 +20,7 @@
   export let emptyText: string | undefined = undefined;
   export let sort: SortState | null = null;
   export let onSortChange: DataTableSortChangeHandler | undefined = undefined;
+  export let showHeader = true;
   export let showPagination = true;
   export let page = 1;
   export let pageSize = 20;
@@ -70,6 +71,7 @@
     {rows}
     {columns}
     {sort}
+    {showHeader}
     {zebra}
     {bordered}
     {verticalSeparators}

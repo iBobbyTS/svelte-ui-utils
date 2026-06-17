@@ -243,6 +243,25 @@ describe('data table components', () => {
     expect(container.querySelector('td[data-horizontal-align="left"][data-vertical-align="top"]')).toBeTruthy();
   });
 
+  it('can render data rows without a header section', () => {
+    const { container } = render(DataTable, {
+      props: {
+        showHeader: false,
+        showPagination: false,
+        rows: [{ name: 'Jane', role: 'Admin' }],
+        columns: [
+          { key: 'name', header: 'Name' },
+          { key: 'role', header: 'Role' }
+        ]
+      }
+    });
+
+    expect(container.querySelector('thead')).toBeNull();
+    expect(container.querySelector('.suu-table__sticky-clone')).toBeNull();
+    expect(screen.getByText('Jane')).toBeTruthy();
+    expect(screen.getByText('Admin')).toBeTruthy();
+  });
+
   it('can disable sticky headers', () => {
     const { container } = render(DataTable, {
       props: {

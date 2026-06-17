@@ -203,9 +203,10 @@ pagination bars. `DataTable` uses this same component for its page-size picker.
 default, including a page-size selector. Use `language` for package-owned
 defaults such as empty state, pagination label, and page-size label; use
 `pageSizeLabel` or `emptyText` when a specific app needs to override them.
-Use `showPagination={false}` for static tables. Sortable headers preserve the
-current window scroll position by default and wait for an async `onSortChange`
-before restoring scroll position.
+Use `showPagination={false}` for static tables. Use `showHeader={false}` for
+tables that should render body rows without a header section. Sortable headers
+preserve the current window scroll position by default and wait for an async
+`onSortChange` before restoring scroll position.
 
 Column alignment is configured separately for headers and body cells.
 Horizontal alignment accepts `left`, `center`, or `right`; vertical alignment
