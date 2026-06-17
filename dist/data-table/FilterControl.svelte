@@ -93,6 +93,7 @@
     minLength={control.minLength ?? 1}
     noResultsText={control.noResultsText ?? 'No results'}
     loadingText={control.loadingText ?? 'Loading...'}
+    clearLabel={control.clearLabel ?? 'Clear'}
     width={control.width}
     minWidth={control.minWidth}
     maxWidth={control.maxWidth}

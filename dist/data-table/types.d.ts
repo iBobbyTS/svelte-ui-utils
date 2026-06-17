@@ -99,6 +99,7 @@ export interface DropdownSearchFilterControl {
     minLength?: number;
     noResultsText?: string;
     loadingText?: string;
+    clearLabel?: string;
     width?: string;
     minWidth?: string;
     maxWidth?: string;

@@ -134,6 +134,63 @@ describe('DropdownSearch component', () => {
     expect(changes).not.toContain('invalid:');
   });
 
+  it('clears the current value from the built-in clear button', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const changes: Array<{ value: string; selectedItem: DropdownSearchItem | null; status: string }> = [];
+
+    render(DropdownSearch, {
+      props: {
+        value: 'Jane Doe',
+        selectedItem: jane,
+        status: 'valid',
+        clearLabel: 'Clear search',
+        loadOptions,
+        onChange: (detail) => changes.push(detail)
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveValue('Jane Doe');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
+    expect(loadOptions).not.toHaveBeenCalled();
+    expect(changes.at(-1)).toMatchObject({
+      value: '',
+      selectedItem: null,
+      status: 'empty'
+    });
+  });
+
+  it('only reserves clear-button space when the input has text', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+
+    const { container, rerender } = render(DropdownSearch, {
+      props: {
+        value: '',
+        status: 'empty',
+        clearLabel: 'Clear search',
+        loadOptions
+      }
+    });
+
+    const root = container.querySelector('.suu-dropdown-search');
+    expect(root).not.toHaveClass('suu-dropdown-search--has-clear');
+    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
+
+    await rerender({
+      value: 'Jane',
+      status: 'invalid',
+      clearLabel: 'Clear search',
+      loadOptions
+    });
+
+    expect(root).toHaveClass('suu-dropdown-search--has-clear');
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeInTheDocument();
+  });
+
   it('keeps a neutral status when validation is disabled', async () => {
     vi.useFakeTimers();
     const changes: string[] = [];

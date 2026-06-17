@@ -29,6 +29,7 @@ declare const DropdownSearch: $$__sveltets_2_IsomorphicComponent<{
     disabled?: boolean;
     noResultsText?: string;
     loadingText?: string;
+    clearLabel?: string;
     searchOnExternalValueChange?: boolean;
     width?: string | undefined;
     minWidth?: string | undefined;
@@ -39,6 +40,8 @@ declare const DropdownSearch: $$__sveltets_2_IsomorphicComponent<{
     onStatusChange?: ((status: DropdownSearchStatus) => void) | undefined;
     onInputBlur?: ((event: FocusEvent) => void) | undefined;
 }, {
+    mousedown: MouseEvent;
+} & {
     [evt: string]: CustomEvent<any>;
 }, {}, {}, string>;
 type DropdownSearch = InstanceType<typeof DropdownSearch>;

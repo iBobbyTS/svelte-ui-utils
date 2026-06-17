@@ -25,6 +25,7 @@
   export let disabled = false;
   export let noResultsText = 'No results';
   export let loadingText = 'Loading...';
+  export let clearLabel = 'Clear';
   export let searchOnExternalValueChange = false;
   export let width: string | undefined = undefined;
   export let minWidth: string | undefined = undefined;
@@ -38,6 +39,7 @@
   let options: DropdownSearchItem[] = [];
   let exactMatch: DropdownSearchItem | null = null;
   let focused = false;
+  let inputElement: HTMLInputElement | undefined;
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let activeController: AbortController | undefined;
   let requestId = 0;
@@ -167,6 +169,24 @@
     onSelect?.(item);
   }
 
+  function clearSearch() {
+    if (!hasQuery || disabled) {
+      return;
+    }
+
+    clearSearchTimer();
+    abortActiveSearch();
+    value = '';
+    lastHandledValue = value;
+    selectedItem = null;
+    exactMatch = null;
+    options = [];
+    setStatus(resolveDropdownSearchStatus({ value, selectedItem, exactMatch, minLength, validate }));
+    focused = true;
+    emitChange();
+    inputElement?.focus();
+  }
+
   function handleExternalValue(nextValue: string) {
     lastHandledValue = nextValue;
     selectedItem = null;
@@ -191,6 +211,7 @@
 
 <div
   class={`suu-dropdown-search suu-dropdown-search--${status}`}
+  class:suu-dropdown-search--has-clear={hasQuery && !disabled}
   data-status={status}
   style:width
   style:min-width={minWidth}
@@ -202,6 +223,7 @@
       <path d="m16 16 4 4"></path>
     </svg>
     <input
+      bind:this={inputElement}
       class="suu-dropdown-search__input"
       {id}
       {name}
@@ -221,6 +243,20 @@
         setTimeout(() => (focused = false), 120);
       }}
     />
+    {#if hasQuery && !disabled}
+      <button
+        type="button"
+        class="suu-dropdown-search__clear"
+        aria-label={clearLabel}
+        title={clearLabel}
+        on:mousedown|preventDefault
+        on:click={clearSearch}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="m6 6 8 8M14 6l-8 8"></path>
+        </svg>
+      </button>
+    {/if}
   </div>
 
   {#if showOptions}

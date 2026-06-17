@@ -432,10 +432,11 @@ describe('data table components', () => {
             title: 'Search',
             filter: filter.container([
               filter.dropdownSearch({
-                value: '',
+                value: 'Jane',
                 selectedItem: null,
-                status: 'empty',
+                status: 'invalid',
                 placeholder: 'Search people',
+                clearLabel: 'Clear search',
                 width: '24rem',
                 minWidth: '16rem',
                 maxWidth: '100%',
@@ -464,6 +465,7 @@ describe('data table components', () => {
     expect(dropdown?.style.width).toBe('24rem');
     expect(dropdown?.style.minWidth).toBe('16rem');
     expect(dropdown?.style.maxWidth).toBe('100%');
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: /Find/i }));
     expect(onSearchClick).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('link', { name: /Clear/i })).toHaveAttribute('href', '/clear');

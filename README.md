@@ -95,6 +95,7 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
 <DropdownSearch
   placeholder="Search"
   debounceMs={500}
+  clearLabel="Clear search"
   width="24rem"
   maxWidth="100%"
   {loadOptions}
@@ -118,6 +119,9 @@ Set `validate={false}` when the field should only show selectable options and
 stay visually neutral instead of turning green or red. In that mode the
 component ignores `exactMatch` for status and auto-selection.
 Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
+When the input has text, `DropdownSearch` shows an internal clear button on the
+right side of the field. Use `clearLabel` to localize that button's accessible
+label.
 Use `width`, `minWidth`, and `maxWidth` to size the control directly when a
 wrapper is not convenient.
 Server-side code and Node tests that only need pure helpers should import from
@@ -196,6 +200,7 @@ for the left column and a controlled filter created with the `filter` helper:
           status: searchStatus,
           width: '24rem',
           maxWidth: '100%',
+          clearLabel: 'Clear search',
           loadOptions,
           onChange: (detail) => updateSearch(detail)
         }),
