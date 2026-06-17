@@ -208,6 +208,13 @@ for the left column and a controlled filter created with the `filter` helper:
 <FilterTable rows={filterRows} />
 ```
 
+If a dropdown-style filter appears clipped, check the parent containers first.
+`DropdownSearch` renders its result list as an absolutely positioned child, so
+any ancestor with `overflow: hidden`, `overflow: auto`, or `overflow: scroll`
+can clip the menu even when the menu has a high `z-index`. Keep the nearest
+filter container at `overflow: visible`, or move the clipping/scrolling behavior
+to a parent that does not wrap the dropdown menu directly.
+
 `dateRange` renders two browser date inputs plus preset buttons:
 `last 24 hours`, `last 7 days`, `last 30 days`, `today`, `this week`,
 `this month`, and `this year`. Manual changes emit `{ startDate, endDate,
