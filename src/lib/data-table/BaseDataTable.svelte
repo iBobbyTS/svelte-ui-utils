@@ -161,6 +161,22 @@
     return column.class ?? '';
   }
 
+  function resolveHeaderHorizontalAlign(column: DataTableColumn) {
+    return column.headerHorizontalAlign ?? 'left';
+  }
+
+  function resolveHeaderVerticalAlign(column: DataTableColumn) {
+    return column.headerVerticalAlign ?? 'middle';
+  }
+
+  function resolveCellHorizontalAlign(column: DataTableColumn) {
+    return column.cellHorizontalAlign ?? 'left';
+  }
+
+  function resolveCellVerticalAlign(column: DataTableColumn) {
+    return column.cellVerticalAlign ?? 'top';
+  }
+
   onMount(() => {
     const update = () => queueStickyHeaderUpdate();
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : undefined;
@@ -217,7 +233,8 @@
               <th
                 class={column.headerClass}
                 aria-sort={column.sortable ? getAriaSort(sort, column.key) : undefined}
-                data-align={column.align ?? 'left'}
+                data-horizontal-align={resolveHeaderHorizontalAlign(column)}
+                data-vertical-align={resolveHeaderVerticalAlign(column)}
                 scope="col"
                 style:width={stickyHeaderColumnWidths[columnIndex] ? `${stickyHeaderColumnWidths[columnIndex]}px` : undefined}
                 style:min-width={stickyHeaderColumnWidths[columnIndex] ? `${stickyHeaderColumnWidths[columnIndex]}px` : undefined}
@@ -270,7 +287,8 @@
           <th
             class={column.headerClass}
             aria-sort={column.sortable ? getAriaSort(sort, column.key) : undefined}
-            data-align={column.align ?? 'left'}
+            data-horizontal-align={resolveHeaderHorizontalAlign(column)}
+            data-vertical-align={resolveHeaderVerticalAlign(column)}
             scope="col"
           >
             {#if column.sortable}
@@ -306,7 +324,12 @@
           <tr {...resolveRowAttributes(row, rowIndex)} class={resolveRowClass(row, rowIndex)}>
             {#each columns as column (column.key)}
               {@const value = getCellValue(row, column)}
-              <td class={resolveCellClass(column, row, value)} data-align={column.align ?? 'left'} data-nowrap={column.nowrap === false ? 'false' : 'true'}>
+              <td
+                class={resolveCellClass(column, row, value)}
+                data-horizontal-align={resolveCellHorizontalAlign(column)}
+                data-vertical-align={resolveCellVerticalAlign(column)}
+                data-nowrap={column.nowrap === false ? 'false' : 'true'}
+              >
                 <slot name="cell" {row} {column} {value}>{value as string}</slot>
               </td>
             {/each}

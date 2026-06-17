@@ -198,7 +198,17 @@ describe('data table components', () => {
       props: {
         showPagination: false,
         rows: [{ id: 42, name: 'Jane' }],
-        columns: [{ key: 'name', header: 'Name', nowrap: false }],
+        columns: [
+          {
+            key: 'name',
+            header: 'Name',
+            nowrap: false,
+            headerHorizontalAlign: 'center',
+            headerVerticalAlign: 'middle',
+            cellHorizontalAlign: 'right',
+            cellVerticalAlign: 'bottom'
+          }
+        ],
         bordered: false,
         verticalSeparators: true,
         tableLayout: 'fixed',
@@ -216,6 +226,21 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 4rem');
     expect(container.querySelector('tr[data-row-id="42"]')).toBeTruthy();
     expect(container.querySelector('td[data-nowrap="false"]')).toBeTruthy();
+    expect(container.querySelector('th[data-horizontal-align="center"][data-vertical-align="middle"]')).toBeTruthy();
+    expect(container.querySelector('td[data-horizontal-align="right"][data-vertical-align="bottom"]')).toBeTruthy();
+  });
+
+  it('uses separate default header and cell alignment values', () => {
+    const { container } = render(DataTable, {
+      props: {
+        showPagination: false,
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }]
+      }
+    });
+
+    expect(container.querySelector('th[data-horizontal-align="left"][data-vertical-align="middle"]')).toBeTruthy();
+    expect(container.querySelector('td[data-horizontal-align="left"][data-vertical-align="top"]')).toBeTruthy();
   });
 
   it('can disable sticky headers', () => {

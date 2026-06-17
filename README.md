@@ -162,7 +162,15 @@ pagination bars. `DataTable` uses this same component for its page-size picker.
 
   const columns = [
     { key: 'name', header: 'Name', sortable: true },
-    { key: 'createdAt', header: 'Created', sortable: true }
+    {
+      key: 'createdAt',
+      header: 'Created',
+      sortable: true,
+      headerHorizontalAlign: 'center',
+      headerVerticalAlign: 'middle',
+      cellHorizontalAlign: 'right',
+      cellVerticalAlign: 'top'
+    }
   ];
 
   let sort = null;
@@ -198,6 +206,13 @@ defaults such as empty state, pagination label, and page-size label; use
 Use `showPagination={false}` for static tables. Sortable headers preserve the
 current window scroll position by default and wait for an async `onSortChange`
 before restoring scroll position.
+
+Column alignment is configured separately for headers and body cells.
+Horizontal alignment accepts `left`, `center`, or `right`; vertical alignment
+accepts `top`, `middle`, or `bottom`. Header alignment defaults to
+`left`/`middle`; cell alignment defaults to `left`/`top`.
+Use `headerHorizontalAlign`, `headerVerticalAlign`, `cellHorizontalAlign`, and
+`cellVerticalAlign` instead of the older combined `align` field.
 
 `Pagination` is also available as a standalone module when an app needs
 pagination outside `DataTable`:

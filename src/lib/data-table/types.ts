@@ -63,11 +63,18 @@ export type DataTableRowAttributes<Row = unknown> = (
   index: number
 ) => Record<string, string | number | boolean | null | undefined>;
 
+export type DataTableHorizontalAlign = 'left' | 'center' | 'right';
+
+export type DataTableVerticalAlign = 'top' | 'middle' | 'bottom';
+
 export interface DataTableColumn<Row = unknown> {
   key: string;
   header: string;
   sortable?: boolean;
-  align?: 'left' | 'center' | 'right';
+  headerHorizontalAlign?: DataTableHorizontalAlign;
+  headerVerticalAlign?: DataTableVerticalAlign;
+  cellHorizontalAlign?: DataTableHorizontalAlign;
+  cellVerticalAlign?: DataTableVerticalAlign;
   class?: DataTableClassValue<Row>;
   headerClass?: string;
   nowrap?: boolean;
