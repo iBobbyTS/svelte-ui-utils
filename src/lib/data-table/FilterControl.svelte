@@ -112,6 +112,7 @@
     startLabel={control.startLabel}
     endLabel={control.endLabel}
     presetLabels={control.presetLabels ?? {}}
+    defaultPreset={control.defaultPreset}
     now={control.now ?? (() => new Date())}
     weekStartsOn={control.weekStartsOn ?? 1}
     onChange={(detail) => control.type === 'dateRange' && void control.onChange(detail)}

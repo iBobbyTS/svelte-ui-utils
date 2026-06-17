@@ -277,9 +277,11 @@ to a parent that does not wrap the dropdown menu directly.
 `dateRange` renders two browser date inputs plus preset buttons:
 `last 24 hours`, `last 7 days`, `last 30 days`, `today`, `this week`,
 `this month`, and `this year`. Manual changes emit `{ startDate, endDate,
-preset: null }`. The `last24Hours` preset also emits `startDateTime` and
-`endDateTime` so a consuming app can run an exact timestamp query while still
-showing the covered dates in the inputs.
+preset: null }`. Pass `defaultPreset` to apply a preset on mount when the
+current value is empty. Clicking the currently active preset clears both date
+inputs and emits an empty range. The `last24Hours` preset also emits
+`startDateTime` and `endDateTime` so a consuming app can run an exact timestamp
+query while still showing the covered dates in the inputs.
 
 `numberRange` renders min/max number inputs and supports `prefixLabel`, for
 example `$` for currency filters.

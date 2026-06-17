@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { DateRangeFilterValue, DateRangePreset } from './types.js';
 
@@ -11,6 +12,7 @@
   export let startLabel: string | undefined = undefined;
   export let endLabel: string | undefined = undefined;
   export let presetLabels: Partial<Record<DateRangePreset, string>> = {};
+  export let defaultPreset: DateRangePreset | undefined = undefined;
   export let now: () => Date = () => new Date();
   export let weekStartsOn: 0 | 1 = 1;
   export let onChange: ((value: DateRangeFilterValue) => void) | undefined = undefined;
@@ -125,6 +127,18 @@
     onChange?.(next);
   }
 
+  function emptyRange(): DateRangeFilterValue {
+    return {
+      startDate: '',
+      endDate: '',
+      preset: null
+    };
+  }
+
+  function isEmptyRange(nextValue: DateRangeFilterValue) {
+    return !nextValue.startDate && !nextValue.endDate && nextValue.preset === null;
+  }
+
   function updateDate(part: 'startDate' | 'endDate', nextValue: string) {
     emit({
       startDate: part === 'startDate' ? nextValue : value.startDate,
@@ -134,12 +148,23 @@
   }
 
   function applyPreset(preset: DateRangePreset) {
+    if (value.preset === preset) {
+      emit(emptyRange());
+      return;
+    }
+
     emit(resolvePreset(preset));
   }
 
   function labelFor(preset: DateRangePreset) {
     return presetLabels[preset] ?? messages.dateRange.presetLabels[preset];
   }
+
+  onMount(() => {
+    if (defaultPreset && isEmptyRange(value)) {
+      emit(resolvePreset(defaultPreset));
+    }
+  });
 </script>
 
 <div class="suu-date-range-filter">

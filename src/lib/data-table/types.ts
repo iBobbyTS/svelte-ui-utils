@@ -175,6 +175,7 @@ export interface DateRangeFilterControl {
   startLabel?: string;
   endLabel?: string;
   presetLabels?: Partial<Record<DateRangePreset, string>>;
+  defaultPreset?: DateRangePreset;
   now?: () => Date;
   weekStartsOn?: 0 | 1;
   onChange: (value: DateRangeFilterValue) => void | Promise<void>;

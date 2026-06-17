@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import DataTable from '../src/lib/data-table/DataTable.svelte';
 import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
@@ -607,6 +607,75 @@ describe('data table components', () => {
     });
   });
 
+  it('applies a default date range preset when the value is empty', async () => {
+    const onChange = vi.fn();
+
+    render(DateRangeFilter, {
+      props: {
+        defaultPreset: 'thisMonth',
+        now: () => new Date(2026, 5, 16, 10, 30, 15),
+        onChange
+      }
+    });
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenLastCalledWith({
+        startDate: '2026-06-01',
+        endDate: '2026-06-16',
+        preset: 'thisMonth'
+      });
+    });
+    expect(screen.getByLabelText('Start date')).toHaveValue('2026-06-01');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-06-16');
+  });
+
+  it('does not override an existing date range value with a default preset', async () => {
+    const onChange = vi.fn();
+
+    render(DateRangeFilter, {
+      props: {
+        value: {
+          startDate: '2026-05-01',
+          endDate: '2026-05-31',
+          preset: null
+        },
+        defaultPreset: 'thisMonth',
+        now: () => new Date(2026, 5, 16, 10, 30, 15),
+        onChange
+      }
+    });
+
+    await Promise.resolve();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Start date')).toHaveValue('2026-05-01');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-05-31');
+  });
+
+  it('clears the date range when the active preset is clicked again', async () => {
+    const onChange = vi.fn();
+
+    render(DateRangeFilter, {
+      props: {
+        value: {
+          startDate: '2026-06-16',
+          endDate: '2026-06-16',
+          preset: 'today'
+        },
+        now: () => new Date(2026, 5, 16, 10, 30, 15),
+        onChange
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '',
+      endDate: '',
+      preset: null
+    });
+    expect(screen.getByLabelText('Start date')).toHaveValue('');
+    expect(screen.getByLabelText('End date')).toHaveValue('');
+  });
+
   it('emits number range changes with prefix labels', async () => {
     const onChange = vi.fn();
     const { container } = render(NumberRangeFilter, {
@@ -664,6 +733,7 @@ describe('data table components', () => {
           value: { startDate: '', endDate: '', preset: null },
           startLabel: 'From',
           endLabel: 'To',
+          defaultPreset: 'last7Days',
           now: () => new Date(2026, 5, 16, 9, 0, 0),
           onChange: onIssueDateChange
         })
@@ -686,6 +756,13 @@ describe('data table components', () => {
       props: { rows }
     });
 
+    await waitFor(() => {
+      expect(onIssueDateChange).toHaveBeenLastCalledWith({
+        startDate: '2026-06-10',
+        endDate: '2026-06-16',
+        preset: 'last7Days'
+      });
+    });
     expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Issue date' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Today' }));
