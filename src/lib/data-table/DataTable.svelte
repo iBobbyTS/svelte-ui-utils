@@ -42,6 +42,8 @@
   $: resolvedEmptyText = emptyText ?? messages.table.emptyText;
   $: resolvedPageSizeLabel = pageSizeLabel ?? messages.table.pageSizeLabel;
   $: resolvedTotalRows = totalRows ?? rows.length;
+  $: minimumPageSizeOption = pageSizeOptions.length > 0 ? Math.min(...pageSizeOptions) : 0;
+  $: shouldShowPagination = showPagination && (minimumPageSizeOption <= 0 || resolvedTotalRows >= minimumPageSizeOption);
   $: pagination = { page, pageSize };
 
   function updatePagination(next: PaginationState) {
@@ -50,7 +52,7 @@
 </script>
 
 <div class="suu-data-table">
-  {#if showPagination}
+  {#if shouldShowPagination}
     <Pagination
       {pagination}
       {language}
@@ -86,7 +88,7 @@
     <slot name="cell" slot="cell" let:row let:column let:value {row} {column} {value}>{value}</slot>
   </BaseDataTable>
 
-  {#if showPagination}
+  {#if shouldShowPagination}
     <Pagination
       {pagination}
       {language}

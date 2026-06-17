@@ -372,12 +372,39 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-pagination__select-menu')?.classList.contains('suu-pagination__select-menu--up')).toBe(true);
   });
 
+  it('hides DataTable pagination when total rows are below the smallest page size option', () => {
+    const { container } = render(DataTable, {
+      props: {
+        rows: [{ name: 'Jane' }, { name: 'John' }],
+        columns: [{ key: 'name', header: 'Name' }],
+        totalRows: 2,
+        pageSizeOptions: [10, 20]
+      }
+    });
+
+    expect(container.querySelector('.suu-pagination')).toBeFalsy();
+    expect(screen.getByText('Jane')).toBeTruthy();
+  });
+
+  it('keeps DataTable pagination when total rows equal the smallest page size option', () => {
+    const { container } = render(DataTable, {
+      props: {
+        rows: Array.from({ length: 10 }, (_, index) => ({ name: `Member ${index + 1}` })),
+        columns: [{ key: 'name', header: 'Name' }],
+        totalRows: 10,
+        pageSizeOptions: [10, 20]
+      }
+    });
+
+    expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
+  });
+
   it('uses localized DataTable defaults when labels are not overridden', () => {
     const { container } = render(DataTable, {
       props: {
         rows: [],
         columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 0,
+        totalRows: 12,
         language: 'zh_cn'
       }
     });
