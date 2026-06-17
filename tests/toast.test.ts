@@ -1,5 +1,7 @@
+import { render, screen } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import Toast from '../src/lib/toast/Toast.svelte';
 import {
   createToastStore,
   getToastStackDirection,
@@ -69,5 +71,29 @@ describe('toast store', () => {
 
     vi.advanceTimersByTime(1000);
     expect(get(store)).toHaveLength(0);
+  });
+});
+
+describe('toast component', () => {
+  it('uses localized close labels when no override is passed', () => {
+    render(Toast, {
+      props: {
+        language: 'zh_cn',
+        toast: {
+          id: 'toast-1',
+          title: 'Saved',
+          message: '',
+          variant: 'success',
+          position: 'top-right',
+          duration: 0,
+          showCountdown: false,
+          dismissible: true,
+          ariaLive: 'polite',
+          createdAt: Date.now()
+        }
+      }
+    });
+
+    expect(screen.getByRole('button', { name: '关闭通知' })).toBeTruthy();
   });
 });

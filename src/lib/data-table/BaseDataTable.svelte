@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import { getAriaSort, getCellValue, toggleSort } from './state.js';
   import type {
     DataTableCellValue,
@@ -22,7 +23,8 @@
   export let stickyHeaderTop: string | undefined = undefined;
   export let stickyHeaderOffset: string | undefined = undefined;
   export let preserveScrollOnSort = true;
-  export let emptyText = 'No records';
+  export let language: UiLanguage = 'en_us';
+  export let emptyText: string | undefined = undefined;
   export let rowKey: DataTableRowKey | undefined = undefined;
   export let rowClass: string | ((row: unknown, index: number) => string | undefined | null) | undefined = undefined;
   export let rowAttributes: DataTableRowAttributes | undefined = undefined;
@@ -36,6 +38,8 @@
   let stickyHeaderColumnWidths: number[] = [];
   let stickyHeaderUpdateFrame: number | null = null;
   let stickyHeaderOffsetProbe: HTMLSpanElement | undefined = undefined;
+  $: messages = getUiMessages(language);
+  $: resolvedEmptyText = emptyText ?? messages.table.emptyText;
   $: resolvedStickyHeaderTop = stickyHeaderOffset ?? stickyHeaderTop;
 
   function restoreScrollPosition(scrollX: number, scrollY: number, sequence: number) {
@@ -310,7 +314,7 @@
         {/each}
       {:else}
         <tr>
-          <td class="suu-table__empty" colspan={Math.max(1, columns.length)}>{emptyText}</td>
+          <td class="suu-table__empty" colspan={Math.max(1, columns.length)}>{resolvedEmptyText}</td>
         </tr>
       {/if}
     </tbody>

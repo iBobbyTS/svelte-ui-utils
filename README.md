@@ -73,7 +73,7 @@ import { ToastManager, DropdownSearch, DataTable } from '@ibobbyts/svelte-ui-uti
   }
 </script>
 
-<ToastManager closeLabel="Close" />
+<ToastManager language="en_us" closeLabel="Close" />
 <button on:click={save}>Save</button>
 ```
 
@@ -93,6 +93,7 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
 </script>
 
 <DropdownSearch
+  language="en_us"
   placeholder="Search"
   debounceMs={500}
   clearLabel="Clear search"
@@ -121,7 +122,7 @@ component ignores `exactMatch` for status and auto-selection.
 Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
 When the input has text, `DropdownSearch` shows an internal clear button on the
 right side of the field. Use `clearLabel` to localize that button's accessible
-label.
+label, or use `language` to select the package default.
 Use `width`, `minWidth`, and `maxWidth` to size the control directly when a
 wrapper is not convenient.
 Server-side code and Node tests that only need pure helpers should import from
@@ -145,6 +146,7 @@ component files.
 </script>
 
 <DataTable
+  language="en_us"
   rows={rows}
   {columns}
   {sort}
@@ -165,10 +167,12 @@ component files.
 ```
 
 `DataTable` renders page-number pagination above and below the data table by
-default, including a page-size selector. Use `pageSizeLabel` to localize the
-selector label and `showPagination={false}` for static tables. Sortable headers
-preserve the current window scroll position by default and wait for an async
-`onSortChange` before restoring scroll position.
+default, including a page-size selector. Use `language` for package-owned
+defaults such as empty state, pagination label, and page-size label; use
+`pageSizeLabel` or `emptyText` when a specific app needs to override them.
+Use `showPagination={false}` for static tables. Sortable headers preserve the
+current window scroll position by default and wait for an async `onSortChange`
+before restoring scroll position.
 
 `FilterTable` is filter-only. It accepts `rows`, where each row has a `title`
 for the left column and a controlled filter created with the `filter` helper:
@@ -210,7 +214,7 @@ for the left column and a controlled filter created with the `filter` helper:
   ];
 </script>
 
-<FilterTable rows={filterRows} />
+<FilterTable rows={filterRows} language="en_us" />
 ```
 
 If a dropdown-style filter appears clipped, check the parent containers first.
@@ -229,6 +233,17 @@ showing the covered dates in the inputs.
 
 `numberRange` renders min/max number inputs and supports `prefixLabel`, for
 example `$` for currency filters.
+
+## Localization
+
+Components that render package-owned text accept `language="en_us"`,
+`language="zh_cn"`, or `language="zh_tw"`. This affects only built-in defaults:
+toast close labels, dropdown loading/empty/clear labels, table empty and
+pagination labels, date range labels and presets, and number range labels.
+Business labels such as column headers, filter row titles, button labels, and
+placeholders should still be passed by the consuming app. Explicit props such
+as `closeLabel`, `clearLabel`, `noResultsText`, `emptyText`, `pageSizeLabel`,
+`startLabel`, and `minLabel` always override the language defaults.
 
 Use `DataTable showPagination={false}` for a non-paginated data table:
 

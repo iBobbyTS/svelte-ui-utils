@@ -1,17 +1,23 @@
 <script lang="ts">
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { NumberRangeFilterValue } from './types.js';
 
   export let value: NumberRangeFilterValue = {
     min: null,
     max: null
   };
-  export let minLabel = 'Min';
-  export let maxLabel = 'Max';
+  export let language: UiLanguage = 'en_us';
+  export let minLabel: string | undefined = undefined;
+  export let maxLabel: string | undefined = undefined;
   export let prefixLabel = '';
   export let min: number | undefined = undefined;
   export let max: number | undefined = undefined;
   export let step: number | string = 'any';
   export let onChange: ((value: NumberRangeFilterValue) => void) | undefined = undefined;
+
+  $: messages = getUiMessages(language);
+  $: resolvedMinLabel = minLabel ?? messages.numberRange.minLabel;
+  $: resolvedMaxLabel = maxLabel ?? messages.numberRange.maxLabel;
 
   function parseNumber(input: string): number | null {
     if (input.trim() === '') {
@@ -37,14 +43,14 @@
 
 <div class="suu-number-range-filter">
   <label class="suu-range-field">
-    <span>{minLabel}</span>
+    <span>{resolvedMinLabel}</span>
     <div class="suu-input-affix">
       {#if prefixLabel}
         <span class="suu-input-affix__label">{prefixLabel}</span>
       {/if}
       <input
         type="number"
-        aria-label={minLabel}
+        aria-label={resolvedMinLabel}
         {min}
         {max}
         {step}
@@ -54,14 +60,14 @@
     </div>
   </label>
   <label class="suu-range-field">
-    <span>{maxLabel}</span>
+    <span>{resolvedMaxLabel}</span>
     <div class="suu-input-affix">
       {#if prefixLabel}
         <span class="suu-input-affix__label">{prefixLabel}</span>
       {/if}
       <input
         type="number"
-        aria-label={maxLabel}
+        aria-label={resolvedMaxLabel}
         {min}
         {max}
         {step}

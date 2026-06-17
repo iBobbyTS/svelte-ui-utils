@@ -1,3 +1,4 @@
+import { type UiLanguage } from '../i18n.js';
 import type { PaginationState } from './types.js';
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
@@ -16,7 +17,8 @@ declare const Pagination: $$__sveltets_2_IsomorphicComponent<{
     pagination?: PaginationState;
     totalRows?: number;
     pageSizeOptions?: number[];
-    pageSizeLabel?: string;
+    language?: UiLanguage;
+    pageSizeLabel?: string | undefined;
     maxPageButtons?: number;
     onPaginationChange?: ((pagination: PaginationState) => void) | undefined;
 }, {

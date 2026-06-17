@@ -1,4 +1,5 @@
 export { default as DropdownSearch } from './DropdownSearch.svelte';
+export { getUiMessages, resolveUiLanguage, uiLanguages } from '../i18n.js';
 export {
   clampDropdownSearchLimit,
   formatParamDict,
@@ -6,6 +7,7 @@ export {
   normalizeDropdownSearchValue,
   resolveDropdownSearchStatus
 } from './state.js';
+export type { UiLanguage, UiMessages } from '../i18n.js';
 export type {
   DropdownSearchChangeDetail,
   DropdownSearchItem,

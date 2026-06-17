@@ -363,6 +363,21 @@ describe('data table components', () => {
     expect(screen.getByText('Jane')).toBeTruthy();
   });
 
+  it('uses localized DataTable defaults when labels are not overridden', () => {
+    const { container } = render(DataTable, {
+      props: {
+        rows: [],
+        columns: [{ key: 'name', header: 'Name' }],
+        totalRows: 0,
+        language: 'zh_cn'
+      }
+    });
+
+    expect(screen.getByText('暂无记录')).toBeTruthy();
+    expect(screen.getAllByText('每页')).toHaveLength(2);
+    expect(container.querySelectorAll('.suu-pagination[aria-label="分页"]')).toHaveLength(2);
+  });
+
   it('can render DataTable without pagination', () => {
     const { container } = render(DataTable, {
       props: {
@@ -505,6 +520,27 @@ describe('data table components', () => {
     expect(screen.getByLabelText('End')).toHaveValue('2026-06-16');
   });
 
+  it('uses localized date range defaults', async () => {
+    const onChange = vi.fn();
+
+    render(DateRangeFilter, {
+      props: {
+        language: 'zh_cn',
+        now: () => new Date(2026, 5, 16, 10, 30, 15),
+        onChange
+      }
+    });
+
+    await fireEvent.change(screen.getByLabelText('开始日期'), { target: { value: '2026-06-01' } });
+    await fireEvent.click(screen.getByRole('button', { name: '今天' }));
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-06-16',
+      endDate: '2026-06-16',
+      preset: 'today'
+    });
+  });
+
   it('emits number range changes with prefix labels', async () => {
     const onChange = vi.fn();
     const { container } = render(NumberRangeFilter, {
@@ -523,6 +559,20 @@ describe('data table components', () => {
 
     await fireEvent.input(screen.getByLabelText('Maximum'), { target: { value: '80' } });
     expect(onChange).toHaveBeenLastCalledWith({ min: 25.5, max: 80 });
+  });
+
+  it('uses localized number range defaults', async () => {
+    const onChange = vi.fn();
+
+    render(NumberRangeFilter, {
+      props: {
+        language: 'zh_tw',
+        onChange
+      }
+    });
+
+    await fireEvent.input(screen.getByLabelText('最小值'), { target: { value: '12' } });
+    expect(onChange).toHaveBeenLastCalledWith({ min: 12, max: null });
   });
 
   it('emits date and number range filter changes', async () => {
@@ -569,5 +619,28 @@ describe('data table components', () => {
 
     await fireEvent.input(screen.getByLabelText('Min amount'), { target: { value: '10' } });
     expect(onAmountChange).toHaveBeenLastCalledWith({ min: 10, max: null });
+  });
+
+  it('passes language through FilterTable child controls', async () => {
+    const onChange = vi.fn();
+
+    render(FilterTable, {
+      props: {
+        language: 'zh_tw',
+        rows: [
+          {
+            key: 'amount',
+            title: 'Amount',
+            filter: filter.numberRange({
+              value: { min: null, max: null },
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    await fireEvent.input(screen.getByLabelText('最小值'), { target: { value: '9' } });
+    expect(onChange).toHaveBeenLastCalledWith({ min: 9, max: null });
   });
 });

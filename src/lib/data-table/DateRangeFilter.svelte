@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { DateRangeFilterValue, DateRangePreset } from './types.js';
 
   export let value: DateRangeFilterValue = {
@@ -6,22 +7,13 @@
     endDate: '',
     preset: null
   };
-  export let startLabel = 'Start date';
-  export let endLabel = 'End date';
+  export let language: UiLanguage = 'en_us';
+  export let startLabel: string | undefined = undefined;
+  export let endLabel: string | undefined = undefined;
   export let presetLabels: Partial<Record<DateRangePreset, string>> = {};
   export let now: () => Date = () => new Date();
   export let weekStartsOn: 0 | 1 = 1;
   export let onChange: ((value: DateRangeFilterValue) => void) | undefined = undefined;
-
-  const defaultPresetLabels: Record<DateRangePreset, string> = {
-    last24Hours: 'last 24 hours',
-    last7Days: 'last 7 days',
-    last30Days: 'last 30 days',
-    today: 'today',
-    thisWeek: 'this week',
-    thisMonth: 'this month',
-    thisYear: 'this year'
-  };
 
   const presets: DateRangePreset[] = [
     'last24Hours',
@@ -32,6 +24,10 @@
     'thisMonth',
     'thisYear'
   ];
+
+  $: messages = getUiMessages(language);
+  $: resolvedStartLabel = startLabel ?? messages.dateRange.startLabel;
+  $: resolvedEndLabel = endLabel ?? messages.dateRange.endLabel;
 
   function pad(value: number) {
     return String(value).padStart(2, '0');
@@ -142,13 +138,13 @@
   }
 
   function labelFor(preset: DateRangePreset) {
-    return presetLabels[preset] ?? defaultPresetLabels[preset];
+    return presetLabels[preset] ?? messages.dateRange.presetLabels[preset];
   }
 </script>
 
 <div class="suu-date-range-filter">
   <label class="suu-range-field">
-    <span>{startLabel}</span>
+    <span>{resolvedStartLabel}</span>
     <input
       type="date"
       value={value.startDate}
@@ -156,7 +152,7 @@
     />
   </label>
   <label class="suu-range-field">
-    <span>{endLabel}</span>
+    <span>{resolvedEndLabel}</span>
     <input
       type="date"
       value={value.endDate}

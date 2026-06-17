@@ -3,6 +3,7 @@ import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DropdownSearch from '../src/lib/dropdown-search/DropdownSearch.svelte';
 import { clampDropdownSearchLimit, formatParamDict, resolveDropdownSearchStatus } from '../src/lib/dropdown-search/index.js';
+import { getUiMessages, resolveUiLanguage } from '../src/lib/i18n.js';
 import type { DropdownSearchItem, DropdownSearchLoadOptions } from '../src/lib/dropdown-search/index.js';
 
 const jane: DropdownSearchItem = {
@@ -12,6 +13,13 @@ const jane: DropdownSearchItem = {
 };
 
 describe('dropdown search state', () => {
+  it('resolves supported UI languages', () => {
+    expect(resolveUiLanguage('zh-cn')).toBe('zh_cn');
+    expect(resolveUiLanguage('zh_tw')).toBe('zh_tw');
+    expect(resolveUiLanguage('en')).toBe('en_us');
+    expect(getUiMessages('zh_cn').dropdownSearch.clearLabel).toBe('清除');
+  });
+
   it('formats param_dict and resolves input status', () => {
     expect(formatParamDict(jane.param_dict)).toEqual(['ID: M-123', 'City: Calgary']);
     expect(resolveDropdownSearchStatus({ value: '' })).toBe('empty');
@@ -162,6 +170,25 @@ describe('DropdownSearch component', () => {
       selectedItem: null,
       status: 'empty'
     });
+  });
+
+  it('uses localized default labels when no text override is passed', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+
+    render(DropdownSearch, {
+      props: {
+        value: 'Jane Doe',
+        status: 'invalid',
+        language: 'zh_tw',
+        loadOptions
+      }
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+
+    expect(screen.getByRole('button', { name: '清除' })).toBeInTheDocument();
+    expect(screen.getByText('沒有符合結果')).toBeInTheDocument();
   });
 
   it('only reserves clear-button space when the input has text', async () => {

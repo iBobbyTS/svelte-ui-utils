@@ -1,10 +1,12 @@
 <script lang="ts">
   import DropdownSearch from '../dropdown-search/DropdownSearch.svelte';
+  import type { UiLanguage } from '../i18n.js';
   import DateRangeFilter from './DateRangeFilter.svelte';
   import NumberRangeFilter from './NumberRangeFilter.svelte';
   import type { FilterControl } from './types.js';
 
   export let control: FilterControl;
+  export let language: UiLanguage = 'en_us';
 
   function actionClass(variant: string | undefined): string {
     return `suu-filter-table__action suu-filter-table__action--${variant ?? 'outline'}`;
@@ -36,7 +38,7 @@
 {#if control.type === 'container'}
   <div class="suu-filter-table__control-row">
     {#each control.controls as child}
-      <svelte:self control={child} />
+      <svelte:self control={child} {language} />
     {/each}
   </div>
 {:else if control.type === 'checkbox'}
@@ -91,9 +93,10 @@
     debounceMs={control.debounceMs ?? 500}
     limit={control.limit ?? 10}
     minLength={control.minLength ?? 1}
-    noResultsText={control.noResultsText ?? 'No results'}
-    loadingText={control.loadingText ?? 'Loading...'}
-    clearLabel={control.clearLabel ?? 'Clear'}
+    {language}
+    noResultsText={control.noResultsText}
+    loadingText={control.loadingText}
+    clearLabel={control.clearLabel}
     width={control.width}
     minWidth={control.minWidth}
     maxWidth={control.maxWidth}
@@ -103,8 +106,9 @@
 {:else if control.type === 'dateRange'}
   <DateRangeFilter
     value={control.value}
-    startLabel={control.startLabel ?? 'Start date'}
-    endLabel={control.endLabel ?? 'End date'}
+    {language}
+    startLabel={control.startLabel}
+    endLabel={control.endLabel}
     presetLabels={control.presetLabels ?? {}}
     now={control.now ?? (() => new Date())}
     weekStartsOn={control.weekStartsOn ?? 1}
@@ -113,8 +117,9 @@
 {:else if control.type === 'numberRange'}
   <NumberRangeFilter
     value={control.value}
-    minLabel={control.minLabel ?? 'Min'}
-    maxLabel={control.maxLabel ?? 'Max'}
+    {language}
+    minLabel={control.minLabel}
+    maxLabel={control.maxLabel}
     prefixLabel={control.prefixLabel ?? ''}
     min={control.min}
     max={control.max}

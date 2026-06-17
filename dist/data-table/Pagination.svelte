@@ -1,16 +1,20 @@
 <script lang="ts">
   import { getPageCount, normalizePagination } from './state.js';
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { PaginationState } from './types.js';
 
   export let pagination: PaginationState = { page: 1, pageSize: 20 };
   export let totalRows = 0;
   export let pageSizeOptions: number[] = [10, 20, 50, 100];
-  export let pageSizeLabel = 'Rows';
+  export let language: UiLanguage = 'en_us';
+  export let pageSizeLabel: string | undefined = undefined;
   export let maxPageButtons = 15;
   export let onPaginationChange: ((pagination: PaginationState) => void) | undefined = undefined;
 
   type PaginationItem = { kind: 'page'; page: number } | { kind: 'ellipsis' };
 
+  $: messages = getUiMessages(language);
+  $: resolvedPageSizeLabel = pageSizeLabel ?? messages.table.pageSizeLabel;
   $: normalized = normalizePagination(pagination, totalRows);
   $: pageCount = getPageCount(totalRows, normalized.pageSize);
   $: pageItems = buildPaginationItems(normalized.page, pageCount, maxPageButtons);
@@ -71,7 +75,7 @@
   }
 </script>
 
-<div class="suu-pagination" aria-label="Pagination">
+<div class="suu-pagination" aria-label={messages.table.paginationLabel}>
   <div class="suu-pagination__pages" class:suu-pagination__pages--empty={pageItems.length === 0}>
     {#each pageItems as item, index (item.kind === 'page' ? `page-${item.page}` : `ellipsis-${index}`)}
       {#if item.kind === 'page'}
@@ -90,7 +94,7 @@
     {/each}
   </div>
   <label class="suu-pagination__size">
-    <span>{pageSizeLabel}</span>
+    <span>{resolvedPageSizeLabel}</span>
     <select value={normalized.pageSize} on:change={setPageSize}>
       {#each pageSizeOptions as option}
         <option value={option}>{option}</option>

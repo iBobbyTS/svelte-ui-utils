@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import { formatParamDict, normalizeDropdownSearchValue, resolveDropdownSearchStatus } from './state.js';
   import type {
     DropdownSearchChangeDetail,
@@ -23,9 +24,10 @@
   export let ariaLabel: string | undefined = undefined;
   export let listboxId: string | undefined = undefined;
   export let disabled = false;
-  export let noResultsText = 'No results';
-  export let loadingText = 'Loading...';
-  export let clearLabel = 'Clear';
+  export let language: UiLanguage = 'en_us';
+  export let noResultsText: string | undefined = undefined;
+  export let loadingText: string | undefined = undefined;
+  export let clearLabel: string | undefined = undefined;
   export let searchOnExternalValueChange = false;
   export let width: string | undefined = undefined;
   export let minWidth: string | undefined = undefined;
@@ -45,6 +47,10 @@
   let requestId = 0;
   let lastHandledValue = value;
 
+  $: messages = getUiMessages(language);
+  $: resolvedNoResultsText = noResultsText ?? messages.dropdownSearch.noResultsText;
+  $: resolvedLoadingText = loadingText ?? messages.dropdownSearch.loadingText;
+  $: resolvedClearLabel = clearLabel ?? messages.dropdownSearch.clearLabel;
   $: resolvedListboxId = listboxId ?? (id ? `${id}-options` : undefined);
   $: hasQuery = normalizeDropdownSearchValue(value).length > 0;
   $: showOptions = focused && !disabled && (options.length > 0 || status === 'loading' || (hasQuery && status === 'invalid'));
@@ -247,8 +253,8 @@
       <button
         type="button"
         class="suu-dropdown-search__clear"
-        aria-label={clearLabel}
-        title={clearLabel}
+        aria-label={resolvedClearLabel}
+        title={resolvedClearLabel}
         on:mousedown|preventDefault
         on:click={clearSearch}
       >
@@ -262,7 +268,7 @@
   {#if showOptions}
     <div class="suu-dropdown-search__menu" id={resolvedListboxId} role="listbox">
       {#if status === 'loading'}
-        <div class="suu-dropdown-search__empty">{loadingText}</div>
+        <div class="suu-dropdown-search__empty">{resolvedLoadingText}</div>
       {:else if options.length > 0}
         {#each options as option (option.id)}
           <button
@@ -281,7 +287,7 @@
           </button>
         {/each}
       {:else}
-        <div class="suu-dropdown-search__empty">{noResultsText}</div>
+        <div class="suu-dropdown-search__empty">{resolvedNoResultsText}</div>
       {/if}
     </div>
   {/if}

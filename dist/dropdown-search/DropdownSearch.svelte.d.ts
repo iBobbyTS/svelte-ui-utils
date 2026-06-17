@@ -1,3 +1,4 @@
+import { type UiLanguage } from '../i18n.js';
 import type { DropdownSearchChangeDetail, DropdownSearchItem, DropdownSearchItemValueGetter, DropdownSearchLoadOptions, DropdownSearchStatus } from './types.js';
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
@@ -27,9 +28,10 @@ declare const DropdownSearch: $$__sveltets_2_IsomorphicComponent<{
     ariaLabel?: string | undefined;
     listboxId?: string | undefined;
     disabled?: boolean;
-    noResultsText?: string;
-    loadingText?: string;
-    clearLabel?: string;
+    language?: UiLanguage;
+    noResultsText?: string | undefined;
+    loadingText?: string | undefined;
+    clearLabel?: string | undefined;
     searchOnExternalValueChange?: boolean;
     width?: string | undefined;
     minWidth?: string | undefined;

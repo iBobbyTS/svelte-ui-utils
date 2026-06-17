@@ -1,10 +1,14 @@
 <script lang="ts">
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { ToastItem } from './types.js';
 
   export let toast: ToastItem;
   export let onDismiss: (id: string) => void = () => {};
-  export let closeLabel = 'Close notification';
+  export let language: UiLanguage = 'en_us';
+  export let closeLabel: string | undefined = undefined;
 
+  $: messages = getUiMessages(language);
+  $: resolvedCloseLabel = closeLabel ?? messages.toast.closeLabel;
   $: countdownStyle = `--suu-toast-duration: ${toast.duration}ms`;
 </script>
 
@@ -23,7 +27,7 @@
     {/if}
   </div>
   {#if toast.dismissible}
-    <button class="suu-toast__close" type="button" aria-label={closeLabel} on:click={() => onDismiss(toast.id)}>
+    <button class="suu-toast__close" type="button" aria-label={resolvedCloseLabel} on:click={() => onDismiss(toast.id)}>
       <span aria-hidden="true">&times;</span>
     </button>
   {/if}

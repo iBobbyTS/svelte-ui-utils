@@ -1,3 +1,4 @@
+import { type UiLanguage } from '../i18n.js';
 import type { DataTableColumn, DataTableLayout, DataTableRowAttributes, DataTableRowKey, DataTableSortChangeHandler, PaginationState, SortState } from './types.js';
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
@@ -16,7 +17,8 @@ declare const DataTable: $$__sveltets_2_IsomorphicComponent<{
     rows?: unknown[];
     columns?: DataTableColumn[];
     rowKey?: DataTableRowKey | undefined;
-    emptyText?: string;
+    language?: UiLanguage;
+    emptyText?: string | undefined;
     sort?: SortState | null;
     onSortChange?: DataTableSortChangeHandler | undefined;
     showPagination?: boolean;
@@ -24,7 +26,7 @@ declare const DataTable: $$__sveltets_2_IsomorphicComponent<{
     pageSize?: number;
     totalRows?: number | undefined;
     pageSizeOptions?: number[];
-    pageSizeLabel?: string;
+    pageSizeLabel?: string | undefined;
     maxPageButtons?: number;
     onPaginationChange?: ((pagination: PaginationState) => void | Promise<void>) | undefined;
     zebra?: boolean;

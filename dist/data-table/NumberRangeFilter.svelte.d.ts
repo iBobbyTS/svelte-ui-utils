@@ -1,3 +1,4 @@
+import { type UiLanguage } from '../i18n.js';
 import type { NumberRangeFilterValue } from './types.js';
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
@@ -14,8 +15,9 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
 }
 declare const NumberRangeFilter: $$__sveltets_2_IsomorphicComponent<{
     value?: NumberRangeFilterValue;
-    minLabel?: string;
-    maxLabel?: string;
+    language?: UiLanguage;
+    minLabel?: string | undefined;
+    maxLabel?: string | undefined;
     prefixLabel?: string;
     min?: number | undefined;
     max?: number | undefined;
