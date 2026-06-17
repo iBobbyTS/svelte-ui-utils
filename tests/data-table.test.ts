@@ -627,6 +627,18 @@ describe('data table components', () => {
     expect(onChange).toHaveBeenLastCalledWith({ min: 25.5, max: 80 });
   });
 
+  it('applies number range width', () => {
+    const { container } = render(NumberRangeFilter, {
+      props: {
+        width: '6em'
+      }
+    });
+
+    expect(container.querySelector('.suu-number-range-filter')).toHaveStyle({
+      '--suu-number-range-field-width': '6em'
+    });
+  });
+
   it('uses localized number range defaults', async () => {
     const onChange = vi.fn();
 

@@ -126,6 +126,7 @@
     min={control.min}
     max={control.max}
     step={control.step ?? 'any'}
+    width={control.width}
     onChange={(detail) => control.type === 'numberRange' && void control.onChange(detail)}
   />
 {:else if control.type === 'button'}

@@ -1,6 +1,7 @@
 node_modules/
 package/
 .svelte-kit/
+dist/
 .DS_Store
 *.log
 coverage/

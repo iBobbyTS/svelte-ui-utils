@@ -189,6 +189,7 @@ export interface NumberRangeFilterControl {
   min?: number;
   max?: number;
   step?: number | string;
+  width?: string;
   onChange: (value: NumberRangeFilterValue) => void | Promise<void>;
 }
 

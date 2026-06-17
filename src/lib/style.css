@@ -400,7 +400,10 @@
 }
 
 .suu-number-range-filter {
-  min-width: min(100%, 260px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  min-width: 0;
 }
 
 .suu-range-field {
@@ -413,6 +416,11 @@
 .suu-date-range-filter .suu-range-field {
   flex: 0 1 var(--suu-date-range-field-width, 11rem);
   min-width: var(--suu-date-range-field-min-width, 9.5rem);
+}
+
+.suu-number-range-filter .suu-range-field {
+  flex: 0 1 var(--suu-number-range-field-width, 10rem);
+  min-width: var(--suu-number-range-field-min-width, 6rem);
 }
 
 .suu-range-field span {

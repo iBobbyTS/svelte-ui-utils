@@ -13,6 +13,7 @@
   export let min: number | undefined = undefined;
   export let max: number | undefined = undefined;
   export let step: number | string = 'any';
+  export let width: string | undefined = undefined;
   export let onChange: ((value: NumberRangeFilterValue) => void) | undefined = undefined;
 
   $: messages = getUiMessages(language);
@@ -41,7 +42,7 @@
   }
 </script>
 
-<div class="suu-number-range-filter">
+<div class="suu-number-range-filter" style:--suu-number-range-field-width={width}>
   <label class="suu-range-field">
     <span>{resolvedMinLabel}</span>
     <div class="suu-input-affix">
