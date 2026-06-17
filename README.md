@@ -13,6 +13,12 @@ With Bun:
 bun add @ibobbyts/svelte-ui-utils@0.1.2
 ```
 
+Canonical Bun pull address:
+
+```text
+@ibobbyts/svelte-ui-utils@0.1.2
+```
+
 With npm:
 
 ```bash
