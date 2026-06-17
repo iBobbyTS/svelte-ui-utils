@@ -16,6 +16,8 @@ declare const Pagination: $$__sveltets_2_IsomorphicComponent<{
     pagination?: PaginationState;
     totalRows?: number;
     pageSizeOptions?: number[];
+    pageSizeLabel?: string;
+    maxPageButtons?: number;
     onPaginationChange?: ((pagination: PaginationState) => void) | undefined;
 }, {
     [evt: string]: CustomEvent<any>;

@@ -46,7 +46,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-  import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/data-table';
+  import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
 ```
 
@@ -124,37 +124,83 @@ component files.
 
 ```svelte
 <script lang="ts">
-  import { DataTable } from '@ibobbyts/svelte-ui-utils/data-table';
+  import { DataTable } from '@ibobbyts/svelte-ui-utils/table';
 
   const columns = [
     { key: 'name', header: 'Name', sortable: true },
     { key: 'createdAt', header: 'Created', sortable: true }
   ];
 
-  let state = {
-    sort: null,
-    pagination: { page: 1, pageSize: 20 },
-    filters: {}
-  };
+  let sort = null;
+  let page = 1;
+  let pageSize = 20;
 </script>
 
 <DataTable
   rows={rows}
   {columns}
+  {sort}
+  {page}
+  {pageSize}
   totalRows={totalRows}
-  {state}
   tableLayout="auto"
   stickyHeader={true}
-  onStateChange={(next) => (state = next)}
+  onSortChange={(next) => {
+    sort = next;
+    page = 1;
+  }}
+  onPaginationChange={(next) => {
+    page = next.page;
+    pageSize = next.pageSize;
+  }}
 />
 ```
 
-`FilterTable` supports built-in filter definitions for `checkbox`, `radio`,
-`dropdownSearch`, `dateRange`, and `numberRange`. Filters render as a two-column
-table: the first column is the filter label, and the second column contains the
-filter controls.
-`onStateChange` may return a promise; sortable headers wait for it before
-restoring scroll position.
+`DataTable` renders page-number pagination above and below the data table by
+default, including a page-size selector. Use `pageSizeLabel` to localize the
+selector label and `showPagination={false}` for static tables. Sortable headers
+preserve the current window scroll position by default and wait for an async
+`onSortChange` before restoring scroll position.
+
+`FilterTable` is filter-only. It accepts `rows`, where each row has a `title`
+for the left column and a controlled filter created with the `filter` helper:
+
+```svelte
+<script lang="ts">
+  import { FilterTable, filter } from '@ibobbyts/svelte-ui-utils/table';
+
+  const filterRows = [
+    {
+      key: 'status',
+      title: 'Status',
+      filter: filter.checkbox({
+        value: selectedStatuses,
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Archived', value: 'archived' }
+        ],
+        onChange: (value) => (selectedStatuses = value)
+      })
+    },
+    {
+      key: 'search',
+      title: 'Search',
+      filter: filter.container([
+        filter.dropdownSearch({
+          value: searchValue,
+          selectedItem,
+          status: searchStatus,
+          loadOptions,
+          onChange: (detail) => updateSearch(detail)
+        }),
+        filter.button({ icon: 'search', label: 'Find', onClick: submitSearch })
+      ])
+    }
+  ];
+</script>
+
+<FilterTable rows={filterRows} />
+```
 
 `dateRange` renders two browser date inputs plus preset buttons:
 `last 24 hours`, `last 7 days`, `last 30 days`, `today`, `this week`,
@@ -166,13 +212,13 @@ showing the covered dates in the inputs.
 `numberRange` renders min/max number inputs and supports `prefixLabel`, for
 example `$` for currency filters.
 
-Use `FilterTable` directly when pagination is owned by the consuming page:
+Use `DataTable showPagination={false}` for a non-paginated data table:
 
 ```svelte
-<FilterTable
+<DataTable
   rows={rows}
   {columns}
-  filterDefinitions={filters}
+  showPagination={false}
   rowKey="id"
   tableLayout="fixed"
   stickyHeader={true}
@@ -189,19 +235,18 @@ Use `FilterTable` directly when pagination is owned by the consuming page:
       {value}
     {/if}
   </svelte:fragment>
-</FilterTable>
+</DataTable>
 ```
 
-Sortable headers preserve the current window scroll position by default. Set
-`preserveScrollOnSort={false}` when a page should intentionally return to the
-top after sorting.
-`FilterTable` and `Table` headers are sticky by default. Use `stickyHeader={false}` to disable this,
-or set `stickyHeaderOffset` when an app has a fixed or sticky navbar. The offset
-accepts any browser CSS length such as `64px`, `4rem`, or `calc(...)`, and it is
-used both for the fixed header position and for the scroll threshold. When the
-original header top reaches the offset, a synchronized fixed header takes over
-while the original header keeps its layout space. The older `stickyHeaderTop`
-prop and `--suu-table-sticky-top` CSS variable remain supported.
+Set `preserveScrollOnSort={false}` when a page should intentionally return to
+the top after sorting. `DataTable` headers are sticky by default. Use
+`stickyHeader={false}` to disable this, or set `stickyHeaderOffset` when an app
+has a fixed or sticky navbar. The offset accepts any browser CSS length such as
+`64px`, `4rem`, or `calc(...)`, and it is used both for the fixed header
+position and for the scroll threshold. When the original header top reaches the
+offset, a synchronized fixed header takes over while the original header keeps
+its layout space. The older `stickyHeaderTop` prop and
+`--suu-table-sticky-top` CSS variable remain supported.
 
 ## Theme variables
 

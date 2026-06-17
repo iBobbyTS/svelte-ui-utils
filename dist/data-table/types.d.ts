@@ -1,4 +1,4 @@
-import type { DropdownSearchLoadOptions } from '../dropdown-search/types.js';
+import type { DropdownSearchChangeDetail, DropdownSearchItem, DropdownSearchLoadOptions, DropdownSearchStatus } from '../dropdown-search/types.js';
 export type SortDirection = 'asc' | 'desc';
 export type DataTableLayout = 'auto' | 'fixed';
 export interface SortState {
@@ -37,6 +37,32 @@ export interface FilterOption {
     value: string | number;
     disabled?: boolean;
 }
+export type FilterActionVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type FilterActionIcon = 'search' | 'qr' | 'x';
+export interface FilterButtonControl {
+    type: 'button';
+    label?: string;
+    ariaLabel?: string;
+    icon?: FilterActionIcon;
+    variant?: FilterActionVariant;
+    disabled?: boolean;
+    onClick: () => void | Promise<void>;
+}
+export interface FilterLinkControl {
+    type: 'link';
+    label: string;
+    href: string;
+    ariaLabel?: string;
+    icon?: FilterActionIcon;
+    variant?: FilterActionVariant;
+}
+export interface FilterSelectControl {
+    type: 'select';
+    value: string | number;
+    ariaLabel?: string;
+    options: FilterOption[];
+    onChange: (value: string) => void | Promise<void>;
+}
 export type DateRangePreset = 'last24Hours' | 'last7Days' | 'last30Days' | 'today' | 'thisWeek' | 'thisMonth' | 'thisYear';
 export interface DateRangeFilterValue {
     startDate: string;
@@ -49,48 +75,83 @@ export interface NumberRangeFilterValue {
     min: number | null;
     max: number | null;
 }
-export interface CheckboxFilterDefinition {
+export interface CheckboxFilterControl {
     type: 'checkbox';
-    key: string;
-    label: string;
+    value: Array<string | number>;
     options: FilterOption[];
+    onChange: (value: Array<string | number>) => void | Promise<void>;
 }
-export interface RadioFilterDefinition {
+export interface RadioFilterControl {
     type: 'radio';
-    key: string;
-    label: string;
+    value: string | number | null | undefined;
     options: FilterOption[];
+    onChange: (value: string | number) => void | Promise<void>;
 }
-export interface DropdownSearchFilterDefinition {
+export interface DropdownSearchFilterControl {
     type: 'dropdownSearch';
-    key: string;
-    label: string;
+    value: string;
+    selectedItem: DropdownSearchItem | null;
+    status: DropdownSearchStatus;
+    ariaLabel?: string;
     placeholder?: string;
     debounceMs?: number;
     limit?: number;
     minLength?: number;
+    noResultsText?: string;
+    loadingText?: string;
     loadOptions: DropdownSearchLoadOptions;
+    onChange: (detail: DropdownSearchChangeDetail) => void | Promise<void>;
 }
-export interface DateRangeFilterDefinition {
+export interface DateRangeFilterControl {
     type: 'dateRange';
-    key: string;
-    label: string;
+    value: DateRangeFilterValue;
     startLabel?: string;
     endLabel?: string;
     presetLabels?: Partial<Record<DateRangePreset, string>>;
     now?: () => Date;
     weekStartsOn?: 0 | 1;
+    onChange: (value: DateRangeFilterValue) => void | Promise<void>;
 }
-export interface NumberRangeFilterDefinition {
+export interface NumberRangeFilterControl {
     type: 'numberRange';
-    key: string;
-    label: string;
+    value: NumberRangeFilterValue;
     minLabel?: string;
     maxLabel?: string;
     prefixLabel?: string;
     min?: number;
     max?: number;
     step?: number | string;
+    onChange: (value: NumberRangeFilterValue) => void | Promise<void>;
 }
+export interface FilterContainerControl {
+    type: 'container';
+    controls: FilterControl[];
+}
+export type FilterControl = CheckboxFilterControl | RadioFilterControl | DropdownSearchFilterControl | DateRangeFilterControl | NumberRangeFilterControl | FilterButtonControl | FilterLinkControl | FilterSelectControl | FilterContainerControl;
+export interface FilterTableRow {
+    key: string;
+    title: string;
+    filter: FilterControl;
+}
+export type CheckboxFilterDefinition = CheckboxFilterControl & {
+    key: string;
+    label: string;
+};
+export type RadioFilterDefinition = RadioFilterControl & {
+    key: string;
+    label: string;
+};
+export type DropdownSearchFilterDefinition = DropdownSearchFilterControl & {
+    key: string;
+    label: string;
+};
+export type DateRangeFilterDefinition = DateRangeFilterControl & {
+    key: string;
+    label: string;
+};
+export type NumberRangeFilterDefinition = NumberRangeFilterControl & {
+    key: string;
+    label: string;
+};
 export type FilterDefinition = CheckboxFilterDefinition | RadioFilterDefinition | DropdownSearchFilterDefinition | DateRangeFilterDefinition | NumberRangeFilterDefinition;
 //# sourceMappingURL=types.d.ts.map

@@ -5,12 +5,60 @@
   export let pagination: PaginationState = { page: 1, pageSize: 20 };
   export let totalRows = 0;
   export let pageSizeOptions: number[] = [10, 20, 50, 100];
+  export let pageSizeLabel = 'Rows';
+  export let maxPageButtons = 15;
   export let onPaginationChange: ((pagination: PaginationState) => void) | undefined = undefined;
+
+  type PaginationItem = { kind: 'page'; page: number } | { kind: 'ellipsis' };
 
   $: normalized = normalizePagination(pagination, totalRows);
   $: pageCount = getPageCount(totalRows, normalized.pageSize);
-  $: startRow = totalRows === 0 ? 0 : (normalized.page - 1) * normalized.pageSize + 1;
-  $: endRow = Math.min(totalRows, normalized.page * normalized.pageSize);
+  $: pageItems = buildPaginationItems(normalized.page, pageCount, maxPageButtons);
+
+  function buildPaginationItems(currentPage: number, totalPages: number, maxButtons: number): PaginationItem[] {
+    if (totalPages <= 1) {
+      return [];
+    }
+
+    const visiblePageCount = Math.max(3, Math.trunc(maxButtons));
+    if (totalPages <= visiblePageCount) {
+      return Array.from({ length: totalPages }, (_, index) => ({ kind: 'page', page: index + 1 }));
+    }
+
+    const page = Math.min(Math.max(Math.trunc(currentPage), 1), totalPages);
+    const innerWindowSize = visiblePageCount - 2;
+    const maxInnerPage = totalPages - 1;
+    let windowStart = page - Math.floor(innerWindowSize / 2);
+    let windowEnd = windowStart + innerWindowSize - 1;
+
+    if (windowStart < 2) {
+      windowStart = 2;
+      windowEnd = windowStart + innerWindowSize - 1;
+    }
+    if (windowEnd > maxInnerPage) {
+      windowEnd = maxInnerPage;
+      windowStart = windowEnd - innerWindowSize + 1;
+    }
+
+    const pages = [1];
+    for (let p = windowStart; p <= windowEnd; p += 1) {
+      pages.push(p);
+    }
+    pages.push(totalPages);
+
+    const items: PaginationItem[] = [];
+    for (let i = 0; i < pages.length; i += 1) {
+      const previousPage = pages[i - 1];
+      const nextPage = pages[i];
+      if (previousPage !== undefined && nextPage !== undefined && nextPage - previousPage > 1) {
+        items.push({ kind: 'ellipsis' });
+      }
+      if (nextPage !== undefined) {
+        items.push({ kind: 'page', page: nextPage });
+      }
+    }
+    return items;
+  }
 
   function setPage(page: number) {
     onPaginationChange?.(normalizePagination({ ...normalized, page }, totalRows));
@@ -24,27 +72,29 @@
 </script>
 
 <div class="suu-pagination" aria-label="Pagination">
-  <div class="suu-pagination__summary">{startRow}-{endRow} / {totalRows}</div>
-  <div class="suu-pagination__controls">
-    <button type="button" class="suu-button" disabled={normalized.page <= 1} on:click={() => setPage(normalized.page - 1)}>
-      Previous
-    </button>
-    <span class="suu-pagination__page">{normalized.page} / {pageCount}</span>
-    <button
-      type="button"
-      class="suu-button"
-      disabled={normalized.page >= pageCount}
-      on:click={() => setPage(normalized.page + 1)}
-    >
-      Next
-    </button>
-    <label class="suu-pagination__size">
-      <span>Rows</span>
-      <select value={normalized.pageSize} on:change={setPageSize}>
-        {#each pageSizeOptions as option}
-          <option value={option}>{option}</option>
-        {/each}
-      </select>
-    </label>
+  <div class="suu-pagination__pages" class:suu-pagination__pages--empty={pageItems.length === 0}>
+    {#each pageItems as item, index (item.kind === 'page' ? `page-${item.page}` : `ellipsis-${index}`)}
+      {#if item.kind === 'page'}
+        <button
+          type="button"
+          class:suu-pagination__page-button={true}
+          class:suu-pagination__page-button--active={item.page === normalized.page}
+          aria-current={item.page === normalized.page ? 'page' : undefined}
+          on:click={() => setPage(item.page)}
+        >
+          {item.page}
+        </button>
+      {:else}
+        <span class="suu-pagination__ellipsis" aria-hidden="true">...</span>
+      {/if}
+    {/each}
   </div>
+  <label class="suu-pagination__size">
+    <span>{pageSizeLabel}</span>
+    <select value={normalized.pageSize} on:change={setPageSize}>
+      {#each pageSizeOptions as option}
+        <option value={option}>{option}</option>
+      {/each}
+    </select>
+  </label>
 </div>

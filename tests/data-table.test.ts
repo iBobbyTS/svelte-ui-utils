@@ -5,8 +5,8 @@ import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
 import FilterTable from '../src/lib/data-table/FilterTable.svelte';
 import NumberRangeFilter from '../src/lib/data-table/NumberRangeFilter.svelte';
 import Pagination from '../src/lib/data-table/Pagination.svelte';
-import Table from '../src/lib/data-table/Table.svelte';
 import {
+  filter,
   getAriaSort,
   getPageCount,
   normalizePagination,
@@ -14,7 +14,7 @@ import {
   setDataTablePageSize,
   toggleSort
 } from '../src/lib/data-table/index.js';
-import type { DataTableState, FilterDefinition } from '../src/lib/data-table/index.js';
+import type { DataTableState, FilterTableRow } from '../src/lib/data-table/index.js';
 
 function mockWindowScroll(initialX: number, initialY: number) {
   const originalScrollTo = window.scrollTo;
@@ -116,8 +116,9 @@ describe('data table components', () => {
   it('emits sort changes from sortable headers', async () => {
     const onSortChange = vi.fn();
 
-    const { container } = render(Table, {
+    const { container } = render(DataTable, {
       props: {
+        showPagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', sortable: true }],
         sort: null,
@@ -144,8 +145,9 @@ describe('data table components', () => {
     });
 
     try {
-      render(Table, {
+      render(DataTable, {
         props: {
+          showPagination: false,
           rows: [{ name: 'Jane' }],
           columns: [{ key: 'name', header: 'Name', sortable: true }],
           sort: null,
@@ -165,8 +167,9 @@ describe('data table components', () => {
   });
 
   it('renders sorted states with single-direction svg arrows', async () => {
-    const { container, rerender } = render(Table, {
+    const { container, rerender } = render(DataTable, {
       props: {
+        showPagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', sortable: true }],
         sort: { key: 'name', direction: 'asc' }
@@ -179,6 +182,7 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table__sort-icon--desc')).toBeFalsy();
 
     await rerender({
+      showPagination: false,
       rows: [{ name: 'Jane' }],
       columns: [{ key: 'name', header: 'Name', sortable: true }],
       sort: { key: 'name', direction: 'desc' }
@@ -189,8 +193,9 @@ describe('data table components', () => {
   });
 
   it('renders row attributes and optional table styling classes', () => {
-    const { container } = render(Table, {
+    const { container } = render(DataTable, {
       props: {
+        showPagination: false,
         rows: [{ id: 42, name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', nowrap: false }],
         bordered: false,
@@ -213,8 +218,9 @@ describe('data table components', () => {
   });
 
   it('can disable sticky headers', () => {
-    const { container } = render(Table, {
+    const { container } = render(DataTable, {
       props: {
+        showPagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
         stickyHeader: false
@@ -225,8 +231,9 @@ describe('data table components', () => {
   });
 
   it('shows the fixed header as soon as the original header reaches the sticky offset', async () => {
-    const { container } = render(Table, {
+    const { container } = render(DataTable, {
       props: {
+        showPagination: false,
         rows: [{ id: 1, name: 'Jane' }],
         columns: [
           { key: 'id', header: 'ID', sortable: true },
@@ -276,9 +283,9 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table-wrap')?.getAttribute('style')).toContain('--suu-table-sticky-top: 64px');
   });
 
-  it('waits for DataTable state changes before restoring sort scroll', async () => {
+  it('waits for DataTable sort changes before restoring scroll', async () => {
     const scroll = mockWindowScroll(6, 320);
-    const onStateChange = vi.fn(async () => {
+    const onSortChange = vi.fn(async () => {
       scroll.setScroll(0, 0);
       await Promise.resolve();
       scroll.setScroll(0, 0);
@@ -290,25 +297,21 @@ describe('data table components', () => {
           rows: [{ name: 'Jane' }],
           columns: [{ key: 'name', header: 'Name', sortable: true }],
           totalRows: 1,
-          onStateChange
+          onSortChange
         }
       });
 
       await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
       await new Promise((resolve) => setTimeout(resolve, 80));
 
-      expect(onStateChange).toHaveBeenCalledWith({
-        sort: { key: 'name', direction: 'asc' },
-        pagination: { page: 1, pageSize: 20 },
-        filters: {}
-      });
+      expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
       expect(scroll.getScroll()).toEqual({ x: 6, y: 320 });
     } finally {
       scroll.restore();
     }
   });
 
-  it('emits pagination changes and resets to page 1 when page size changes', async () => {
+  it('emits page number pagination changes and resets to page 1 when page size changes', async () => {
     const onPaginationChange = vi.fn();
 
     render(Pagination, {
@@ -320,53 +323,145 @@ describe('data table components', () => {
       }
     });
 
-    await fireEvent.click(screen.getByRole('button', { name: /Next/i }));
+    expect(screen.queryByRole('button', { name: /Next/i })).toBeFalsy();
+
+    await fireEvent.click(screen.getByRole('button', { name: '3' }));
     expect(onPaginationChange).toHaveBeenCalledWith({ page: 3, pageSize: 10 });
 
     await fireEvent.change(screen.getByRole('combobox'), { target: { value: '20' } });
     expect(onPaginationChange).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
   });
 
-  it('emits checkbox and radio filter state', async () => {
-    const definitions: FilterDefinition[] = [
-      {
-        type: 'checkbox',
-        key: 'status',
-        label: 'Status',
-        options: [
-          { label: 'Active', value: 'active' },
-          { label: 'Archived', value: 'archived' }
-        ]
-      },
-      {
-        type: 'radio',
-        key: 'role',
-        label: 'Role',
-        options: [
-          { label: 'Admin', value: 'admin' },
-          { label: 'Member', value: 'member' }
-        ]
-      }
-    ];
-    const onFiltersChange = vi.fn();
-
-    const { container } = render(FilterTable, {
+  it('collapses long pagination ranges while keeping the current page window', () => {
+    render(Pagination, {
       props: {
-        filterDefinitions: definitions,
-        rows: [],
-        columns: [{ key: 'name', header: 'Name' }],
-        filters: {},
-        onFiltersChange
+        pagination: { page: 10, pageSize: 10 },
+        totalRows: 1000,
+        pageSizeOptions: [10]
       }
     });
 
+    expect(screen.getByRole('button', { name: '1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '10' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: '100' })).toBeTruthy();
+    expect(screen.getAllByText('...')).toHaveLength(2);
+  });
+
+  it('renders DataTable pagination above and below the table by default', () => {
+    const { container } = render(DataTable, {
+      props: {
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }],
+        totalRows: 42,
+        page: 2,
+        pageSize: 20
+      }
+    });
+
+    expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '3' })).toHaveLength(2);
+    expect(screen.getByText('Jane')).toBeTruthy();
+  });
+
+  it('can render DataTable without pagination', () => {
+    const { container } = render(DataTable, {
+      props: {
+        showPagination: false,
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }]
+      }
+    });
+
+    expect(container.querySelector('.suu-pagination')).toBeFalsy();
+    expect(screen.getByText('Jane')).toBeTruthy();
+  });
+
+  it('renders checkbox and radio filter controls', async () => {
+    const onStatusChange = vi.fn();
+    const onRoleChange = vi.fn();
+    const rows: FilterTableRow[] = [
+      {
+        key: 'status',
+        title: 'Status',
+        filter: filter.checkbox({
+          value: [],
+          options: [
+            { label: 'Active', value: 'active' },
+            { label: 'Archived', value: 'archived' }
+          ],
+          onChange: onStatusChange
+        })
+      },
+      {
+        key: 'role',
+        title: 'Role',
+        filter: filter.radio({
+          value: null,
+          options: [
+            { label: 'Admin', value: 'admin' },
+            { label: 'Member', value: 'member' }
+          ],
+          onChange: onRoleChange
+        })
+      }
+    ];
+
+    const { container } = render(FilterTable, {
+      props: { rows }
+    });
+
     expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
+    expect(container.querySelector('.suu-table')).toBeFalsy();
     expect(screen.getByRole('rowheader', { name: 'Status' })).toBeTruthy();
     await fireEvent.click(screen.getByLabelText('Active'));
-    expect(onFiltersChange).toHaveBeenLastCalledWith({ status: ['active'] });
+    expect(onStatusChange).toHaveBeenLastCalledWith(['active']);
 
     await fireEvent.click(screen.getByLabelText('Member'));
-    expect(onFiltersChange).toHaveBeenLastCalledWith({ status: ['active'], role: 'member' });
+    expect(onRoleChange).toHaveBeenLastCalledWith('member');
+  });
+
+  it('renders container filters with dropdown search, button, link, and select controls', async () => {
+    const onSearchChange = vi.fn();
+    const onSearchClick = vi.fn();
+    const onSelectChange = vi.fn();
+    const { container } = render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'search',
+            title: 'Search',
+            filter: filter.container([
+              filter.dropdownSearch({
+                value: '',
+                selectedItem: null,
+                status: 'empty',
+                placeholder: 'Search people',
+                loadOptions: () => ({ options: [], exactMatch: null }),
+                onChange: onSearchChange
+              }),
+              filter.button({ icon: 'search', label: 'Find', onClick: onSearchClick }),
+              filter.link({ href: '/clear', label: 'Clear' }),
+              filter.select({
+                value: 'all',
+                ariaLabel: 'Type',
+                options: [
+                  { label: 'All', value: 'all' },
+                  { label: 'Member', value: 'member' }
+                ],
+                onChange: onSelectChange
+              })
+            ])
+          }
+        ]
+      }
+    });
+
+    expect(container.querySelector('.suu-filter-table__control-row')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: /Find/i }));
+    expect(onSearchClick).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: /Clear/i })).toHaveAttribute('href', '/clear');
+    await fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), { target: { value: 'member' } });
+    expect(onSelectChange).toHaveBeenCalledWith('member');
   });
 
   it('emits date range changes and exact last 24 hour values', async () => {
@@ -421,57 +516,49 @@ describe('data table components', () => {
     expect(onChange).toHaveBeenLastCalledWith({ min: 25.5, max: 80 });
   });
 
-  it('emits date and number range filter state from definitions', async () => {
-    const onFiltersChange = vi.fn();
-    const definitions: FilterDefinition[] = [
+  it('emits date and number range filter changes', async () => {
+    const onIssueDateChange = vi.fn();
+    const onAmountChange = vi.fn();
+    const rows: FilterTableRow[] = [
       {
-        type: 'dateRange',
         key: 'issueDate',
-        label: 'Issue date',
-        startLabel: 'From',
-        endLabel: 'To',
-        now: () => new Date(2026, 5, 16, 9, 0, 0)
+        title: 'Issue date',
+        filter: filter.dateRange({
+          value: { startDate: '', endDate: '', preset: null },
+          startLabel: 'From',
+          endLabel: 'To',
+          now: () => new Date(2026, 5, 16, 9, 0, 0),
+          onChange: onIssueDateChange
+        })
       },
       {
-        type: 'numberRange',
         key: 'amount',
-        label: 'Amount',
-        minLabel: 'Min amount',
-        maxLabel: 'Max amount',
-        prefixLabel: '$',
-        step: '0.01'
+        title: 'Amount',
+        filter: filter.numberRange({
+          value: { min: null, max: null },
+          minLabel: 'Min amount',
+          maxLabel: 'Max amount',
+          prefixLabel: '$',
+          step: '0.01',
+          onChange: onAmountChange
+        })
       }
     ];
 
     const { container } = render(FilterTable, {
-      props: {
-        filterDefinitions: definitions,
-        rows: [],
-        columns: [{ key: 'name', header: 'Name' }],
-        filters: {},
-        onFiltersChange
-      }
+      props: { rows }
     });
 
     expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Issue date' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'today' }));
-    expect(onFiltersChange).toHaveBeenLastCalledWith({
-      issueDate: {
-        startDate: '2026-06-16',
-        endDate: '2026-06-16',
-        preset: 'today'
-      }
+    expect(onIssueDateChange).toHaveBeenLastCalledWith({
+      startDate: '2026-06-16',
+      endDate: '2026-06-16',
+      preset: 'today'
     });
 
     await fireEvent.input(screen.getByLabelText('Min amount'), { target: { value: '10' } });
-    expect(onFiltersChange).toHaveBeenLastCalledWith({
-      issueDate: {
-        startDate: '2026-06-16',
-        endDate: '2026-06-16',
-        preset: 'today'
-      },
-      amount: { min: 10, max: null }
-    });
+    expect(onAmountChange).toHaveBeenLastCalledWith({ min: 10, max: null });
   });
 });

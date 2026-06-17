@@ -12,7 +12,7 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     };
     z_$$bindings?: Bindings;
 }
-declare const Table: $$__sveltets_2_IsomorphicComponent<{
+declare const BaseDataTable: $$__sveltets_2_IsomorphicComponent<{
     rows?: unknown[];
     columns?: DataTableColumn[];
     sort?: SortState | null;
@@ -42,6 +42,6 @@ declare const Table: $$__sveltets_2_IsomorphicComponent<{
         value: any;
     };
 }, {}, string>;
-type Table = InstanceType<typeof Table>;
-export default Table;
-//# sourceMappingURL=Table.svelte.d.ts.map
+type BaseDataTable = InstanceType<typeof BaseDataTable>;
+export default BaseDataTable;
+//# sourceMappingURL=BaseDataTable.svelte.d.ts.map
