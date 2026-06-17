@@ -1,6 +1,6 @@
 {
   "name": "@ibobbyts/svelte-ui-utils",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reusable Svelte 5 UI utilities for toast notifications, dropdown search, and data tables.",
   "type": "module",
   "license": "MIT",
@@ -55,7 +55,8 @@
     "./style.css": "./dist/style.css"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "check": "svelte-check --tsconfig ./tsconfig.json",

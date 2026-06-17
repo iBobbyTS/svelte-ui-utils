@@ -1,38 +1,26 @@
 # svelte-ui-utils
 
-Reusable Svelte 5 UI utilities published as `@ibobbyts/svelte-ui-utils`.
+Reusable Svelte 5 UI utilities published to the npm registry as
+`@ibobbyts/svelte-ui-utils`.
 
 ## Install
 
-Install the public GitHub source package with Bun:
-
-```bash
-bun add github:iBobbyTS/svelte-ui-utils
-```
-
-The package keeps built `dist/` files in the repository so GitHub installs work
-without an npm or GitHub Packages token.
-
-GitHub Packages' npm registry is also available, but it requires authentication
-for installing public packages. Add GitHub Packages registry mapping and an auth
-token to the consuming project:
-
-```ini
-@ibobbyts:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
-```
-
-The token must be a classic GitHub token with `read:packages`. With npm:
-
-```bash
-npm install @ibobbyts/svelte-ui-utils
-```
+Install from the public npm registry. No GitHub Packages token is required.
 
 With Bun:
 
 ```bash
-GITHUB_PACKAGES_TOKEN=<token> bun add @ibobbyts/svelte-ui-utils@0.1.1
+bun add @ibobbyts/svelte-ui-utils@0.1.2
 ```
+
+With npm:
+
+```bash
+npm install @ibobbyts/svelte-ui-utils@0.1.2
+```
+
+The repository does not track `dist/`; releases and local integration builds run
+`npm run package` to generate the published files.
 
 Import the stylesheet once in your app entry:
 
@@ -368,23 +356,24 @@ explicitly requested.
 
 ```bash
 gh repo create iBobbyTS/svelte-ui-utils --public --source . --remote origin --push
-git tag v0.1.1
-git push origin v0.1.1
-gh release create v0.1.1 --title "v0.1.1" --notes "Add DateRangeFilter and NumberRangeFilter"
+git tag v0.1.2
+git push origin v0.1.2
+gh release create v0.1.2 --title "v0.1.2" --notes "Publish public npm package"
 gh run watch
 ```
 
-The release workflow runs checks and publishes to GitHub Packages with the
-workflow `GITHUB_TOKEN`. If the first package appears private, change package
-visibility to public in GitHub package settings.
+The release workflow runs checks and publishes to the public npm registry with
+the repository secret `NPM_TOKEN`. The token must have permission to publish
+`@ibobbyts/svelte-ui-utils`; do not commit it to this repository.
 
 ## Bun install verification
 
 The repository includes a `Bun Consumer Check` workflow. It creates a temporary
-consumer project and installs the public GitHub source package without a token:
+consumer project and installs the released npm version without registry-specific
+tokens:
 
 ```bash
-bun add github:iBobbyTS/svelte-ui-utils svelte
+bun add @ibobbyts/svelte-ui-utils@0.1.2 svelte
 ```
 
 Use it after each release when a Bun-based project will consume the package.
