@@ -393,7 +393,10 @@
 }
 
 .suu-date-range-filter {
-  min-width: min(100%, 420px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  min-width: 0;
 }
 
 .suu-number-range-filter {
@@ -405,6 +408,11 @@
   gap: 5px;
   color: var(--suu-color-text);
   font-size: 0.875rem;
+}
+
+.suu-date-range-filter .suu-range-field {
+  flex: 0 1 var(--suu-date-range-field-width, 11rem);
+  min-width: var(--suu-date-range-field-min-width, 9.5rem);
 }
 
 .suu-range-field span {
@@ -435,6 +443,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.suu-date-range-filter .suu-filter-preset-row {
+  flex: 1 1 var(--suu-date-range-preset-width, 24rem);
+  align-self: flex-end;
 }
 
 .suu-filter-preset {
