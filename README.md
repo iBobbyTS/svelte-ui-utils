@@ -10,19 +10,19 @@ Install from the public npm registry. No GitHub Packages token is required.
 With Bun:
 
 ```bash
-bun add @ibobbyts/svelte-ui-utils@0.1.2
+bun add @ibobbyts/svelte-ui-utils@0.2.0
 ```
 
 Canonical Bun pull address:
 
 ```text
-@ibobbyts/svelte-ui-utils@0.1.2
+@ibobbyts/svelte-ui-utils@0.2.0
 ```
 
 With npm:
 
 ```bash
-npm install @ibobbyts/svelte-ui-utils@0.1.2
+npm install @ibobbyts/svelte-ui-utils@0.2.0
 ```
 
 The repository does not track `dist/`; releases and local integration builds run
@@ -380,9 +380,9 @@ explicitly requested.
 
 ```bash
 gh repo create iBobbyTS/svelte-ui-utils --public --source . --remote origin --push
-git tag v0.1.2
-git push origin v0.1.2
-gh release create v0.1.2 --title "v0.1.2" --notes "Publish public npm package"
+git tag v0.2.0
+git push origin v0.2.0
+gh release create v0.2.0 --title "v0.2.0" --notes "Publish public npm package"
 gh run watch
 ```
 
@@ -397,7 +397,7 @@ consumer project and installs the released npm version without registry-specific
 tokens:
 
 ```bash
-bun add @ibobbyts/svelte-ui-utils@0.1.2 svelte
+bun add @ibobbyts/svelte-ui-utils@0.2.0 svelte
 ```
 
 Use it after each release when a Bun-based project will consume the package.
