@@ -40,7 +40,8 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { Dropdown } from '@ibobbyts/svelte-ui-utils/dropdown';
-  import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
+  import { DropdownSearch, DropdownSearchMultiSelect } from '@ibobbyts/svelte-ui-utils/dropdown-search';
+  import { Modal, ConfirmDialog } from '@ibobbyts/svelte-ui-utils/modal';
   import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
 ```
@@ -48,7 +49,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 The package root also re-exports the public modules:
 
 ```ts
-import { ToastManager, Dropdown, DropdownSearch, DataTable } from '@ibobbyts/svelte-ui-utils';
+import { ToastManager, Dropdown, DropdownSearch, Modal, DataTable } from '@ibobbyts/svelte-ui-utils';
 ```
 
 ## Toast
@@ -123,6 +124,78 @@ wrapper is not convenient.
 Server-side code and Node tests that only need pure helpers should import from
 `@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte
 component files.
+
+Set `multiselect={true}` when the search box should collect multiple selected
+items as chips. `DropdownSearchMultiSelect` is a convenience wrapper with the
+same controlled contract:
+
+```svelte
+<script lang="ts">
+  import { DropdownSearchMultiSelect, type DropdownSearchItem } from '@ibobbyts/svelte-ui-utils/dropdown-search';
+
+  let selectedMembers: DropdownSearchItem[] = [];
+</script>
+
+<DropdownSearchMultiSelect
+  language="en_us"
+  placeholder="Search members"
+  selectedItems={selectedMembers}
+  selectedItemsLabel="Selected members"
+  removeSelectedItemLabel={(item) => `Remove ${item.title}`}
+  {loadOptions}
+  onSelectedItemsChange={(items) => {
+    selectedMembers = items;
+  }}
+/>
+```
+
+In multiselect mode, the text input remains a search query. Selecting an item
+adds or removes it from `selectedItems`, clears the query, and emits both
+`onChange` and `onSelectedItemsChange`.
+
+## Modal and ConfirmDialog
+
+```svelte
+<script lang="ts">
+  import { ConfirmDialog, Modal } from '@ibobbyts/svelte-ui-utils/modal';
+
+  let modalOpen = false;
+  let confirmOpen = false;
+</script>
+
+<button type="button" on:click={() => (modalOpen = true)}>Open modal</button>
+
+<Modal
+  open={modalOpen}
+  title="Edit record"
+  description="Update the shared fields."
+  closeLabel="Close dialog"
+  onClose={() => (modalOpen = false)}
+>
+  <p>Dialog body content goes here.</p>
+  <svelte:fragment slot="footer">
+    <button type="button" class="suu-modal__button" on:click={() => (modalOpen = false)}>Cancel</button>
+    <button type="button" class="suu-modal__button suu-modal__button--primary">Save</button>
+  </svelte:fragment>
+</Modal>
+
+<ConfirmDialog
+  open={confirmOpen}
+  title="Delete file"
+  message="This cannot be undone."
+  confirmLabel="Delete"
+  cancelLabel="Cancel"
+  intent="danger"
+  onClose={() => (confirmOpen = false)}
+  onConfirm={() => {
+    confirmOpen = false;
+  }}
+/>
+```
+
+Both components are controlled by the consuming app. `Modal` calls `onClose`
+from the close button, backdrop, or Escape key when dismissible; it does not
+mutate `open` internally.
 
 ## Dropdown
 

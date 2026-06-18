@@ -26,7 +26,10 @@ export type DropdownSearchLoadOptions = (
 export interface DropdownSearchChangeDetail {
   value: string;
   selectedItem: DropdownSearchItem | null;
+  selectedItems: DropdownSearchItem[];
   status: DropdownSearchStatus;
 }
 
 export type DropdownSearchItemValueGetter = (item: DropdownSearchItem) => string;
+export type DropdownSearchSelectedItemsChangeHandler = (items: DropdownSearchItem[]) => void | Promise<void>;
+export type DropdownSearchSelectedItemLabelGetter = (item: DropdownSearchItem) => string;

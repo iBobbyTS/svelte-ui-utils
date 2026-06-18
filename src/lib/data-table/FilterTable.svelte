@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import FilterControl from './FilterControl.svelte';
   import type { UiLanguage } from '../i18n.js';
