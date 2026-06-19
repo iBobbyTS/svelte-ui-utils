@@ -91,7 +91,7 @@
   $: showOptions =
     focused &&
     !disabled &&
-    hasQuery &&
+    (hasQuery || (multiselect && options.length > 0)) &&
     (options.length > 0 ||
       status === 'loading' ||
       (validate && hasQuery && options.length === 0));

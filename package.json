@@ -1,6 +1,6 @@
 {
   "name": "@ibobbyts/svelte-ui-utils",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Reusable Svelte 5 UI utilities for toast notifications, dropdown search, and data tables.",
   "type": "module",
   "license": "MIT",
