@@ -11,6 +11,7 @@ export {
 export type { UiLanguage, UiMessages } from '../i18n.js';
 export type {
   DropdownSearchChangeDetail,
+  DropdownSearchEnterDetail,
   DropdownSearchItem,
   DropdownSearchItemValueGetter,
   DropdownSearchLoadContext,

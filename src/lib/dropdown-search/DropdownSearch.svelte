@@ -10,6 +10,7 @@
   } from './state.js';
   import type {
     DropdownSearchChangeDetail,
+    DropdownSearchEnterDetail,
     DropdownSearchItem,
     DropdownSearchItemValueGetter,
     DropdownSearchLoadOptions,
@@ -61,12 +62,16 @@
     | ((status: DropdownSearchStatus) => void)
     | undefined = undefined;
   export let onInputBlur: ((event: FocusEvent) => void) | undefined = undefined;
+  export let onEnter: ((detail: DropdownSearchEnterDetail) => void) | undefined =
+    undefined;
 
   let options: DropdownSearchItem[] = [];
   let exactMatch: DropdownSearchItem | null = null;
   let focused = false;
+  let inputValue = value;
   let inputElement: HTMLInputElement | undefined;
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  let blurTimer: ReturnType<typeof setTimeout> | undefined;
   let activeController: AbortController | undefined;
   let requestId = 0;
   let lastHandledValue = value;
@@ -86,14 +91,15 @@
   $: showOptions =
     focused &&
     !disabled &&
+    hasQuery &&
     (options.length > 0 ||
       status === 'loading' ||
       (validate && hasQuery && options.length === 0));
   $: if (!validate && status !== 'empty' && status !== 'loading') {
     setStatus('empty');
   }
-  $: if (searchOnExternalValueChange && value !== lastHandledValue) {
-    handleExternalValue(value);
+  $: if (value !== lastHandledValue && value !== inputValue) {
+    handleIncomingValue(value);
   }
 
   function emitChange() {
@@ -141,6 +147,13 @@
     if (searchTimer) {
       clearTimeout(searchTimer);
       searchTimer = undefined;
+    }
+  }
+
+  function clearBlurTimer() {
+    if (blurTimer) {
+      clearTimeout(blurTimer);
+      blurTimer = undefined;
     }
   }
 
@@ -239,10 +252,57 @@
     }, debounceMs);
   }
 
+  function handleInputValue(nextValue: string) {
+    clearBlurTimer();
+    focused = true;
+    inputValue = nextValue;
+    resetSearchState(nextValue);
+    scheduleSearch(nextValue);
+  }
+
   function handleInput(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
-    resetSearchState(input.value);
-    scheduleSearch(input.value);
+    handleInputValue(input.value);
+  }
+
+  function handleBeforeInput() {
+    setTimeout(() => {
+      if (!inputElement || inputElement.value === lastHandledValue) {
+        return;
+      }
+
+      handleInputValue(inputElement.value);
+    }, 0);
+  }
+
+  function handleFocus() {
+    clearBlurTimer();
+    focused = true;
+  }
+
+  function handleBlur(event: FocusEvent) {
+    onInputBlur?.(event);
+    clearBlurTimer();
+    blurTimer = setTimeout(() => {
+      focused = document.activeElement === inputElement;
+      blurTimer = undefined;
+    }, 120);
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key !== 'Enter' || multiselect) {
+      return;
+    }
+
+    onEnter?.({
+      event,
+      value,
+      selectedItem,
+      selectedItems,
+      status,
+      exactMatch,
+      options,
+    });
   }
 
   function selectItem(item: DropdownSearchItem) {
@@ -260,6 +320,7 @@
     selectedItem = item;
     exactMatch = validate ? item : null;
     value = getItemValue(item);
+    inputValue = value;
     lastHandledValue = value;
     setStatus(validate ? 'valid' : 'empty');
     focused = false;
@@ -300,6 +361,7 @@
     selectedItem = null;
     exactMatch = null;
     value = '';
+    inputValue = value;
     lastHandledValue = value;
     setStatus(
       resolveDropdownSearchStatus({
@@ -353,6 +415,7 @@
     clearSearchTimer();
     abortActiveSearch();
     value = '';
+    inputValue = value;
     lastHandledValue = value;
     if (!multiselect) {
       selectedItem = null;
@@ -375,8 +438,20 @@
     inputElement?.focus();
   }
 
+  function handleIncomingValue(nextValue: string) {
+    inputValue = nextValue;
+
+    if (searchOnExternalValueChange) {
+      handleExternalValue(nextValue);
+      return;
+    }
+
+    lastHandledValue = nextValue;
+  }
+
   function handleExternalValue(nextValue: string) {
     lastHandledValue = nextValue;
+    inputValue = nextValue;
     if (!multiselect) {
       selectedItem = null;
     }
@@ -408,6 +483,7 @@
 
   onDestroy(() => {
     clearSearchTimer();
+    clearBlurTimer();
     abortActiveSearch();
   });
 
@@ -469,7 +545,7 @@
       class="suu-dropdown-search__input"
       {id}
       {name}
-      {value}
+      bind:value={inputValue}
       {placeholder}
       aria-label={ariaLabel}
       {disabled}
@@ -478,12 +554,11 @@
       aria-controls={resolvedListboxId}
       aria-expanded={showOptions}
       aria-invalid={status === 'invalid' || status === 'error'}
+      on:beforeinput={handleBeforeInput}
       on:input={handleInput}
-      on:focus={() => (focused = true)}
-      on:blur={(event) => {
-        onInputBlur?.(event);
-        setTimeout(() => (focused = false), 120);
-      }}
+      on:keydown={handleKeydown}
+      on:focus={handleFocus}
+      on:blur={handleBlur}
     />
     {#if hasQuery && !disabled}
       <button

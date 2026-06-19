@@ -30,6 +30,12 @@ export interface DropdownSearchChangeDetail {
   status: DropdownSearchStatus;
 }
 
+export interface DropdownSearchEnterDetail extends DropdownSearchChangeDetail {
+  event: KeyboardEvent;
+  exactMatch: DropdownSearchItem | null;
+  options: DropdownSearchItem[];
+}
+
 export type DropdownSearchItemValueGetter = (item: DropdownSearchItem) => string;
 export type DropdownSearchSelectedItemsChangeHandler = (items: DropdownSearchItem[]) => void | Promise<void>;
 export type DropdownSearchSelectedItemLabelGetter = (item: DropdownSearchItem) => string;
