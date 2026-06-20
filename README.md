@@ -41,7 +41,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { Dropdown } from '@ibobbyts/svelte-ui-utils/dropdown';
   import { DropdownSearch, DropdownSearchMultiSelect } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-  import { Modal, ConfirmDialog } from '@ibobbyts/svelte-ui-utils/modal';
+  import { Dialog, ConfirmDialog, InputDialog, CsvUploadDialog, ImagePreviewDialog } from '@ibobbyts/svelte-ui-utils/dialog';
   import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
 ```
@@ -49,7 +49,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 The package root also re-exports the public modules:
 
 ```ts
-import { ToastManager, Dropdown, DropdownSearch, Modal, DataTable } from '@ibobbyts/svelte-ui-utils';
+import { ToastManager, Dropdown, DropdownSearch, Dialog, DataTable } from '@ibobbyts/svelte-ui-utils';
 ```
 
 ## Toast
@@ -153,31 +153,36 @@ In multiselect mode, the text input remains a search query. Selecting an item
 adds or removes it from `selectedItems`, clears the query, and emits both
 `onChange` and `onSelectedItemsChange`.
 
-## Modal and ConfirmDialog
+## Dialogs
 
 ```svelte
 <script lang="ts">
-  import { ConfirmDialog, Modal } from '@ibobbyts/svelte-ui-utils/modal';
+  import { ConfirmDialog, Dialog, InputDialog } from '@ibobbyts/svelte-ui-utils/dialog';
 
-  let modalOpen = false;
+  let dialogOpen = false;
   let confirmOpen = false;
+  let inputOpen = false;
+  let name = '';
 </script>
 
-<button type="button" on:click={() => (modalOpen = true)}>Open modal</button>
+<button type="button" on:click={() => (dialogOpen = true)}>Open dialog</button>
 
-<Modal
-  open={modalOpen}
+<Dialog
+  open={dialogOpen}
   title="Edit record"
   description="Update the shared fields."
   closeLabel="Close dialog"
-  onClose={() => (modalOpen = false)}
+  blurBackdrop={true}
+  showCountdown={true}
+  countdownDurationMs={30000}
+  onClose={() => (dialogOpen = false)}
 >
   <p>Dialog body content goes here.</p>
   <svelte:fragment slot="footer">
-    <button type="button" class="suu-modal__button" on:click={() => (modalOpen = false)}>Cancel</button>
-    <button type="button" class="suu-modal__button suu-modal__button--primary">Save</button>
+    <button type="button" class="suu-dialog__button" on:click={() => (dialogOpen = false)}>Cancel</button>
+    <button type="button" class="suu-dialog__button suu-dialog__button--primary">Save</button>
   </svelte:fragment>
-</Modal>
+</Dialog>
 
 <ConfirmDialog
   open={confirmOpen}
@@ -191,11 +196,26 @@ adds or removes it from `selectedItems`, clears the query, and emits both
     confirmOpen = false;
   }}
 />
+
+<InputDialog
+  open={inputOpen}
+  title="Rename"
+  inputLabel="Name"
+  bind:inputValue={name}
+  onClose={() => (inputOpen = false)}
+  onConfirm={(value) => {
+    name = value;
+    inputOpen = false;
+  }}
+/>
 ```
 
-Both components are controlled by the consuming app. `Modal` calls `onClose`
+Dialog components are controlled by the consuming app. `Dialog` calls `onClose`
 from the close button, backdrop, or Escape key when dismissible; it does not
-mutate `open` internally.
+mutate `open` internally. Set `dimBackdrop={false}` to disable background
+darkening, `blurBackdrop={true}` to blur content behind the dialog, and
+`showCountdown={true}` with `countdownDurationMs` to show a toast-style top
+countdown bar.
 
 ## Dropdown
 
