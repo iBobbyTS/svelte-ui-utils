@@ -1378,16 +1378,49 @@
 }
 
 .suu-input-dialog,
-.suu-csv-upload-dialog {
+.suu-csv-upload-dialog,
+.suu-password-copy-dialog {
   display: grid;
   gap: 14px;
 }
 
 .suu-input-dialog__message,
-.suu-csv-upload-dialog__selected {
+.suu-csv-upload-dialog__selected,
+.suu-password-copy-dialog__message {
   margin: 0;
   color: var(--suu-color-muted);
   line-height: 1.5;
+}
+
+.suu-password-copy-dialog__value {
+  display: grid;
+  gap: 6px;
+}
+
+.suu-password-copy-dialog__label {
+  color: var(--suu-color-text);
+  font-weight: 650;
+}
+
+.suu-password-copy-dialog__code {
+  display: block;
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid var(--suu-color-border);
+  border-radius: var(--suu-radius);
+  background: var(--suu-color-surface);
+  color: var(--suu-color-text);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    'Liberation Mono',
+    monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .suu-input-dialog__field,

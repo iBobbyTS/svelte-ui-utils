@@ -10,19 +10,19 @@ Install from the public npm registry. No GitHub Packages token is required.
 With Bun:
 
 ```bash
-bun add @ibobbyts/svelte-ui-utils@0.2.0
+bun add @ibobbyts/svelte-ui-utils@0.2.3
 ```
 
 Canonical Bun pull address:
 
 ```text
-@ibobbyts/svelte-ui-utils@0.2.0
+@ibobbyts/svelte-ui-utils@0.2.3
 ```
 
 With npm:
 
 ```bash
-npm install @ibobbyts/svelte-ui-utils@0.2.0
+npm install @ibobbyts/svelte-ui-utils@0.2.3
 ```
 
 The repository does not track `dist/`; releases and local integration builds run
@@ -41,7 +41,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { Dropdown } from '@ibobbyts/svelte-ui-utils/dropdown';
   import { DropdownSearch, DropdownSearchMultiSelect } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-  import { Dialog, ConfirmDialog, InputDialog, CsvUploadDialog, ImagePreviewDialog } from '@ibobbyts/svelte-ui-utils/dialog';
+  import { Dialog, ConfirmDialog, InputDialog, CsvUploadDialog, ImagePreviewDialog, PasswordCopyDialog } from '@ibobbyts/svelte-ui-utils/dialog';
   import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
 ```
@@ -162,6 +162,7 @@ adds or removes it from `selectedItems`, clears the query, and emits both
   let dialogOpen = false;
   let confirmOpen = false;
   let inputOpen = false;
+  let passwordOpen = false;
   let name = '';
 </script>
 
@@ -207,6 +208,18 @@ adds or removes it from `selectedItems`, clears the query, and emits both
     name = value;
     inputOpen = false;
   }}
+/>
+
+<PasswordCopyDialog
+  open={passwordOpen}
+  title="Temporary password"
+  message="This value is shown only once."
+  value="Abc123xy"
+  valueLabel="Password"
+  copyLabel="Copy password"
+  copiedLabel="Copied"
+  doneLabel="Done"
+  onClose={() => (passwordOpen = false)}
 />
 ```
 

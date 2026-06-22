@@ -6,6 +6,7 @@ import {
   Dialog,
   ImagePreviewDialog,
   InputDialog,
+  PasswordCopyDialog,
 } from '../src/lib/dialog/index.js';
 
 describe('dialog', () => {
@@ -209,5 +210,36 @@ describe('image preview dialog', () => {
       'src',
       '/sample.png',
     );
+  });
+});
+
+describe('password copy dialog', () => {
+  it('renders a monospace value and copies it to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(PasswordCopyDialog, {
+      props: {
+        open: true,
+        title: 'Temporary password',
+        message: 'Save this value now.',
+        value: 'Abc123xy',
+        valueLabel: 'Password',
+        copyLabel: 'Copy password',
+        copiedLabel: 'Copied',
+      },
+    });
+
+    expect(screen.getByRole('dialog', { name: 'Temporary password' })).toBeInTheDocument();
+    expect(screen.getByText('Save this value now.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password').querySelector('code')).toHaveTextContent('Abc123xy');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy password' }));
+
+    expect(writeText).toHaveBeenCalledWith('Abc123xy');
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 });
