@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import BaseDataTable from './BaseDataTable.svelte';
   import Pagination from '../pagination/Pagination.svelte';

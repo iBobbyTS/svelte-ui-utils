@@ -19,17 +19,24 @@ export function isUsableExactMatch(item: DropdownSearchItem | null | undefined):
 export function resolveDropdownSearchStatus(params: {
   value: string;
   selectedItem?: DropdownSearchItem | null;
+  selectedItems?: DropdownSearchItem[];
   exactMatch?: DropdownSearchItem | null;
   loading?: boolean;
   errored?: boolean;
   minLength?: number;
   validate?: boolean;
+  multiselect?: boolean;
 }): DropdownSearchStatus {
   const trimmed = normalizeDropdownSearchValue(params.value);
   const minLength = params.minLength ?? 1;
   const validate = params.validate ?? true;
+  const hasSelectedItems = Boolean(params.selectedItems?.some((item) => !item.disabled));
 
   if (!trimmed) {
+    if (params.multiselect && validate && hasSelectedItems) {
+      return 'valid';
+    }
+
     return 'empty';
   }
 
@@ -39,6 +46,10 @@ export function resolveDropdownSearchStatus(params: {
 
   if (!validate) {
     return 'empty';
+  }
+
+  if (params.multiselect && hasSelectedItems) {
+    return 'valid';
   }
 
   if (params.errored) {

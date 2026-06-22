@@ -1,7 +1,7 @@
 {
   "name": "@ibobbyts/svelte-ui-utils",
-  "version": "0.2.0",
-  "description": "Reusable Svelte 5 UI utilities for toast notifications, dropdown search, and data tables.",
+  "version": "0.2.3",
+  "description": "Reusable Svelte 5 UI utilities for dialogs, toast notifications, dropdown search, and data tables.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -41,6 +41,16 @@
     "./dropdown-search/state": {
       "types": "./dist/dropdown-search/state.d.ts",
       "default": "./dist/dropdown-search/state.js"
+    },
+    "./dialog": {
+      "types": "./dist/dialog/index.d.ts",
+      "svelte": "./dist/dialog/index.js",
+      "default": "./dist/dialog/index.js"
+    },
+    "./modal": {
+      "types": "./dist/modal/index.d.ts",
+      "svelte": "./dist/modal/index.js",
+      "default": "./dist/modal/index.js"
     },
     "./table": {
       "types": "./dist/data-table/index.d.ts",

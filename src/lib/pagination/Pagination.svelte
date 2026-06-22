@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import Dropdown from '../dropdown/Dropdown.svelte';
   import { getPageCount, normalizePagination } from '../data-table/state.js';

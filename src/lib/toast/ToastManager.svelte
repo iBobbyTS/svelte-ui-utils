@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import Toast from './Toast.svelte';
   import { groupToastsByPosition, getToastStackDirection, toast as defaultToastStore, TOAST_POSITIONS } from './store.js';

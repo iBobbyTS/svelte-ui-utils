@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import DropdownSearch from '../dropdown-search/DropdownSearch.svelte';
   import type { UiLanguage } from '../i18n.js';

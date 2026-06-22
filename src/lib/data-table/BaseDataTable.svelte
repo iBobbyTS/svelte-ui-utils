@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';

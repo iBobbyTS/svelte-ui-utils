@@ -10,19 +10,19 @@ Install from the public npm registry. No GitHub Packages token is required.
 With Bun:
 
 ```bash
-bun add @ibobbyts/svelte-ui-utils@0.2.0
+bun add @ibobbyts/svelte-ui-utils@0.2.3
 ```
 
 Canonical Bun pull address:
 
 ```text
-@ibobbyts/svelte-ui-utils@0.2.0
+@ibobbyts/svelte-ui-utils@0.2.3
 ```
 
 With npm:
 
 ```bash
-npm install @ibobbyts/svelte-ui-utils@0.2.0
+npm install @ibobbyts/svelte-ui-utils@0.2.3
 ```
 
 The repository does not track `dist/`; releases and local integration builds run
@@ -40,7 +40,8 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { Dropdown } from '@ibobbyts/svelte-ui-utils/dropdown';
-  import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
+  import { DropdownSearch, DropdownSearchMultiSelect } from '@ibobbyts/svelte-ui-utils/dropdown-search';
+  import { Dialog, ConfirmDialog, InputDialog, CsvUploadDialog, ImagePreviewDialog, PasswordCopyDialog } from '@ibobbyts/svelte-ui-utils/dialog';
   import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
 ```
@@ -48,7 +49,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 The package root also re-exports the public modules:
 
 ```ts
-import { ToastManager, Dropdown, DropdownSearch, DataTable } from '@ibobbyts/svelte-ui-utils';
+import { ToastManager, Dropdown, DropdownSearch, Dialog, DataTable } from '@ibobbyts/svelte-ui-utils';
 ```
 
 ## Toast
@@ -123,6 +124,111 @@ wrapper is not convenient.
 Server-side code and Node tests that only need pure helpers should import from
 `@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte
 component files.
+
+Set `multiselect={true}` when the search box should collect multiple selected
+items as chips. `DropdownSearchMultiSelect` is a convenience wrapper with the
+same controlled contract:
+
+```svelte
+<script lang="ts">
+  import { DropdownSearchMultiSelect, type DropdownSearchItem } from '@ibobbyts/svelte-ui-utils/dropdown-search';
+
+  let selectedMembers: DropdownSearchItem[] = [];
+</script>
+
+<DropdownSearchMultiSelect
+  language="en_us"
+  placeholder="Search members"
+  selectedItems={selectedMembers}
+  selectedItemsLabel="Selected members"
+  removeSelectedItemLabel={(item) => `Remove ${item.title}`}
+  {loadOptions}
+  onSelectedItemsChange={(items) => {
+    selectedMembers = items;
+  }}
+/>
+```
+
+In multiselect mode, the text input remains a search query. Selecting an item
+adds or removes it from `selectedItems`, clears the query, and emits both
+`onChange` and `onSelectedItemsChange`.
+
+## Dialogs
+
+```svelte
+<script lang="ts">
+  import { ConfirmDialog, Dialog, InputDialog } from '@ibobbyts/svelte-ui-utils/dialog';
+
+  let dialogOpen = false;
+  let confirmOpen = false;
+  let inputOpen = false;
+  let passwordOpen = false;
+  let name = '';
+</script>
+
+<button type="button" on:click={() => (dialogOpen = true)}>Open dialog</button>
+
+<Dialog
+  open={dialogOpen}
+  title="Edit record"
+  description="Update the shared fields."
+  closeLabel="Close dialog"
+  blurBackdrop={true}
+  showCountdown={true}
+  countdownDurationMs={30000}
+  onClose={() => (dialogOpen = false)}
+>
+  <p>Dialog body content goes here.</p>
+  <svelte:fragment slot="footer">
+    <button type="button" class="suu-dialog__button" on:click={() => (dialogOpen = false)}>Cancel</button>
+    <button type="button" class="suu-dialog__button suu-dialog__button--primary">Save</button>
+  </svelte:fragment>
+</Dialog>
+
+<ConfirmDialog
+  open={confirmOpen}
+  title="Delete file"
+  message="This cannot be undone."
+  confirmLabel="Delete"
+  cancelLabel="Cancel"
+  intent="danger"
+  onClose={() => (confirmOpen = false)}
+  onConfirm={() => {
+    confirmOpen = false;
+  }}
+/>
+
+<InputDialog
+  open={inputOpen}
+  title="Rename"
+  inputLabel="Name"
+  bind:inputValue={name}
+  onClose={() => (inputOpen = false)}
+  onConfirm={(value) => {
+    name = value;
+    inputOpen = false;
+  }}
+/>
+
+<PasswordCopyDialog
+  open={passwordOpen}
+  title="Temporary password"
+  message="This value is shown only once."
+  value="Abc123xy"
+  valueLabel="Password"
+  copyLabel="Copy password"
+  copiedLabel="Copied"
+  doneLabel="Done"
+  onClose={() => (passwordOpen = false)}
+/>
+```
+
+Dialog components are controlled by the consuming app. `Dialog` calls `onClose`
+from the close button, backdrop, or Escape key when dismissible; it does not
+mutate `open` internally. Set `dimBackdrop={false}` to disable background
+darkening, `blurBackdrop={true}` to blur content behind the dialog, and
+`showCountdown={true}` with `countdownDurationMs` to show a toast-style top
+countdown bar.
 
 ## Dropdown
 

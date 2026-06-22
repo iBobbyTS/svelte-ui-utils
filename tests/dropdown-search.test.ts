@@ -1,15 +1,29 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DropdownSearch from '../src/lib/dropdown-search/DropdownSearch.svelte';
-import { clampDropdownSearchLimit, formatParamDict, resolveDropdownSearchStatus } from '../src/lib/dropdown-search/index.js';
+import DropdownSearchMultiSelect from '../src/lib/dropdown-search/DropdownSearchMultiSelect.svelte';
+import {
+  clampDropdownSearchLimit,
+  formatParamDict,
+  resolveDropdownSearchStatus,
+} from '../src/lib/dropdown-search/index.js';
 import { getUiMessages, resolveUiLanguage } from '../src/lib/i18n.js';
-import type { DropdownSearchItem, DropdownSearchLoadOptions } from '../src/lib/dropdown-search/index.js';
+import type {
+  DropdownSearchItem,
+  DropdownSearchLoadOptions,
+} from '../src/lib/dropdown-search/index.js';
 
 const jane: DropdownSearchItem = {
   id: 'M-123',
   title: 'Jane Doe',
-  param_dict: { ID: 'M-123', City: 'Calgary' }
+  param_dict: { ID: 'M-123', City: 'Calgary' },
 };
 
 describe('dropdown search state', () => {
@@ -22,14 +36,42 @@ describe('dropdown search state', () => {
   });
 
   it('formats param_dict and resolves input status', () => {
-    expect(formatParamDict(jane.param_dict)).toEqual(['ID: M-123', 'City: Calgary']);
+    expect(formatParamDict(jane.param_dict)).toEqual([
+      'ID: M-123',
+      'City: Calgary',
+    ]);
     expect(resolveDropdownSearchStatus({ value: '' })).toBe('empty');
-    expect(resolveDropdownSearchStatus({ value: 'J', minLength: 2 })).toBe('invalid');
-    expect(resolveDropdownSearchStatus({ value: 'Jane', loading: true })).toBe('loading');
-    expect(resolveDropdownSearchStatus({ value: 'Jane', exactMatch: jane })).toBe('valid');
+    expect(resolveDropdownSearchStatus({ value: 'J', minLength: 2 })).toBe(
+      'invalid',
+    );
+    expect(resolveDropdownSearchStatus({ value: 'Jane', loading: true })).toBe(
+      'loading',
+    );
+    expect(
+      resolveDropdownSearchStatus({ value: 'Jane', exactMatch: jane }),
+    ).toBe('valid');
+    expect(
+      resolveDropdownSearchStatus({
+        value: '',
+        selectedItems: [jane],
+        multiselect: true,
+      }),
+    ).toBe('valid');
     expect(resolveDropdownSearchStatus({ value: 'Jane' })).toBe('invalid');
-    expect(resolveDropdownSearchStatus({ value: 'Jane', exactMatch: jane, validate: false })).toBe('empty');
-    expect(resolveDropdownSearchStatus({ value: 'Jane', errored: true, validate: false })).toBe('empty');
+    expect(
+      resolveDropdownSearchStatus({
+        value: 'Jane',
+        exactMatch: jane,
+        validate: false,
+      }),
+    ).toBe('empty');
+    expect(
+      resolveDropdownSearchStatus({
+        value: 'Jane',
+        errored: true,
+        validate: false,
+      }),
+    ).toBe('empty');
     expect(clampDropdownSearchLimit(-3)).toBe(1);
     expect(clampDropdownSearchLimit(8.7)).toBe(8);
     expect(clampDropdownSearchLimit(100)).toBe(50);
@@ -44,14 +86,17 @@ describe('DropdownSearch component', () => {
   it('debounces searches and turns valid on a unique exact match', async () => {
     vi.useFakeTimers();
     const changes: string[] = [];
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane],
+      exactMatch: jane,
+    }));
 
     render(DropdownSearch, {
       props: {
         debounceMs: 200,
         loadOptions,
-        onStatusChange: (status) => changes.push(status)
-      }
+        onStatusChange: (status) => changes.push(status),
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -61,7 +106,12 @@ describe('DropdownSearch component', () => {
 
     await vi.advanceTimersByTimeAsync(200);
 
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Jane', expect.objectContaining({ limit: 10 })));
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        'Jane',
+        expect.objectContaining({ limit: 10 }),
+      ),
+    );
     await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'false'));
     expect(changes).toContain('loading');
     expect(changes).toContain('valid');
@@ -69,13 +119,16 @@ describe('DropdownSearch component', () => {
 
   it('marks non-empty text invalid when there is no unique match', async () => {
     vi.useFakeTimers();
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
 
     render(DropdownSearch, {
       props: {
         debounceMs: 10,
-        loadOptions
-      }
+        loadOptions,
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -87,13 +140,16 @@ describe('DropdownSearch component', () => {
 
   it('shows a loading row while a debounced search is pending', async () => {
     vi.useFakeTimers();
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
 
     render(DropdownSearch, {
       props: {
         debounceMs: 500,
-        loadOptions
-      }
+        loadOptions,
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -104,7 +160,12 @@ describe('DropdownSearch component', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(500);
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Jane', expect.objectContaining({ limit: 10 })));
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        'Jane',
+        expect.objectContaining({ limit: 10 }),
+      ),
+    );
   });
 
   it('aborts the previous request and ignores stale responses', async () => {
@@ -115,7 +176,14 @@ describe('DropdownSearch component', () => {
       if (query === 'Jane') {
         firstSignal = context.signal;
         return new Promise((resolve) => {
-          setTimeout(() => resolve({ options: [{ ...jane, title: 'Stale Jane' }], exactMatch: { ...jane, title: 'Stale Jane' } }), 100);
+          setTimeout(
+            () =>
+              resolve({
+                options: [{ ...jane, title: 'Stale Jane' }],
+                exactMatch: { ...jane, title: 'Stale Jane' },
+              }),
+            100,
+          );
         });
       }
 
@@ -126,8 +194,9 @@ describe('DropdownSearch component', () => {
       props: {
         debounceMs: 10,
         loadOptions,
-        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
-      }
+        onChange: (detail) =>
+          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -146,7 +215,10 @@ describe('DropdownSearch component', () => {
   });
 
   it('searches when a controlled value changes externally', async () => {
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane],
+      exactMatch: jane,
+    }));
     const changes: string[] = [];
 
     const { rerender } = render(DropdownSearch, {
@@ -154,19 +226,28 @@ describe('DropdownSearch component', () => {
         value: '',
         loadOptions,
         searchOnExternalValueChange: true,
-        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
-      }
+        onChange: (detail) =>
+          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+      },
     });
 
     await rerender({ value: 'M-123' });
 
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('M-123', expect.objectContaining({ limit: 10 })));
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        'M-123',
+        expect.objectContaining({ limit: 10 }),
+      ),
+    );
     await waitFor(() => expect(changes).toContain('valid:Jane Doe'));
     expect(changes).not.toContain('invalid:');
   });
 
   it('searches and validates an initial controlled value on mount', async () => {
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane],
+      exactMatch: jane,
+    }));
     const changes: string[] = [];
 
     render(DropdownSearch, {
@@ -174,19 +255,32 @@ describe('DropdownSearch component', () => {
         value: 'M-123',
         loadOptions,
         searchOnExternalValueChange: true,
-        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
-      }
+        onChange: (detail) =>
+          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+      },
     });
 
     const input = screen.getByRole('textbox');
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('M-123', expect.objectContaining({ limit: 10 })));
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        'M-123',
+        expect.objectContaining({ limit: 10 }),
+      ),
+    );
     await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'false'));
     await waitFor(() => expect(changes).toContain('valid:Jane Doe'));
   });
 
   it('clears the current value from the built-in clear button', async () => {
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
-    const changes: Array<{ value: string; selectedItem: DropdownSearchItem | null; status: string }> = [];
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
+    const changes: Array<{
+      value: string;
+      selectedItem: DropdownSearchItem | null;
+      status: string;
+    }> = [];
 
     render(DropdownSearch, {
       props: {
@@ -195,8 +289,8 @@ describe('DropdownSearch component', () => {
         status: 'valid',
         clearLabel: 'Clear search',
         loadOptions,
-        onChange: (detail) => changes.push(detail)
-      }
+        onChange: (detail) => changes.push(detail),
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -205,25 +299,30 @@ describe('DropdownSearch component', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
 
     expect(input).toHaveValue('');
-    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Clear search' }),
+    ).not.toBeInTheDocument();
     expect(loadOptions).not.toHaveBeenCalled();
     expect(changes.at(-1)).toMatchObject({
       value: '',
       selectedItem: null,
-      status: 'empty'
+      status: 'empty',
     });
   });
 
   it('uses localized default labels when no text override is passed', async () => {
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
 
     render(DropdownSearch, {
       props: {
         value: 'Jane Doe',
         status: 'invalid',
         language: 'zh_tw',
-        loadOptions
-      }
+        loadOptions,
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -234,7 +333,10 @@ describe('DropdownSearch component', () => {
   });
 
   it('falls back to default dropdown messages when text overrides are blank', async () => {
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
 
     render(DropdownSearch, {
       props: {
@@ -243,8 +345,8 @@ describe('DropdownSearch component', () => {
         noResultsText: '',
         loadingText: '',
         clearLabel: '',
-        loadOptions
-      }
+        loadOptions,
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -255,44 +357,55 @@ describe('DropdownSearch component', () => {
   });
 
   it('only reserves clear-button space when the input has text', async () => {
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
 
     const { container, rerender } = render(DropdownSearch, {
       props: {
         value: '',
         status: 'empty',
         clearLabel: 'Clear search',
-        loadOptions
-      }
+        loadOptions,
+      },
     });
 
     const root = container.querySelector('.suu-dropdown-search');
     expect(root).not.toHaveClass('suu-dropdown-search--has-clear');
-    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Clear search' }),
+    ).not.toBeInTheDocument();
 
     await rerender({
       value: 'Jane',
       status: 'invalid',
       clearLabel: 'Clear search',
-      loadOptions
+      loadOptions,
     });
 
     expect(root).toHaveClass('suu-dropdown-search--has-clear');
-    expect(screen.getByRole('button', { name: 'Clear search' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clear search' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps a neutral status when validation is disabled', async () => {
     vi.useFakeTimers();
     const changes: string[] = [];
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [jane], exactMatch: jane }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane],
+      exactMatch: jane,
+    }));
 
     const { container } = render(DropdownSearch, {
       props: {
         debounceMs: 10,
         loadOptions,
         validate: false,
-        onChange: (detail) => changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`)
-      }
+        onChange: (detail) =>
+          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -300,9 +413,16 @@ describe('DropdownSearch component', () => {
     await fireEvent.input(input, { target: { value: 'Jane' } });
     await vi.advanceTimersByTimeAsync(10);
 
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Jane', expect.objectContaining({ limit: 10 })));
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        'Jane',
+        expect.objectContaining({ limit: 10 }),
+      ),
+    );
     await tick();
-    expect(screen.getByRole('option', { name: /Jane Doe/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /Jane Doe/ }),
+    ).toBeInTheDocument();
     const root = container.querySelector('.suu-dropdown-search');
     expect(root).toHaveAttribute('data-status', 'empty');
     expect(root).not.toHaveClass('suu-dropdown-search--valid');
@@ -322,14 +442,17 @@ describe('DropdownSearch component', () => {
 
   it('does not mark missing matches invalid when validation is disabled', async () => {
     vi.useFakeTimers();
-    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({ options: [], exactMatch: null }));
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
 
     const { container } = render(DropdownSearch, {
       props: {
         debounceMs: 10,
         loadOptions,
-        validate: false
-      }
+        validate: false,
+      },
     });
 
     const input = screen.getByRole('textbox');
@@ -337,12 +460,93 @@ describe('DropdownSearch component', () => {
     await fireEvent.input(input, { target: { value: 'Nobody' } });
     await vi.advanceTimersByTimeAsync(10);
 
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Nobody', expect.objectContaining({ limit: 10 })));
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        'Nobody',
+        expect.objectContaining({ limit: 10 }),
+      ),
+    );
     await tick();
     const root = container.querySelector('.suu-dropdown-search');
     expect(root).toHaveAttribute('data-status', 'empty');
     expect(root).not.toHaveClass('suu-dropdown-search--invalid');
     expect(input).toHaveAttribute('aria-invalid', 'false');
     expect(screen.queryByText('Empty')).not.toBeInTheDocument();
+  });
+
+  it('selects and removes multiple items when multiselect is enabled', async () => {
+    vi.useFakeTimers();
+    const john: DropdownSearchItem = {
+      id: 'M-456',
+      title: 'John Doe',
+      param_dict: { ID: 'M-456' },
+    };
+    const selectedChanges: string[][] = [];
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane, john],
+      exactMatch: null,
+    }));
+
+    render(DropdownSearch, {
+      props: {
+        debounceMs: 10,
+        loadOptions,
+        multiselect: true,
+        selectedItemsLabel: 'Selected members',
+        removeSelectedItemLabel: (item) => `Remove ${item.title}`,
+        onSelectedItemsChange: (items) => {
+          selectedChanges.push(items.map((item) => item.title));
+        },
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    await fireEvent.input(input, { target: { value: 'doe' } });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('option', { name: /Jane Doe/ }),
+      ).toBeInTheDocument(),
+    );
+    await fireEvent.mouseDown(screen.getByRole('option', { name: /Jane Doe/ }));
+
+    expect(input).toHaveValue('');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /John Doe/ }),
+    ).toBeInTheDocument();
+    const selectedItems = screen.getByLabelText('Selected members');
+    expect(within(selectedItems).getByText('Jane Doe')).toBeInTheDocument();
+    expect(selectedChanges.at(-1)).toEqual(['Jane Doe']);
+
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Jane Doe' }),
+    );
+
+    expect(selectedChanges.at(-1)).toEqual([]);
+    expect(screen.queryByLabelText('Selected members')).not.toBeInTheDocument();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
+  it('exports a dedicated DropdownSearchMultiSelect wrapper', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
+
+    const { container } = render(DropdownSearchMultiSelect, {
+      props: {
+        loadOptions,
+        selectedItems: [jane],
+      },
+    });
+
+    expect(container.querySelector('.suu-dropdown-search')).toHaveAttribute(
+      'data-multiselect',
+      'true',
+    );
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
   });
 });

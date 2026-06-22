@@ -1,3 +1,5 @@
+<svelte:options runes={false} />
+
 <script lang="ts">
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { NumberRangeFilterValue } from './types.js';
