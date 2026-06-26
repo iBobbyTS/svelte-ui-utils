@@ -21,6 +21,7 @@
   export let limit = 10;
   export let minLength = 1;
   export let validate = true;
+  export let closeOnValid = false;
   export let loadOptions: DropdownSearchLoadOptions;
   export let id: string | undefined = undefined;
   export let name: string | undefined = undefined;
@@ -66,6 +67,7 @@
   {limit}
   {minLength}
   {validate}
+  {closeOnValid}
   {loadOptions}
   {id}
   {name}

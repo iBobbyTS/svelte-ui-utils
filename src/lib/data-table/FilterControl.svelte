@@ -95,6 +95,7 @@
     debounceMs={control.debounceMs ?? 500}
     limit={control.limit ?? 10}
     minLength={control.minLength ?? 1}
+    closeOnValid={control.closeOnValid ?? false}
     {language}
     noResultsText={control.noResultsText}
     loadingText={control.loadingText}

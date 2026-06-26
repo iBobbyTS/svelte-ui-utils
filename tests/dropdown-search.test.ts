@@ -117,6 +117,56 @@ describe('DropdownSearch component', () => {
     expect(changes).toContain('valid');
   });
 
+  it('keeps validated options visible by default', async () => {
+    vi.useFakeTimers();
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane],
+      exactMatch: jane,
+    }));
+
+    render(DropdownSearch, {
+      props: {
+        debounceMs: 10,
+        loadOptions,
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    await fireEvent.input(input, { target: { value: 'Jane' } });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'false'));
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('option', { name: /Jane Doe/ })).toBeInTheDocument();
+  });
+
+  it('hides validated options when closeOnValid is enabled', async () => {
+    vi.useFakeTimers();
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [jane],
+      exactMatch: jane,
+    }));
+
+    render(DropdownSearch, {
+      props: {
+        closeOnValid: true,
+        debounceMs: 10,
+        loadOptions,
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    await fireEvent.input(input, { target: { value: 'Jane' } });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'false'));
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Jane Doe/ })).not.toBeInTheDocument();
+  });
+
   it('marks non-empty text invalid when there is no unique match', async () => {
     vi.useFakeTimers();
     const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({

@@ -29,6 +29,7 @@
   export let limit = 10;
   export let minLength = 1;
   export let validate = true;
+  export let closeOnValid = false;
   export let loadOptions: DropdownSearchLoadOptions;
   export let id: string | undefined = undefined;
   export let name: string | undefined = undefined;
@@ -88,9 +89,12 @@
     : messages.dropdownSearch.clearLabel;
   $: resolvedListboxId = listboxId ?? (id ? `${id}-options` : undefined);
   $: hasQuery = normalizeDropdownSearchValue(value).length > 0;
+  $: hideOptionsOnValid =
+    closeOnValid && !multiselect && validate && status === 'valid';
   $: showOptions =
     focused &&
     !disabled &&
+    !hideOptionsOnValid &&
     (hasQuery || (multiselect && options.length > 0)) &&
     (options.length > 0 ||
       status === 'loading' ||

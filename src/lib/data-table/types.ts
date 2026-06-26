@@ -164,6 +164,7 @@ export interface DropdownSearchFilterControl {
   debounceMs?: number;
   limit?: number;
   minLength?: number;
+  closeOnValid?: boolean;
   noResultsText?: string;
   loadingText?: string;
   clearLabel?: string;

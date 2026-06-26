@@ -97,6 +97,7 @@ Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
   maxWidth="100%"
   {loadOptions}
   searchOnExternalValueChange={true}
+  closeOnValid={true}
 />
 ```
 
@@ -116,6 +117,10 @@ Set `validate={false}` when the field should only show selectable options and
 stay visually neutral instead of turning green or red. In that mode the
 component ignores `exactMatch` for status and auto-selection.
 Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
+Set `closeOnValid={true}` to hide the result list after validation finds a
+usable exact match. The default is `false`, so existing validated searches keep
+showing their current result list until the field closes or the user selects an
+option.
 When the input has text, `DropdownSearch` shows an internal clear button on the
 right side of the field. Use `clearLabel` to localize that button's accessible
 label, or use `language` to select the package default.
