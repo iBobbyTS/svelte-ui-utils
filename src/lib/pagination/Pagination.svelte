@@ -26,8 +26,11 @@
   $: pageSizeDropdownOptions = pageSizeOptions.map((option) => ({ label: String(option), value: option }));
 
   function buildPaginationItems(currentPage: number, totalPages: number, maxButtons: number): PaginationItem[] {
-    if (totalPages <= 1) {
+    if (totalPages < 1) {
       return [];
+    }
+    if (totalPages === 1) {
+      return [{ kind: 'page', page: 1 }];
     }
 
     const visiblePageCount = Math.max(3, Math.trunc(maxButtons));

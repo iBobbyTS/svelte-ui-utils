@@ -472,6 +472,25 @@ describe('data table components', () => {
     expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
   });
 
+  it('renders an active first page when row count fits the selected page size but still needs page-size controls', () => {
+    const { container } = render(DataTable, {
+      props: {
+        rows: Array.from({ length: 12 }, (_, index) => ({ name: `Member ${index + 1}` })),
+        columns: [{ key: 'name', header: 'Name' }],
+        totalRows: 12,
+        page: 1,
+        pageSize: 20,
+        pageSizeOptions: [10, 20, 50]
+      }
+    });
+
+    expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '1' }).map((button) => button.getAttribute('aria-current'))).toEqual([
+      'page',
+      'page'
+    ]);
+  });
+
   it('uses localized DataTable defaults when labels are not overridden', () => {
     const { container } = render(DataTable, {
       props: {
