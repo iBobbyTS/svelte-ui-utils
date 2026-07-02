@@ -1,6 +1,7 @@
 <svelte:options runes={false} />
 
 <script lang="ts">
+  import { onDestroy, tick } from 'svelte';
   import type { DropdownChangeHandler, DropdownOption, DropdownPlacement, DropdownValue } from './types.js';
 
   export let id: string | undefined = undefined;
@@ -8,17 +9,34 @@
   export let options: DropdownOption[] = [];
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'down';
+  export let fitViewport = false;
   export let disabled = false;
   export let onChange: DropdownChangeHandler | undefined = undefined;
 
+  const viewportMargin = 20;
+  const menuGap = 6;
+
   let open = false;
   let activeValue: DropdownValue = value;
+  let dropdownElement: HTMLSpanElement | undefined;
   let buttonElement: HTMLButtonElement | undefined;
+  let viewportPanelMaxHeight: string | undefined = undefined;
+  let removeViewportListeners: (() => void) | undefined = undefined;
 
   $: selectedOption = options.find((option) => option.value === value);
   $: selectedText = selectedOption?.label ?? String(value);
   $: if (!open) {
     activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
+  }
+  $: {
+    placement;
+    if (fitViewport && open) {
+      enableViewportFit();
+      void updateViewportPanelMaxHeight();
+    } else {
+      disableViewportFit();
+      viewportPanelMaxHeight = undefined;
+    }
   }
 
   function firstEnabledOption(): DropdownOption | undefined {
@@ -106,9 +124,57 @@
     }
     open = false;
   }
+
+  async function updateViewportPanelMaxHeight() {
+    await tick();
+
+    if (!fitViewport || !open || typeof window === 'undefined') {
+      return;
+    }
+
+    const rect = dropdownElement?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+
+    const available =
+      placement === 'up'
+        ? rect.top - viewportMargin - menuGap
+        : window.innerHeight - rect.bottom - viewportMargin - menuGap;
+    viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
+  }
+
+  function enableViewportFit() {
+    if (removeViewportListeners || typeof window === 'undefined') {
+      return;
+    }
+
+    const handleViewportChange = () => {
+      void updateViewportPanelMaxHeight();
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+    removeViewportListeners = () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+      removeViewportListeners = undefined;
+    };
+  }
+
+  function disableViewportFit() {
+    removeViewportListeners?.();
+  }
+
+  onDestroy(disableViewportFit);
 </script>
 
-<span class="suu-dropdown" on:focusout={handleFocusout}>
+<span
+  bind:this={dropdownElement}
+  class="suu-dropdown"
+  style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
+  on:focusout={handleFocusout}
+>
   <button
     bind:this={buttonElement}
     {id}

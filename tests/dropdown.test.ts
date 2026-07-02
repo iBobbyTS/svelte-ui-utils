@@ -1,8 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dropdown } from '../src/lib/dropdown/index.js';
 
 describe('dropdown', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('passes through the optional button id', () => {
     render(Dropdown, {
       props: {
@@ -53,6 +58,68 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
 
     expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--up')).toBe(true);
+  });
+
+  it('can fit the menu panel to the available viewport below the trigger', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        fitViewport: true,
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' }
+        ]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      right: 240,
+      bottom: 240,
+      left: 120,
+      width: 120,
+      height: 140,
+      x: 120,
+      y: 100,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('374px');
+  });
+
+  it('can fit the menu panel to the available viewport above the trigger', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        placement: 'up',
+        fitViewport: true,
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' }
+        ]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 240,
+      bottom: 340,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 300,
+      toJSON: () => ({})
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('274px');
   });
 
   it('supports keyboard option selection', async () => {
