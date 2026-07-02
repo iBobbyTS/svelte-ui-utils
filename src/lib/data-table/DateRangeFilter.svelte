@@ -28,10 +28,16 @@
     'thisMonth',
     'thisYear'
   ];
+  const monthNumbers = Array.from({ length: 12 }, (_, index) => index + 1);
+
+  let quickYear = '';
+  let quickMonth = '';
 
   $: messages = getUiMessages(language);
   $: resolvedStartLabel = startLabel ?? messages.dateRange.startLabel;
   $: resolvedEndLabel = endLabel ?? messages.dateRange.endLabel;
+  $: currentYear = startOfDay(now()).getFullYear();
+  $: quickYearOptions = Array.from({ length: 21 }, (_, index) => currentYear - index);
 
   function pad(value: number) {
     return String(value).padStart(2, '0');
@@ -60,6 +66,31 @@
     const day = start.getDay();
     const offset = weekStartsOn === 1 ? (day + 6) % 7 : day;
     return addDays(start, -offset);
+  }
+
+  function endOfMonth(year: number, month: number) {
+    return new Date(year, month, 0);
+  }
+
+  function resolveYearForMonth(month: number) {
+    const today = startOfDay(now());
+    return month <= today.getMonth() + 1 ? today.getFullYear() : today.getFullYear() - 1;
+  }
+
+  function resolveQuickRange(year: number, month: number | null): DateRangeFilterValue {
+    const start = month === null ? new Date(year, 0, 1) : new Date(year, month - 1, 1);
+    const end = month === null ? new Date(year, 11, 31) : endOfMonth(year, month);
+
+    return {
+      startDate: formatDate(start),
+      endDate: formatDate(end),
+      preset: null
+    };
+  }
+
+  function clearQuickSelection() {
+    quickYear = '';
+    quickMonth = '';
   }
 
   function resolvePreset(preset: DateRangePreset): DateRangeFilterValue {
@@ -142,6 +173,7 @@
   }
 
   function updateDate(part: 'startDate' | 'endDate', nextValue: string) {
+    clearQuickSelection();
     emit({
       startDate: part === 'startDate' ? nextValue : value.startDate,
       endDate: part === 'endDate' ? nextValue : value.endDate,
@@ -149,7 +181,39 @@
     });
   }
 
+  function updateQuickYear(nextValue: string) {
+    quickYear = nextValue;
+
+    if (!nextValue) {
+      clearQuickSelection();
+      emit(emptyRange());
+      return;
+    }
+
+    emit(resolveQuickRange(Number(nextValue), quickMonth ? Number(quickMonth) : null));
+  }
+
+  function updateQuickMonth(nextValue: string) {
+    quickMonth = nextValue;
+
+    if (!nextValue) {
+      if (quickYear) {
+        emit(resolveQuickRange(Number(quickYear), null));
+      } else {
+        emit(emptyRange());
+      }
+      return;
+    }
+
+    if (!quickYear) {
+      quickYear = String(resolveYearForMonth(Number(nextValue)));
+    }
+
+    emit(resolveQuickRange(Number(quickYear), Number(nextValue)));
+  }
+
   function applyPreset(preset: DateRangePreset) {
+    clearQuickSelection();
     if (value.preset === preset) {
       emit(emptyRange());
       return;
@@ -160,6 +224,10 @@
 
   function labelFor(preset: DateRangePreset) {
     return presetLabels[preset] ?? messages.dateRange.presetLabels[preset];
+  }
+
+  function monthLabel(month: number) {
+    return messages.dateRange.monthLabels[month - 1] ?? String(month);
   }
 
   onMount(() => {
@@ -196,6 +264,33 @@
       >
         {labelFor(preset)}
       </button>
+      {#if preset === 'last30Days' || preset === 'thisYear'}
+        <span class="suu-filter-preset-divider" aria-hidden="true"></span>
+      {/if}
     {/each}
+    <label class="suu-filter-preset-select">
+      <span class="suu-visually-hidden">{messages.dateRange.quickMonthLabel}</span>
+      <select
+        aria-label={messages.dateRange.quickMonthLabel}
+        on:change={(event) => updateQuickMonth((event.currentTarget as HTMLSelectElement).value)}
+      >
+        <option value="" selected={quickMonth === ''}>{messages.dateRange.quickMonthPlaceholder}</option>
+        {#each monthNumbers as month}
+          <option value={month} selected={quickMonth === String(month)}>{monthLabel(month)}</option>
+        {/each}
+      </select>
+    </label>
+    <label class="suu-filter-preset-select">
+      <span class="suu-visually-hidden">{messages.dateRange.quickYearLabel}</span>
+      <select
+        aria-label={messages.dateRange.quickYearLabel}
+        on:change={(event) => updateQuickYear((event.currentTarget as HTMLSelectElement).value)}
+      >
+        <option value="" selected={quickYear === ''}>{messages.dateRange.quickYearPlaceholder}</option>
+        {#each quickYearOptions as year}
+          <option value={year} selected={quickYear === String(year)}>{year}</option>
+        {/each}
+      </select>
+    </label>
   </div>
 </div>

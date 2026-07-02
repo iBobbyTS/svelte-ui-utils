@@ -739,6 +739,61 @@ describe('data table components', () => {
     expect(screen.getByLabelText('End date')).toHaveValue('');
   });
 
+  it('auto-selects the most recent year when a quick month is selected first', async () => {
+    const onChange = vi.fn();
+    const { container } = render(DateRangeFilter, {
+      props: {
+        now: () => new Date(2026, 6, 2, 10, 30, 15),
+        onChange
+      }
+    });
+
+    const month = screen.getByLabelText('Month');
+    const year = screen.getByLabelText('Year');
+    expect(month).toHaveValue('');
+    expect(year).toHaveValue('');
+    expect(container.querySelectorAll('.suu-filter-preset-divider')).toHaveLength(2);
+
+    await fireEvent.change(month, { target: { value: '7' } });
+    expect(year).toHaveValue('2026');
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+      preset: null
+    });
+
+    await fireEvent.change(year, { target: { value: '' } });
+    await fireEvent.change(month, { target: { value: '8' } });
+    expect(year).toHaveValue('2025');
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2025-08-01',
+      endDate: '2025-08-31',
+      preset: null
+    });
+  });
+
+  it('keeps quick month empty when a quick year is selected first', async () => {
+    const onChange = vi.fn();
+    render(DateRangeFilter, {
+      props: {
+        now: () => new Date(2026, 6, 2, 10, 30, 15),
+        onChange
+      }
+    });
+
+    const month = screen.getByLabelText('Month');
+    const year = screen.getByLabelText('Year');
+
+    await fireEvent.change(year, { target: { value: '2024' } });
+    expect(month).toHaveValue('');
+    expect(year).toHaveValue('2024');
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2024-01-01',
+      endDate: '2024-12-31',
+      preset: null
+    });
+  });
+
   it('emits number range changes with prefix labels', async () => {
     const onChange = vi.fn();
     const { container } = render(NumberRangeFilter, {

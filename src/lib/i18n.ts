@@ -29,6 +29,11 @@ export interface UiMessages {
     startLabel: string;
     endLabel: string;
     presetLabels: Record<DateRangePresetKey, string>;
+    quickMonthLabel: string;
+    quickMonthPlaceholder: string;
+    quickYearLabel: string;
+    quickYearPlaceholder: string;
+    monthLabels: string[];
   };
   numberRange: {
     minLabel: string;
@@ -62,7 +67,12 @@ const messages: Record<UiLanguage, UiMessages> = {
         thisWeek: 'This Week',
         thisMonth: 'This Month',
         thisYear: 'This Year'
-      }
+      },
+      quickMonthLabel: 'Month',
+      quickMonthPlaceholder: 'Month',
+      quickYearLabel: 'Year',
+      quickYearPlaceholder: 'Year',
+      monthLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     },
     numberRange: {
       minLabel: 'Min',
@@ -94,7 +104,12 @@ const messages: Record<UiLanguage, UiMessages> = {
         thisWeek: '本周',
         thisMonth: '本月',
         thisYear: '今年'
-      }
+      },
+      quickMonthLabel: '月份',
+      quickMonthPlaceholder: '月份',
+      quickYearLabel: '年份',
+      quickYearPlaceholder: '年份',
+      monthLabels: ['1 月', '2 月', '3 月', '4 月', '5 月', '6 月', '7 月', '8 月', '9 月', '10 月', '11 月', '12 月']
     },
     numberRange: {
       minLabel: '最小值',
@@ -126,7 +141,12 @@ const messages: Record<UiLanguage, UiMessages> = {
         thisWeek: '本週',
         thisMonth: '本月',
         thisYear: '今年'
-      }
+      },
+      quickMonthLabel: '月份',
+      quickMonthPlaceholder: '月份',
+      quickYearLabel: '年份',
+      quickYearPlaceholder: '年份',
+      monthLabels: ['1 月', '2 月', '3 月', '4 月', '5 月', '6 月', '7 月', '8 月', '9 月', '10 月', '11 月', '12 月']
     },
     numberRange: {
       minLabel: '最小值',

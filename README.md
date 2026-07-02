@@ -401,14 +401,17 @@ can clip the menu even when the menu has a high `z-index`. Keep the nearest
 filter container at `overflow: visible`, or move the clipping/scrolling behavior
 to a parent that does not wrap the dropdown menu directly.
 
-`dateRange` renders two browser date inputs plus preset buttons:
-`last 24 hours`, `last 7 days`, `last 30 days`, `today`, `this week`,
-`this month`, and `this year`. Manual changes emit `{ startDate, endDate,
-preset: null }`. Pass `defaultPreset` to apply a preset on mount when the
-current value is empty. Clicking the currently active preset clears both date
-inputs and emits an empty range. The `last24Hours` preset also emits
-`startDateTime` and `endDateTime` so a consuming app can run an exact timestamp
-query while still showing the covered dates in the inputs.
+`dateRange` renders two browser date inputs, preset buttons, and quick month/year
+selects. The presets are `last 24 hours`, `last 7 days`, `last 30 days`,
+`today`, `this week`, `this month`, and `this year`. Manual changes and quick
+month/year changes emit `{ startDate, endDate, preset: null }`. When the month is
+selected first, the year select fills with the most recent matching year. For
+example, in July 2026, July resolves to 2026 and August resolves to 2025. Pass
+`defaultPreset` to apply a preset on mount when the current value is empty.
+Clicking the currently active preset clears both date inputs and emits an empty
+range. The `last24Hours` preset also emits `startDateTime` and `endDateTime` so
+a consuming app can run an exact timestamp query while still showing the covered
+dates in the inputs.
 
 `numberRange` renders min/max number inputs and supports `prefixLabel`, for
 example `$` for currency filters.

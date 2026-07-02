@@ -33,6 +33,18 @@
   --suu-shadow: 0 16px 34px rgb(0 0 0 / 0.32);
 }
 
+.suu-visually-hidden {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .suu-toast-region {
   position: fixed;
   z-index: 1000;
@@ -551,6 +563,7 @@
 .suu-filter-preset-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
 }
 
@@ -580,6 +593,34 @@
 
 .suu-filter-preset--active {
   background: color-mix(in srgb, var(--suu-color-accent) 12%, var(--suu-color-bg));
+}
+
+.suu-filter-preset-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 3px;
+  background: var(--suu-color-border);
+}
+
+.suu-filter-preset-select select {
+  min-height: 30px;
+  border: 1px solid var(--suu-color-border);
+  border-radius: var(--suu-radius);
+  background: var(--suu-color-bg);
+  color: var(--suu-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.suu-filter-preset-select select {
+  padding: 4px 28px 4px 8px;
+}
+
+.suu-filter-preset-select select:focus {
+  border-color: var(--suu-color-accent);
+  outline: 2px solid color-mix(in srgb, var(--suu-color-accent) 22%, transparent);
+  outline-offset: 1px;
 }
 
 .suu-input-affix {
