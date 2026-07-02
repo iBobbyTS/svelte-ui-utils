@@ -748,23 +748,26 @@ describe('data table components', () => {
       }
     });
 
-    const month = screen.getByLabelText('Month');
-    const year = screen.getByLabelText('Year');
-    expect(month).toHaveValue('');
-    expect(year).toHaveValue('');
+    const month = screen.getByRole('button', { name: 'Month' });
+    const year = screen.getByRole('button', { name: 'Year' });
+    expect(month).toHaveAttribute('data-value', '');
+    expect(year).toHaveAttribute('data-value', '');
     expect(container.querySelectorAll('.suu-filter-preset-divider')).toHaveLength(2);
 
-    await fireEvent.change(month, { target: { value: '7' } });
-    expect(year).toHaveValue('2026');
+    await fireEvent.click(month);
+    await fireEvent.click(screen.getByRole('option', { name: 'Jul' }));
+    expect(year).toHaveAttribute('data-value', '2026');
     expect(onChange).toHaveBeenLastCalledWith({
       startDate: '2026-07-01',
       endDate: '2026-07-31',
       preset: null
     });
 
-    await fireEvent.change(year, { target: { value: '' } });
-    await fireEvent.change(month, { target: { value: '8' } });
-    expect(year).toHaveValue('2025');
+    await fireEvent.click(year);
+    await fireEvent.click(screen.getByRole('option', { name: 'Year' }));
+    await fireEvent.click(month);
+    await fireEvent.click(screen.getByRole('option', { name: 'Aug' }));
+    expect(year).toHaveAttribute('data-value', '2025');
     expect(onChange).toHaveBeenLastCalledWith({
       startDate: '2025-08-01',
       endDate: '2025-08-31',
@@ -781,12 +784,13 @@ describe('data table components', () => {
       }
     });
 
-    const month = screen.getByLabelText('Month');
-    const year = screen.getByLabelText('Year');
+    const month = screen.getByRole('button', { name: 'Month' });
+    const year = screen.getByRole('button', { name: 'Year' });
 
-    await fireEvent.change(year, { target: { value: '2024' } });
-    expect(month).toHaveValue('');
-    expect(year).toHaveValue('2024');
+    await fireEvent.click(year);
+    await fireEvent.click(screen.getByRole('option', { name: '2024' }));
+    expect(month).toHaveAttribute('data-value', '');
+    expect(year).toHaveAttribute('data-value', '2024');
     expect(onChange).toHaveBeenLastCalledWith({
       startDate: '2024-01-01',
       endDate: '2024-12-31',

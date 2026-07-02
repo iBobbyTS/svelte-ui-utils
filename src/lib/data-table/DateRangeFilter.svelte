@@ -2,6 +2,7 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Dropdown from '../dropdown/Dropdown.svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type { DateRangeFilterValue, DateRangePreset } from './types.js';
 
@@ -38,6 +39,14 @@
   $: resolvedEndLabel = endLabel ?? messages.dateRange.endLabel;
   $: currentYear = startOfDay(now()).getFullYear();
   $: quickYearOptions = Array.from({ length: 21 }, (_, index) => currentYear - index);
+  $: quickMonthOptions = [
+    { label: messages.dateRange.quickMonthPlaceholder, value: '' },
+    ...monthNumbers.map((month) => ({ label: monthLabel(month), value: String(month) }))
+  ];
+  $: quickYearDropdownOptions = [
+    { label: messages.dateRange.quickYearPlaceholder, value: '' },
+    ...quickYearOptions.map((year) => ({ label: String(year), value: String(year) }))
+  ];
 
   function pad(value: number) {
     return String(value).padStart(2, '0');
@@ -270,27 +279,21 @@
     {/each}
     <label class="suu-filter-preset-select">
       <span class="suu-visually-hidden">{messages.dateRange.quickMonthLabel}</span>
-      <select
-        aria-label={messages.dateRange.quickMonthLabel}
-        on:change={(event) => updateQuickMonth((event.currentTarget as HTMLSelectElement).value)}
-      >
-        <option value="" selected={quickMonth === ''}>{messages.dateRange.quickMonthPlaceholder}</option>
-        {#each monthNumbers as month}
-          <option value={month} selected={quickMonth === String(month)}>{monthLabel(month)}</option>
-        {/each}
-      </select>
+      <Dropdown
+        ariaLabel={messages.dateRange.quickMonthLabel}
+        value={quickMonth}
+        options={quickMonthOptions}
+        onChange={(nextValue) => updateQuickMonth(String(nextValue))}
+      />
     </label>
     <label class="suu-filter-preset-select">
       <span class="suu-visually-hidden">{messages.dateRange.quickYearLabel}</span>
-      <select
-        aria-label={messages.dateRange.quickYearLabel}
-        on:change={(event) => updateQuickYear((event.currentTarget as HTMLSelectElement).value)}
-      >
-        <option value="" selected={quickYear === ''}>{messages.dateRange.quickYearPlaceholder}</option>
-        {#each quickYearOptions as year}
-          <option value={year} selected={quickYear === String(year)}>{year}</option>
-        {/each}
-      </select>
+      <Dropdown
+        ariaLabel={messages.dateRange.quickYearLabel}
+        value={quickYear}
+        options={quickYearDropdownOptions}
+        onChange={(nextValue) => updateQuickYear(String(nextValue))}
+      />
     </label>
   </div>
 </div>
