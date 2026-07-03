@@ -16,6 +16,7 @@
   export let endLabel: string | undefined = undefined;
   export let presetLabels: Partial<Record<DateRangePreset, string>> = {};
   export let defaultPreset: DateRangePreset | undefined = undefined;
+  export let quickYears: number[] | undefined = undefined;
   export let now: () => Date = () => new Date();
   export let weekStartsOn: 0 | 1 = 1;
   export let onChange: ((value: DateRangeFilterValue) => void) | undefined = undefined;
@@ -38,7 +39,7 @@
   $: resolvedStartLabel = startLabel ?? messages.dateRange.startLabel;
   $: resolvedEndLabel = endLabel ?? messages.dateRange.endLabel;
   $: currentYear = startOfDay(now()).getFullYear();
-  $: quickYearOptions = Array.from({ length: 21 }, (_, index) => currentYear - index);
+  $: quickYearOptions = quickYears ?? [currentYear - 1, currentYear, currentYear + 1];
   $: quickMonthOptions = [
     { label: messages.dateRange.quickMonthPlaceholder, value: '' },
     ...monthNumbers.map((month) => ({ label: monthLabel(month), value: String(month) }))

@@ -769,6 +769,11 @@ describe('data table components', () => {
 
     await fireEvent.click(year);
     expect(container.querySelector('.suu-dropdown__menu--fit-content')).toBeTruthy();
+    expect(screen.getByRole('option', { name: '2025' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: '2026' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: '2027' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: '2024' })).toBeNull();
+    expect(screen.queryByRole('option', { name: '2028' })).toBeNull();
     await fireEvent.click(screen.getByRole('option', { name: 'Year' }));
     await fireEvent.click(month);
     await fireEvent.click(screen.getByRole('option', { name: 'Aug' }));
@@ -785,6 +790,7 @@ describe('data table components', () => {
     render(DateRangeFilter, {
       props: {
         now: () => new Date(2026, 6, 2, 10, 30, 15),
+        quickYears: [2024, 2025, 2026],
         onChange
       }
     });
