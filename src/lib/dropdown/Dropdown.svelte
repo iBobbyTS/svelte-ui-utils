@@ -22,7 +22,7 @@
   let dropdownElement: HTMLSpanElement | undefined;
   let buttonElement: HTMLButtonElement | undefined;
   let viewportPanelMaxHeight: string | undefined = undefined;
-  let removeViewportListeners: (() => void) | undefined = undefined;
+  let removeOpenViewportListeners: (() => void) | undefined = undefined;
 
   $: selectedOption = options.find((option) => option.value === value);
   $: selectedText = selectedOption?.label ?? String(value);
@@ -31,11 +31,11 @@
   }
   $: {
     placement;
-    if (fitViewport && open) {
-      enableViewportFit();
+    if (open) {
+      enableOpenViewportTracking();
       void updateViewportPanelMaxHeight();
     } else {
-      disableViewportFit();
+      disableOpenViewportTracking();
       viewportPanelMaxHeight = undefined;
     }
   }
@@ -126,10 +126,36 @@
     open = false;
   }
 
+  function isTriggerInViewport() {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+
+    const rect = dropdownElement?.getBoundingClientRect();
+    if (!rect) {
+      return true;
+    }
+
+    if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.right === 0 && rect.bottom === 0 && rect.left === 0) {
+      return true;
+    }
+
+    return rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth;
+  }
+
   async function updateViewportPanelMaxHeight() {
     await tick();
 
-    if (!fitViewport || !open || typeof window === 'undefined') {
+    if (!open || typeof window === 'undefined') {
+      return;
+    }
+
+    if (!isTriggerInViewport()) {
+      open = false;
+      return;
+    }
+
+    if (!fitViewport) {
       return;
     }
 
@@ -145,8 +171,8 @@
     viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
   }
 
-  function enableViewportFit() {
-    if (removeViewportListeners || typeof window === 'undefined') {
+  function enableOpenViewportTracking() {
+    if (removeOpenViewportListeners || typeof window === 'undefined') {
       return;
     }
 
@@ -156,18 +182,18 @@
 
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('scroll', handleViewportChange, true);
-    removeViewportListeners = () => {
+    removeOpenViewportListeners = () => {
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('scroll', handleViewportChange, true);
-      removeViewportListeners = undefined;
+      removeOpenViewportListeners = undefined;
     };
   }
 
-  function disableViewportFit() {
-    removeViewportListeners?.();
+  function disableOpenViewportTracking() {
+    removeOpenViewportListeners?.();
   }
 
-  onDestroy(disableViewportFit);
+  onDestroy(disableOpenViewportTracking);
 </script>
 
 <span

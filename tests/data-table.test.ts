@@ -553,7 +553,10 @@ describe('data table components', () => {
       props: { rows }
     });
 
-    expect(container.querySelector('.suu-filter-table__filters')).toBeTruthy();
+    const filterTable = container.querySelector('.suu-filter-table__filters');
+    expect(filterTable).toBeTruthy();
+    expect(getComputedStyle(filterTable as Element).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(container.querySelector('.suu-filter-table__filters-wrap')).toBeFalsy();
     expect(container.querySelector('.suu-table')).toBeFalsy();
     expect(screen.getByRole('rowheader', { name: 'Status' })).toBeTruthy();
     await fireEvent.click(screen.getByLabelText('Active'));
@@ -755,6 +758,7 @@ describe('data table components', () => {
     expect(container.querySelectorAll('.suu-filter-preset-divider')).toHaveLength(2);
 
     await fireEvent.click(month);
+    expect(container.querySelector('.suu-dropdown__menu--fit-content')).toBeTruthy();
     await fireEvent.click(screen.getByRole('option', { name: 'Jul' }));
     expect(year).toHaveAttribute('data-value', '2026');
     expect(onChange).toHaveBeenLastCalledWith({
@@ -764,6 +768,7 @@ describe('data table components', () => {
     });
 
     await fireEvent.click(year);
+    expect(container.querySelector('.suu-dropdown__menu--fit-content')).toBeTruthy();
     await fireEvent.click(screen.getByRole('option', { name: 'Year' }));
     await fireEvent.click(month);
     await fireEvent.click(screen.getByRole('option', { name: 'Aug' }));

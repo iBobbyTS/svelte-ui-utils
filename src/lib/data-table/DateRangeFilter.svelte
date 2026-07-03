@@ -283,6 +283,8 @@
         ariaLabel={messages.dateRange.quickMonthLabel}
         value={quickMonth}
         options={quickMonthOptions}
+        fitViewport={true}
+        fitContent={true}
         onChange={(nextValue) => updateQuickMonth(String(nextValue))}
       />
     </label>
@@ -292,6 +294,8 @@
         ariaLabel={messages.dateRange.quickYearLabel}
         value={quickYear}
         options={quickYearDropdownOptions}
+        fitViewport={true}
+        fitContent={true}
         onChange={(nextValue) => updateQuickYear(String(nextValue))}
       />
     </label>

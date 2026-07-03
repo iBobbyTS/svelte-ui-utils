@@ -638,25 +638,17 @@
   font-family: var(--suu-font);
 }
 
-.suu-filter-table__filters-wrap {
-  overflow: visible;
-  border: 1px solid var(--suu-color-border);
-  border-radius: calc(var(--suu-radius) + 4px);
-  background: var(--suu-color-bg);
-  box-shadow: 0 8px 10px rgb(15 23 42 / 0.08);
-}
-
 .suu-filter-table__filters {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   border-radius: inherit;
-  background: var(--suu-color-bg);
 }
 
 .suu-filter-table__filters th,
 .suu-filter-table__filters td {
   padding: 16px 20px;
+  background: var(--suu-color-bg);
   text-align: left;
   vertical-align: middle;
 }
@@ -669,7 +661,6 @@
 .suu-filter-table__filters th {
   position: relative;
   width: 10rem;
-  background: var(--suu-color-bg);
   color: var(--suu-color-text);
   font-weight: 700;
   white-space: normal;

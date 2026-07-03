@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dropdown } from '../src/lib/dropdown/index.js';
 
@@ -140,6 +141,52 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
 
     expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('274px');
+  });
+
+  it('closes when the trigger leaves the viewport while open', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' }
+        ]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    const rectSpy = vi.spyOn(dropdown, 'getBoundingClientRect');
+    rectSpy.mockReturnValue({
+      top: 100,
+      right: 240,
+      bottom: 140,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 100,
+      toJSON: () => ({})
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+    expect(screen.getByRole('listbox', { name: 'Status' })).toBeTruthy();
+
+    rectSpy.mockReturnValue({
+      top: -80,
+      right: 240,
+      bottom: -40,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: -80,
+      toJSON: () => ({})
+    });
+    window.dispatchEvent(new Event('scroll'));
+    await tick();
+    await tick();
+
+    expect(screen.queryByRole('listbox', { name: 'Status' })).toBeNull();
   });
 
   it('supports keyboard option selection', async () => {
