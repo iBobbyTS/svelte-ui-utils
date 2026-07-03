@@ -60,6 +60,26 @@ describe('dropdown', () => {
     expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--up')).toBe(true);
   });
 
+  it('can size the menu to fit option content', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'choir',
+        ariaLabel: 'Group',
+        fitContent: true,
+        options: [
+          { label: 'Choir', value: 'choir' },
+          { label: 'A much longer group name', value: 'long' }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Group' }));
+
+    expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--fit-content')).toBe(
+      true
+    );
+  });
+
   it('can fit the menu panel to the available viewport below the trigger', async () => {
     const { container } = render(Dropdown, {
       props: {

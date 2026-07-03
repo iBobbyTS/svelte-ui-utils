@@ -10,6 +10,7 @@
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'down';
   export let fitViewport = false;
+  export let fitContent = false;
   export let disabled = false;
   export let onChange: DropdownChangeHandler | undefined = undefined;
 
@@ -197,6 +198,7 @@
       class="suu-dropdown__menu"
       class:suu-dropdown__menu--up={placement === 'up'}
       class:suu-dropdown__menu--down={placement === 'down'}
+      class:suu-dropdown__menu--fit-content={fitContent}
     >
       <div class="suu-dropdown__panel" role="listbox" aria-label={ariaLabel}>
         {#each options as option}

@@ -1177,6 +1177,20 @@
   bottom: calc(100% + 6px);
 }
 
+.suu-dropdown__menu--fit-content {
+  width: max-content;
+}
+
+.suu-dropdown__menu--fit-content .suu-dropdown__panel {
+  min-width: max-content;
+}
+
+.suu-dropdown__menu--fit-content .suu-dropdown__option {
+  width: auto;
+  min-width: 100%;
+  white-space: nowrap;
+}
+
 .suu-dropdown__panel {
   max-height: var(--suu-dropdown-panel-max-height, 220px);
   overflow-y: auto;
