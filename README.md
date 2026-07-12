@@ -488,23 +488,22 @@ inside a theme root:
 
 ## Release
 
-Publishing is release-driven:
-
 Do not publish this package as part of consumer-app local integration work.
-Create tags, GitHub Releases, or package publishes only when a release is
-explicitly requested.
+Publish only when a release is explicitly requested. Releases are published
+directly from the maintainer's machine to npm; do not create a GitHub Actions
+secret or a GitHub Release for package publishing.
+
+The npm token is exported as `NPM_TOKEN` from `~/.zshrc`. After updating the
+package version, run the validation and publish commands locally:
 
 ```bash
-gh repo create iBobbyTS/svelte-ui-utils --public --source . --remote origin --push
-git tag v0.2.0
-git push origin v0.2.0
-gh release create v0.2.0 --title "v0.2.0" --notes "Publish public npm package"
-gh run watch
+npm run check
+npm test
+npm run package
+npm publish --access public
 ```
 
-The release workflow runs checks and publishes to the public npm registry with
-the repository secret `NPM_TOKEN`. The token must have permission to publish
-`@ibobbyts/svelte-ui-utils`; do not commit it to this repository.
+Never commit the npm token or copy it into repository settings.
 
 ## Bun install verification
 
