@@ -409,7 +409,9 @@ selected first, the year select fills with the most recent matching year. For
 example, in July 2026, July resolves to 2026 and August resolves to 2025. Pass
 `defaultPreset` to apply a preset on mount when the current value is empty.
 Clicking the currently active preset clears both date inputs and emits an empty
-range. The `last24Hours` preset also emits `startDateTime` and `endDateTime` so
+range. `thisWeek`, `thisMonth`, and `thisYear` cover the complete calendar
+period, including days after today. The `last24Hours` preset also emits
+`startDateTime` and `endDateTime` so
 a consuming app can run an exact timestamp query while still showing the covered
 dates in the inputs.
 

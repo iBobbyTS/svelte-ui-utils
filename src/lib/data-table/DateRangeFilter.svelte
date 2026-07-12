@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import Dropdown from '../dropdown/Dropdown.svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
+  import { endOfMonth, formatDate, resolveDateRangePreset, startOfDay } from './date-range.js';
   import type { DateRangeFilterValue, DateRangePreset } from './types.js';
 
   export let value: DateRangeFilterValue = {
@@ -49,39 +50,6 @@
     ...quickYearOptions.map((year) => ({ label: String(year), value: String(year) }))
   ];
 
-  function pad(value: number) {
-    return String(value).padStart(2, '0');
-  }
-
-  function formatDate(date: Date) {
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-  }
-
-  function formatDateTime(date: Date) {
-    return `${formatDate(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-  }
-
-  function startOfDay(date: Date) {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  }
-
-  function addDays(date: Date, days: number) {
-    const next = new Date(date);
-    next.setDate(next.getDate() + days);
-    return next;
-  }
-
-  function startOfWeek(date: Date) {
-    const start = startOfDay(date);
-    const day = start.getDay();
-    const offset = weekStartsOn === 1 ? (day + 6) % 7 : day;
-    return addDays(start, -offset);
-  }
-
-  function endOfMonth(year: number, month: number) {
-    return new Date(year, month, 0);
-  }
-
   function resolveYearForMonth(month: number) {
     const today = startOfDay(now());
     return month <= today.getMonth() + 1 ? today.getFullYear() : today.getFullYear() - 1;
@@ -104,65 +72,7 @@
   }
 
   function resolvePreset(preset: DateRangePreset): DateRangeFilterValue {
-    const current = now();
-    const today = startOfDay(current);
-
-    if (preset === 'last24Hours') {
-      const start = new Date(current.getTime() - 24 * 60 * 60 * 1000);
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(current),
-        preset,
-        startDateTime: formatDateTime(start),
-        endDateTime: formatDateTime(current)
-      };
-    }
-
-    if (preset === 'last7Days') {
-      return {
-        startDate: formatDate(addDays(today, -6)),
-        endDate: formatDate(today),
-        preset
-      };
-    }
-
-    if (preset === 'last30Days') {
-      return {
-        startDate: formatDate(addDays(today, -29)),
-        endDate: formatDate(today),
-        preset
-      };
-    }
-
-    if (preset === 'thisWeek') {
-      return {
-        startDate: formatDate(startOfWeek(today)),
-        endDate: formatDate(today),
-        preset
-      };
-    }
-
-    if (preset === 'thisMonth') {
-      return {
-        startDate: formatDate(new Date(today.getFullYear(), today.getMonth(), 1)),
-        endDate: formatDate(today),
-        preset
-      };
-    }
-
-    if (preset === 'thisYear') {
-      return {
-        startDate: formatDate(new Date(today.getFullYear(), 0, 1)),
-        endDate: formatDate(today),
-        preset
-      };
-    }
-
-    return {
-      startDate: formatDate(today),
-      endDate: formatDate(today),
-      preset
-    };
+    return resolveDateRangePreset(preset, now(), weekStartsOn);
   }
 
   function emit(next: DateRangeFilterValue) {

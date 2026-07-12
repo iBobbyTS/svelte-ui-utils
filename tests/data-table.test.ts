@@ -10,6 +10,7 @@ import {
   getAriaSort,
   getPageCount,
   normalizePagination,
+  resolveDateRangePreset,
   setDataTableFilters,
   setDataTablePageSize,
   toggleSort
@@ -110,6 +111,57 @@ describe('data table state helpers', () => {
     expect(normalizePagination({ page: 99, pageSize: 20 }, 42)).toEqual({ page: 3, pageSize: 20 });
     expect(setDataTablePageSize(state, 50, 200).pagination).toEqual({ page: 1, pageSize: 50 });
     expect(setDataTableFilters(state, { status: 'active' }).pagination.page).toBe(1);
+  });
+});
+
+describe('date range preset helpers', () => {
+  const current = new Date(2026, 6, 8, 10, 30, 15);
+
+  it('resolves this week through the final day for either week convention', () => {
+    expect(resolveDateRangePreset('thisWeek', current, 1)).toEqual({
+      startDate: '2026-07-06',
+      endDate: '2026-07-12',
+      preset: 'thisWeek'
+    });
+    expect(resolveDateRangePreset('thisWeek', current, 0)).toEqual({
+      startDate: '2026-07-05',
+      endDate: '2026-07-11',
+      preset: 'thisWeek'
+    });
+  });
+
+  it('resolves this month and this year through their final calendar days', () => {
+    expect(resolveDateRangePreset('thisMonth', current)).toEqual({
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+      preset: 'thisMonth'
+    });
+    expect(resolveDateRangePreset('thisYear', current)).toEqual({
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+      preset: 'thisYear'
+    });
+  });
+
+  it('keeps rolling and today presets bounded by the current date and time', () => {
+    expect(resolveDateRangePreset('last7Days', current)).toEqual({
+      startDate: '2026-07-02',
+      endDate: '2026-07-08',
+      preset: 'last7Days'
+    });
+    expect(resolveDateRangePreset('today', current)).toEqual({
+      startDate: '2026-07-08',
+      endDate: '2026-07-08',
+      preset: 'today'
+    });
+  });
+
+  it('uses the leap-day month end', () => {
+    expect(resolveDateRangePreset('thisMonth', new Date(2024, 1, 10))).toEqual({
+      startDate: '2024-02-01',
+      endDate: '2024-02-29',
+      preset: 'thisMonth'
+    });
   });
 });
 
@@ -687,12 +739,12 @@ describe('data table components', () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenLastCalledWith({
         startDate: '2026-06-01',
-        endDate: '2026-06-16',
+        endDate: '2026-06-30',
         preset: 'thisMonth'
       });
     });
     expect(screen.getByLabelText('Start date')).toHaveValue('2026-06-01');
-    expect(screen.getByLabelText('End date')).toHaveValue('2026-06-16');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-06-30');
   });
 
   it('does not override an existing date range value with a default preset', async () => {
