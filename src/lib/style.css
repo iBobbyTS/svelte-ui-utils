@@ -1154,6 +1154,7 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
+  left: auto;
   z-index: 100;
   min-width: 100%;
   overflow: hidden;
@@ -1161,6 +1162,16 @@
   border-radius: var(--suu-radius);
   background: var(--suu-color-bg);
   box-shadow: 0 18px 42px rgb(15 23 42 / 0.16);
+}
+
+.suu-dropdown__menu--left {
+  right: auto;
+  left: 0;
+}
+
+.suu-dropdown__menu--right {
+  right: 0;
+  left: auto;
 }
 
 .suu-dropdown__menu--up {

@@ -2,13 +2,14 @@
 
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
-  import type { DropdownChangeHandler, DropdownOption, DropdownPlacement, DropdownValue } from './types.js';
+  import type { DropdownChangeHandler, DropdownMenuAlign, DropdownOption, DropdownPlacement, DropdownValue } from './types.js';
 
   export let id: string | undefined = undefined;
   export let value: DropdownValue = '';
   export let options: DropdownOption[] = [];
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'down';
+  export let menuAlign: DropdownMenuAlign = 'right';
   export let fitViewport = false;
   export let fitContent = false;
   export let disabled = false;
@@ -224,6 +225,8 @@
       class="suu-dropdown__menu"
       class:suu-dropdown__menu--up={placement === 'up'}
       class:suu-dropdown__menu--down={placement === 'down'}
+      class:suu-dropdown__menu--left={menuAlign === 'left'}
+      class:suu-dropdown__menu--right={menuAlign === 'right'}
       class:suu-dropdown__menu--fit-content={fitContent}
     >
       <div class="suu-dropdown__panel" role="listbox" aria-label={ariaLabel}>

@@ -81,6 +81,23 @@ describe('dropdown', () => {
     );
   });
 
+  it('aligns the menu left edge with the trigger when requested', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        menuAlign: 'left',
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    const menu = container.querySelector('.suu-dropdown__menu');
+    expect(menu?.classList.contains('suu-dropdown__menu--left')).toBe(true);
+    expect(menu?.classList.contains('suu-dropdown__menu--right')).toBe(false);
+  });
+
   it('can fit the menu panel to the available viewport below the trigger', async () => {
     const { container } = render(Dropdown, {
       props: {

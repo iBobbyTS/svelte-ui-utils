@@ -255,6 +255,7 @@ countdown bar.
   options={pageSizeOptions}
   ariaLabel="Rows"
   placement="down"
+  menuAlign="left"
   onChange={(next) => {
     pageSize = next;
   }}
@@ -263,7 +264,11 @@ countdown bar.
 
 `Dropdown` is a controlled select-like component for simple option lists. Use
 `placement="up"` when the menu should open above the trigger, such as bottom
-pagination bars. `DataTable` uses this same component for its page-size picker.
+pagination bars. Use `menuAlign="left"` when the expanded menu should share the
+trigger's left edge; the default is `right` for backward compatibility.
+`fitContent` can be combined with `menuAlign="left"` to size the menu to its
+longest option while keeping its left edge aligned. `DataTable` uses this same
+component for its page-size picker.
 
 ## DataTable
 
