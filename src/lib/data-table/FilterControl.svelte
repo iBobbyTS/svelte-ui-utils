@@ -96,6 +96,9 @@
     limit={control.limit ?? 10}
     minLength={control.minLength ?? 1}
     closeOnValid={control.closeOnValid ?? false}
+    showOptionsOnFocus={control.showOptionsOnFocus ?? false}
+    focusOptions={control.focusOptions ?? []}
+    footerText={control.footerText}
     {language}
     noResultsText={control.noResultsText}
     loadingText={control.loadingText}

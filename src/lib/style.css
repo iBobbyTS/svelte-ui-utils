@@ -436,6 +436,14 @@
   background: color-mix(in srgb, var(--suu-color-accent) 8%, var(--suu-color-bg));
 }
 
+.suu-dropdown-search__footer {
+  border-top: 1px solid var(--suu-color-border);
+  padding: 9px 10px;
+  background: var(--suu-color-bg);
+  color: var(--suu-color-muted);
+  font-size: 0.875em;
+}
+
 .suu-dropdown-search__check {
   display: inline-grid;
   grid-row: 1 / span 2;

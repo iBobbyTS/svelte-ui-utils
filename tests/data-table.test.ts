@@ -672,6 +672,38 @@ describe('data table components', () => {
     expect(onSelectChange).toHaveBeenCalledWith('member');
   });
 
+  it('forwards focus options and footer text to dropdown search filters', async () => {
+    render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'year',
+            title: 'Year',
+            filter: filter.dropdownSearch({
+              value: '',
+              selectedItem: null,
+              status: 'empty',
+              showOptionsOnFocus: true,
+              focusOptions: [
+                { id: 2025, title: '2025' },
+                { id: 2026, title: '2026' },
+                { id: 2027, title: '2027' },
+              ],
+              footerText: 'Other years must be entered manually',
+              loadOptions: () => ({ options: [], exactMatch: null }),
+              onChange: vi.fn(),
+            }),
+          },
+        ],
+      },
+    });
+
+    await fireEvent.focus(screen.getByRole('textbox'));
+
+    expect(screen.getByRole('option', { name: '2025' })).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('Other years must be entered manually');
+  });
+
   it('emits date range changes and exact last 24 hour values', async () => {
     const onChange = vi.fn();
 

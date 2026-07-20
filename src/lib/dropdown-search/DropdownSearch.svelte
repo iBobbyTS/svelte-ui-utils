@@ -30,6 +30,9 @@
   export let minLength = 1;
   export let validate = true;
   export let closeOnValid = false;
+  export let showOptionsOnFocus = false;
+  export let focusOptions: DropdownSearchItem[] = [];
+  export let footerText: string | undefined = undefined;
   export let loadOptions: DropdownSearchLoadOptions;
   export let id: string | undefined = undefined;
   export let name: string | undefined = undefined;
@@ -76,6 +79,7 @@
   let activeController: AbortController | undefined;
   let requestId = 0;
   let lastHandledValue = value;
+  let showingFocusOptions = false;
 
   $: messages = getUiMessages(language);
   $: resolvedNoResultsText = noResultsText?.trim()
@@ -90,20 +94,26 @@
   $: resolvedListboxId = listboxId ?? (id ? `${id}-options` : undefined);
   $: hasQuery = normalizeDropdownSearchValue(value).length > 0;
   $: hideOptionsOnValid =
-    closeOnValid && !multiselect && validate && status === 'valid';
+    closeOnValid && !showingFocusOptions && !multiselect && validate && status === 'valid';
   $: showOptions =
     focused &&
     !disabled &&
     !hideOptionsOnValid &&
-    (hasQuery || (multiselect && options.length > 0)) &&
+    ((showingFocusOptions && (options.length > 0 || Boolean(footerText?.trim()))) ||
+      hasQuery ||
+      (multiselect && options.length > 0)) &&
     (options.length > 0 ||
       status === 'loading' ||
-      (validate && hasQuery && options.length === 0));
+      (validate && hasQuery && options.length === 0) ||
+      (showingFocusOptions && Boolean(footerText?.trim())));
   $: if (!validate && status !== 'empty' && status !== 'loading') {
     setStatus('empty');
   }
   $: if (value !== lastHandledValue && value !== inputValue) {
     handleIncomingValue(value);
+  }
+  $: if (showOptionsOnFocus && showingFocusOptions && focused) {
+    options = [...focusOptions];
   }
 
   function emitChange() {
@@ -168,7 +178,18 @@
     }
   }
 
+  function showFocusOptions() {
+    if (!showOptionsOnFocus) {
+      return;
+    }
+    clearSearchTimer();
+    abortActiveSearch();
+    options = [...focusOptions];
+    showingFocusOptions = true;
+  }
+
   async function runSearch(query: string) {
+    showingFocusOptions = false;
     const trimmed = normalizeDropdownSearchValue(query);
 
     if (!trimmed || trimmed.length < minLength) {
@@ -259,6 +280,7 @@
   function handleInputValue(nextValue: string) {
     clearBlurTimer();
     focused = true;
+    showingFocusOptions = false;
     inputValue = nextValue;
     resetSearchState(nextValue);
     scheduleSearch(nextValue);
@@ -282,6 +304,7 @@
   function handleFocus() {
     clearBlurTimer();
     focused = true;
+    showFocusOptions();
   }
 
   function handleBlur(event: FocusEvent) {
@@ -289,6 +312,9 @@
     clearBlurTimer();
     blurTimer = setTimeout(() => {
       focused = document.activeElement === inputElement;
+      if (!focused) {
+        showingFocusOptions = false;
+      }
       blurTimer = undefined;
     }, 120);
   }
@@ -321,6 +347,7 @@
 
     clearSearchTimer();
     abortActiveSearch();
+    showingFocusOptions = false;
     selectedItem = item;
     exactMatch = validate ? item : null;
     value = getItemValue(item);
@@ -426,6 +453,7 @@
     }
     exactMatch = null;
     options = [];
+    showingFocusOptions = false;
     setStatus(
       resolveDropdownSearchStatus({
         value,
@@ -438,12 +466,18 @@
       }),
     );
     focused = true;
+    showFocusOptions();
     emitChange();
     inputElement?.focus();
   }
 
   function handleIncomingValue(nextValue: string) {
     inputValue = nextValue;
+
+    if (showOptionsOnFocus && focused) {
+      showFocusOptions();
+      return;
+    }
 
     if (searchOnExternalValueChange) {
       handleExternalValue(nextValue);
@@ -492,6 +526,9 @@
   });
 
   onMount(() => {
+    if (showOptionsOnFocus && focused) {
+      showFocusOptions();
+    }
     if (searchOnExternalValueChange && normalizeDropdownSearchValue(value)) {
       handleExternalValue(value);
     }
@@ -631,6 +668,9 @@
           <div class="suu-dropdown-search__empty">{resolvedNoResultsText}</div>
         {/if}
       </div>
+      {#if footerText?.trim()}
+        <div class="suu-dropdown-search__footer" role="note">{footerText}</div>
+      {/if}
     </div>
   {/if}
 </div>

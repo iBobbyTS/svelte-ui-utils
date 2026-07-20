@@ -167,6 +167,61 @@ describe('DropdownSearch component', () => {
     expect(screen.queryByRole('option', { name: /Jane Doe/ })).not.toBeInTheDocument();
   });
 
+  it('shows focus options and a non-selectable footer on focus', async () => {
+    const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
+      options: [],
+      exactMatch: null,
+    }));
+    const focusOptions: DropdownSearchItem[] = [
+      { id: 2025, title: '2025' },
+      { id: 2026, title: '2026' },
+      { id: 2027, title: '2027' },
+    ];
+
+    render(DropdownSearch, {
+      props: {
+        showOptionsOnFocus: true,
+        focusOptions,
+        footerText: 'Other years must be entered manually',
+        loadOptions,
+      },
+    });
+
+    await fireEvent.focus(screen.getByRole('textbox'));
+
+    expect(loadOptions).not.toHaveBeenCalled();
+    expect(screen.getByRole('option', { name: '2025' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '2026' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '2027' })).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('Other years must be entered manually');
+    expect(screen.queryByRole('option', { name: 'Other years must be entered manually' })).not.toBeInTheDocument();
+  });
+
+  it('shows focus options for an already valid value even when closeOnValid is enabled', async () => {
+    render(DropdownSearch, {
+      props: {
+        value: '2024',
+        selectedItem: { id: 2024, title: '2024' },
+        status: 'valid',
+        closeOnValid: true,
+        showOptionsOnFocus: true,
+        focusOptions: [
+          { id: 2024, title: '2024' },
+          { id: 2025, title: '2025' },
+          { id: 2026, title: '2026' },
+          { id: 2027, title: '2027' },
+        ],
+        footerText: 'Other years must be entered manually',
+        loadOptions: () => ({ options: [], exactMatch: null }),
+      },
+    });
+
+    await fireEvent.focus(screen.getByRole('textbox'));
+
+    expect(screen.getByRole('option', { name: '2024' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '2027' })).toBeInTheDocument();
+  });
+
   it('marks non-empty text invalid when there is no unique match', async () => {
     vi.useFakeTimers();
     const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({

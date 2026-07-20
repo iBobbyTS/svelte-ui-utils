@@ -121,6 +121,10 @@ Set `closeOnValid={true}` to hide the result list after validation finds a
 usable exact match. The default is `false`, so existing validated searches keep
 showing their current result list until the field closes or the user selects an
 option.
+Use `showOptionsOnFocus={true}` with `focusOptions` to show a controlled set of
+options as soon as the field receives focus, including when the current value is
+empty or already valid. Pass `footerText` to render a non-selectable note below
+the options, separated by a divider.
 When the input has text, `DropdownSearch` shows an internal clear button on the
 right side of the field. Use `clearLabel` to localize that button's accessible
 label, or use `language` to select the package default.

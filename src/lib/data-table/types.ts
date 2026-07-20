@@ -165,6 +165,9 @@ export interface DropdownSearchFilterControl {
   limit?: number;
   minLength?: number;
   closeOnValid?: boolean;
+  showOptionsOnFocus?: boolean;
+  focusOptions?: DropdownSearchItem[];
+  footerText?: string;
   noResultsText?: string;
   loadingText?: string;
   clearLabel?: string;
