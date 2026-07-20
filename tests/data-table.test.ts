@@ -668,7 +668,8 @@ describe('data table components', () => {
     await fireEvent.click(screen.getByRole('button', { name: /Find/i }));
     expect(onSearchClick).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('link', { name: /Clear/i })).toHaveAttribute('href', '/clear');
-    await fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), { target: { value: 'member' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Type' }));
+    await fireEvent.click(screen.getByRole('option', { name: 'Member' }));
     expect(onSelectChange).toHaveBeenCalledWith('member');
   });
 

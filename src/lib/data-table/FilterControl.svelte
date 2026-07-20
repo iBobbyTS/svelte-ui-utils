@@ -1,6 +1,7 @@
 <svelte:options runes={false} />
 
 <script lang="ts">
+  import Dropdown from '../dropdown/Dropdown.svelte';
   import DropdownSearch from '../dropdown-search/DropdownSearch.svelte';
   import type { UiLanguage } from '../i18n.js';
   import DateRangeFilter from './DateRangeFilter.svelte';
@@ -30,11 +31,6 @@
     }
   }
 
-  function runSelect(event: Event) {
-    if (control.type === 'select') {
-      void control.onChange((event.currentTarget as HTMLSelectElement).value);
-    }
-  }
 </script>
 
 {#if control.type === 'container'}
@@ -184,9 +180,15 @@
     <span>{control.label}</span>
   </a>
 {:else if control.type === 'select'}
-  <select class="suu-filter-table__select" aria-label={control.ariaLabel} value={control.value} on:change={runSelect}>
-    {#each control.options as option}
-      <option value={option.value} disabled={option.disabled}>{option.label}</option>
-    {/each}
-  </select>
+  <Dropdown
+    value={control.value}
+    options={control.options}
+    ariaLabel={control.ariaLabel}
+    fitContent
+    onChange={(value) => {
+      if (control.type === 'select') {
+        void control.onChange(String(value));
+      }
+    }}
+  />
 {/if}

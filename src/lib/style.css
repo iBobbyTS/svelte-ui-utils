@@ -1202,7 +1202,7 @@
 }
 
 .suu-dropdown__panel {
-  max-height: var(--suu-dropdown-panel-max-height, 220px);
+  max-height: var(--suu-dropdown-panel-max-height, 100vh);
   overflow-y: auto;
   background: var(--suu-color-bg);
   overscroll-behavior: contain;

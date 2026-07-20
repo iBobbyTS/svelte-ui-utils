@@ -274,6 +274,11 @@ trigger's left edge; the default is `right` for backward compatibility.
 longest option while keeping its left edge aligned. `DataTable` uses this same
 component for its page-size picker.
 
+The dropdown panel defaults to the viewport height (`100vh`) and remains
+scrollable when its contents exceed that height. When `fitViewport` is enabled,
+the component replaces that default with the space available above or below the
+trigger.
+
 ## DataTable
 
 ```svelte
@@ -402,6 +407,9 @@ for the left column and a controlled filter created with the `filter` helper:
 
 <FilterTable rows={filterRows} language="en_us" />
 ```
+
+`filter.select` uses the shared `Dropdown` component, so select filters keep the
+same menu, keyboard, and visual behavior as standalone dropdowns.
 
 If a dropdown-style filter appears clipped, check the parent containers first.
 `DropdownSearch` renders its result list as an absolutely positioned child, so
