@@ -279,6 +279,13 @@ scrollable when its contents exceed that height. When `fitViewport` is enabled,
 the component replaces that default with the space available above or below the
 trigger.
 
+The original flat `options` API and all default behavior remain unchanged. New
+callers may opt into grouped options with `optionGroups`; each group can have an
+optional accessible label and its options keep the same keyboard and disabled
+semantics. `width`, `minWidth`, `maxWidth`, and `className` are optional styling
+hooks. `onTriggerClick` runs before the dropdown toggles, so a nested control
+can stop event propagation without preventing the dropdown from opening.
+
 ## DataTable
 
 ```svelte

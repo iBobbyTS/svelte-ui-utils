@@ -1139,6 +1139,10 @@
   line-height: 1;
 }
 
+.suu-dropdown--sized .suu-dropdown__button {
+  width: 100%;
+}
+
 .suu-dropdown__button:hover,
 .suu-dropdown__button:focus-visible {
   border-color: var(--suu-color-accent);
@@ -1206,6 +1210,19 @@
   overflow-y: auto;
   background: var(--suu-color-bg);
   overscroll-behavior: contain;
+}
+
+.suu-dropdown__group + .suu-dropdown__group {
+  border-top: 1px solid var(--suu-color-border);
+}
+
+.suu-dropdown__group-label {
+  padding: 8px 14px 6px;
+  background: var(--suu-color-surface);
+  color: var(--suu-color-muted);
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .suu-dropdown__option {

@@ -228,4 +228,86 @@ describe('dropdown', () => {
 
     expect(onChange).toHaveBeenCalledWith('medium');
   });
+
+  it('keeps the legacy flat-options defaults unchanged', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' }
+        ]
+      }
+    });
+
+    const dropdown = container.querySelector('.suu-dropdown');
+    expect(dropdown).toHaveClass('suu-dropdown');
+    expect(dropdown).not.toHaveClass('suu-dropdown--sized');
+    expect(dropdown?.getAttribute('style')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--down');
+    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--right');
+    expect(screen.queryAllByRole('group')).toHaveLength(0);
+  });
+
+  it('renders opt-in groups with accessible headings and flat keyboard navigation', async () => {
+    const onChange = vi.fn();
+
+    render(Dropdown, {
+      props: {
+        value: 'chat',
+        ariaLabel: 'Protocol',
+        optionGroups: [
+          { label: 'OpenAI', options: [{ label: 'Chat', value: 'chat' }] },
+          {
+            label: 'Other',
+            options: [
+              { label: 'Responses', value: 'responses' },
+              { label: 'Unavailable', value: 'unavailable', disabled: true }
+            ]
+          }
+        ],
+        onChange
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocol' }));
+    expect(screen.getByRole('group', { name: 'OpenAI' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Other' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Unavailable' })).toBeDisabled();
+
+    const button = screen.getByRole('button', { name: 'Protocol' });
+    await fireEvent.keyDown(button, { key: 'ArrowDown' });
+    await fireEvent.keyDown(button, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('responses');
+  });
+
+  it('supports opt-in sizing, classes, and trigger event handling', async () => {
+    const onTriggerClick = vi.fn((event: MouseEvent) => event.stopPropagation());
+    const parentClick = vi.fn();
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'one',
+        ariaLabel: 'Choice',
+        width: '12rem',
+        minWidth: '10rem',
+        maxWidth: '20rem',
+        className: 'custom-dropdown',
+        onTriggerClick,
+        options: [{ label: 'One', value: 'one' }]
+      }
+    });
+    container.addEventListener('click', parentClick);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Choice' }));
+
+    const dropdown = container.querySelector('.suu-dropdown');
+    expect(dropdown).toHaveClass('suu-dropdown--sized', 'custom-dropdown');
+    expect(dropdown).toHaveStyle({ width: '12rem', minWidth: '10rem', maxWidth: '20rem' });
+    expect(onTriggerClick).toHaveBeenCalledOnce();
+    expect(parentClick).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox', { name: 'Choice' })).toBeInTheDocument();
+  });
 });

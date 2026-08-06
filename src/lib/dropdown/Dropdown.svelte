@@ -2,18 +2,32 @@
 
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
-  import type { DropdownChangeHandler, DropdownMenuAlign, DropdownOption, DropdownPlacement, DropdownValue } from './types.js';
+  import type {
+    DropdownChangeHandler,
+    DropdownMenuAlign,
+    DropdownOption,
+    DropdownOptionGroup,
+    DropdownPlacement,
+    DropdownTriggerClickHandler,
+    DropdownValue
+  } from './types.js';
 
   export let id: string | undefined = undefined;
   export let value: DropdownValue = '';
   export let options: DropdownOption[] = [];
+  export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'down';
   export let menuAlign: DropdownMenuAlign = 'right';
   export let fitViewport = false;
   export let fitContent = false;
   export let disabled = false;
+  export let width: string | undefined = undefined;
+  export let minWidth: string | undefined = undefined;
+  export let maxWidth: string | undefined = undefined;
+  export let className: string | undefined = undefined;
   export let onChange: DropdownChangeHandler | undefined = undefined;
+  export let onTriggerClick: DropdownTriggerClickHandler | undefined = undefined;
 
   const viewportMargin = 20;
   const menuGap = 6;
@@ -25,7 +39,8 @@
   let viewportPanelMaxHeight: string | undefined = undefined;
   let removeOpenViewportListeners: (() => void) | undefined = undefined;
 
-  $: selectedOption = options.find((option) => option.value === value);
+  $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
+  $: selectedOption = resolvedOptions.find((option) => option.value === value);
   $: selectedText = selectedOption?.label ?? String(value);
   $: if (!open) {
     activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
@@ -42,23 +57,23 @@
   }
 
   function firstEnabledOption(): DropdownOption | undefined {
-    return options.find((option) => !option.disabled);
+    return resolvedOptions.find((option) => !option.disabled);
   }
 
   function activeOptionIndex(nextActiveValue: DropdownValue): number {
-    const index = options.findIndex((option) => option.value === nextActiveValue && !option.disabled);
+    const index = resolvedOptions.findIndex((option) => option.value === nextActiveValue && !option.disabled);
     if (index >= 0) {
       return index;
     }
-    const fallbackIndex = options.findIndex((option) => option.value === value && !option.disabled);
+    const fallbackIndex = resolvedOptions.findIndex((option) => option.value === value && !option.disabled);
     if (fallbackIndex >= 0) {
       return fallbackIndex;
     }
-    return options.findIndex((option) => !option.disabled);
+    return resolvedOptions.findIndex((option) => !option.disabled);
   }
 
   function moveActiveOption(offset: number) {
-    const enabledOptions = options.filter((option) => !option.disabled);
+    const enabledOptions = resolvedOptions.filter((option) => !option.disabled);
     if (enabledOptions.length === 0) {
       return;
     }
@@ -84,6 +99,11 @@
     }
     open = !open;
     activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
+  }
+
+  function handleTriggerClick(event: MouseEvent) {
+    onTriggerClick?.(event);
+    toggleOpen();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -112,7 +132,7 @@
     if ((event.key === 'Enter' || event.key === ' ') && open) {
       event.preventDefault();
       const index = activeOptionIndex(activeValue);
-      const option = index >= 0 ? options[index] : undefined;
+      const option = index >= 0 ? resolvedOptions[index] : undefined;
       if (option) {
         selectOption(option);
       }
@@ -199,8 +219,17 @@
 
 <span
   bind:this={dropdownElement}
-  class="suu-dropdown"
+  class={[
+    'suu-dropdown',
+    width !== undefined || minWidth !== undefined || maxWidth !== undefined
+      ? 'suu-dropdown--sized'
+      : '',
+    className ?? ''
+  ].filter(Boolean).join(' ')}
   style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
+  style:width
+  style:min-width={minWidth}
+  style:max-width={maxWidth}
   on:focusout={handleFocusout}
 >
   <button
@@ -213,7 +242,7 @@
     aria-haspopup="listbox"
     aria-expanded={open}
     data-value={String(value)}
-    on:click={toggleOpen}
+    on:click={handleTriggerClick}
     on:keydown={handleKeydown}
   >
     <span>{selectedText}</span>
@@ -230,28 +259,60 @@
       class:suu-dropdown__menu--fit-content={fitContent}
     >
       <div class="suu-dropdown__panel" role="listbox" aria-label={ariaLabel}>
-        {#each options as option}
-          <button
-            type="button"
-            class="suu-dropdown__option"
-            class:suu-dropdown__option--active={option.value === activeValue}
-            class:suu-dropdown__option--disabled={option.disabled}
-            role="option"
-            aria-selected={option.value === value}
-            aria-disabled={option.disabled}
-            disabled={option.disabled}
-            data-value={String(option.value)}
-            on:mousedown|preventDefault={() => undefined}
-            on:mouseenter={() => {
-              if (!option.disabled) {
-                activeValue = option.value;
-              }
-            }}
-            on:click={() => selectOption(option)}
-          >
-            {option.label}
-          </button>
-        {/each}
+        {#if optionGroups === undefined}
+          {#each options as option}
+            <button
+              type="button"
+              class="suu-dropdown__option"
+              class:suu-dropdown__option--active={option.value === activeValue}
+              class:suu-dropdown__option--disabled={option.disabled}
+              role="option"
+              aria-selected={option.value === value}
+              aria-disabled={option.disabled}
+              disabled={option.disabled}
+              data-value={String(option.value)}
+              on:mousedown|preventDefault={() => undefined}
+              on:mouseenter={() => {
+                if (!option.disabled) {
+                  activeValue = option.value;
+                }
+              }}
+              on:click={() => selectOption(option)}
+            >
+              {option.label}
+            </button>
+          {/each}
+        {:else}
+          {#each optionGroups as group}
+            <div class="suu-dropdown__group" role="group" aria-label={group.label}>
+              {#if group.label}
+                <div class="suu-dropdown__group-label">{group.label}</div>
+              {/if}
+              {#each group.options as option}
+                <button
+                  type="button"
+                  class="suu-dropdown__option"
+                  class:suu-dropdown__option--active={option.value === activeValue}
+                  class:suu-dropdown__option--disabled={option.disabled}
+                  role="option"
+                  aria-selected={option.value === value}
+                  aria-disabled={option.disabled}
+                  disabled={option.disabled}
+                  data-value={String(option.value)}
+                  on:mousedown|preventDefault={() => undefined}
+                  on:mouseenter={() => {
+                    if (!option.disabled) {
+                      activeValue = option.value;
+                    }
+                  }}
+                  on:click={() => selectOption(option)}
+                >
+                  {option.label}
+                </button>
+              {/each}
+            </div>
+          {/each}
+        {/if}
       </div>
     </div>
   {/if}
