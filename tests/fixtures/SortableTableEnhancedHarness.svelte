@@ -13,6 +13,8 @@
   export let onReorder: ((items: Row[], detail: SortableTableReorderDetail) => void) | undefined = undefined;
   export let onRemove: ((item: Row) => void) | undefined = undefined;
   export let onCurrentChange: ((item: Row) => void | Promise<void>) | undefined = undefined;
+  export let getDragLabel: ((item: Row, index: number) => string) | undefined = undefined;
+  export let getRemoveLabel: ((item: Row, index: number) => string) | undefined = undefined;
 
   function update(next: Row[], detail: SortableTableReorderDetail): void {
     items = next;
@@ -30,6 +32,8 @@
   getCurrentDisabled={(item) => item.currentDisabled === true}
   getCurrentLabel={(item) => `Set ${item.label} current`}
   getRowColorPreset={(item) => item.preset}
+  {getDragLabel}
+  {getRemoveLabel}
   allowRemoveLast={true}
 >
   {#snippet header()}<th>Label</th>{/snippet}

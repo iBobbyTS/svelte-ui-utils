@@ -17,6 +17,8 @@
     getCurrentDisabled = () => false,
     getCurrentLabel = (item: Item) => `Set ${getId(item)} as current`,
     getRowColorPreset = () => null,
+    getDragLabel,
+    getRemoveLabel,
     onReorder,
     onRemove,
     onCurrentChange,
@@ -32,6 +34,8 @@
     getCurrentDisabled?: (item: Item, index: number) => boolean;
     getCurrentLabel?: (item: Item, index: number) => string;
     getRowColorPreset?: (item: Item, index: number) => SortableTableRowColorPreset | undefined | null;
+    getDragLabel?: (item: Item, index: number) => string;
+    getRemoveLabel?: (item: Item, index: number) => string;
     onReorder?: (items: Item[], detail: SortableTableReorderDetail) => void;
     onRemove?: (item: Item) => void;
     onCurrentChange?: (item: Item) => void | Promise<void>;
@@ -72,6 +76,8 @@
   {allowRemoveLast}
   tableClass={`suu-sortable-table-enhanced ${tableClass}`.trim()}
   getRowClass={rowClass}
+  {getDragLabel}
+  {getRemoveLabel}
   {onReorder}
   {onRemove}
   dragAccessory={currentControl}

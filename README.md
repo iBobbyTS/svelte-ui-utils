@@ -225,6 +225,10 @@ use `SortableList` when drag-and-drop ordering is needed. Set
 `SortableTable` is the table-level ordering primitive. It owns the table rows,
 the left drag-handle column, and the right trash-icon delete column. Callers
 provide only the header cells and the middle row cells through snippets.
+Use `getDragLabel(item, index)` and `getRemoveLabel(item, index)` when the
+controls need caller-owned accessible labels. Each label is applied to both
+`aria-label` and `title`; defaults remain `Drag ${getId(item)}` and
+`Remove ${getId(item)}`.
 
 ```svelte
 <SortableTable items={rows} onReorder={reorder} onRemove={remove}>
@@ -245,6 +249,8 @@ light and dark defaults and expose `--suu-sortable-table-row-*-light` and
 <SortableTableEnhanced
   items={rows}
   currentId={currentRowId}
+  getDragLabel={(row) => `Reorder ${row.name}`}
+  getRemoveLabel={(row) => `Remove ${row.name}`}
   onCurrentChange={(row) => selectCurrent(row.id)}
   getCurrentDisabled={(row) => row.exhausted}
   getRowColorPreset={(row) => row.exhausted ? 'red' : row.cooling ? 'yellow' : 'green'}

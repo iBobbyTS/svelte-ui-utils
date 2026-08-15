@@ -10,6 +10,8 @@
     allowRemoveLast = false,
     tableClass = '',
     getRowClass,
+    getDragLabel = (item: Item) => `Drag ${getId(item)}`,
+    getRemoveLabel = (item: Item) => `Remove ${getId(item)}`,
     onReorder,
     onRemove,
     dragAccessory,
@@ -22,6 +24,8 @@
     allowRemoveLast?: boolean;
     tableClass?: string;
     getRowClass?: (item: Item, index: number) => string | undefined | null;
+    getDragLabel?: (item: Item, index: number) => string;
+    getRemoveLabel?: (item: Item, index: number) => string;
     onReorder?: (items: Item[], detail: SortableTableReorderDetail) => void;
     onRemove?: (item: Item) => void;
     dragAccessory?: Snippet<[Item, number]>;
@@ -77,15 +81,17 @@
   <tbody>
     {#each items as item, index (getId(item))}
       {@const id = getId(item)}
+      {@const dragLabel = getDragLabel(item, index)}
+      {@const removeLabel = getRemoveLabel(item, index)}
       <tr class={rowClass(item, index)} data-sortable-id={id} ondragover={(event) => dragOver(event, id)} ondrop={(event) => drop(event, id)}>
         <td class="suu-sortable-table__drag-cell">
-          <button type="button" class="suu-sortable-table__drag-handle" disabled={disabled} draggable={!disabled} aria-label={`Drag ${id}`} title={`Drag ${id}`} ondragstart={(event) => startDrag(event, id)} ondragend={finishDrag}>⋮⋮</button>
+          <button type="button" class="suu-sortable-table__drag-handle" disabled={disabled} draggable={!disabled} aria-label={dragLabel} title={dragLabel} ondragstart={(event) => startDrag(event, id)} ondragend={finishDrag}>⋮⋮</button>
           {#if dragAccessory}{@render dragAccessory(item, index)}{/if}
         </td>
         {@render children(item, index)}
         <td class="suu-sortable-table__remove-cell">
           {#if onRemove}
-            <button type="button" class="suu-sortable-table__remove" disabled={disabled || (!allowRemoveLast && items.length === 1)} aria-label={`Remove ${id}`} title={`Remove ${id}`} onclick={() => onRemove?.(item)}>
+            <button type="button" class="suu-sortable-table__remove" disabled={disabled || (!allowRemoveLast && items.length === 1)} aria-label={removeLabel} title={removeLabel} onclick={() => onRemove?.(item)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 21V8h12v13H6Z" fill="currentColor"/></svg>
             </button>
           {/if}

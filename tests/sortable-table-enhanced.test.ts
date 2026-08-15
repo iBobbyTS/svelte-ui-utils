@@ -11,6 +11,22 @@ function rows() {
 }
 
 describe('SortableTableEnhanced', () => {
+  it('forwards caller-provided drag and remove labels to the base controls', () => {
+    render(SortableTableEnhancedHarness, {
+      props: {
+        items: rows().slice(0, 1),
+        onRemove: vi.fn(),
+        getDragLabel: (item, index) => `Reorder ${item.label} ${index + 1}`,
+        getRemoveLabel: (item, index) => `Delete ${item.label} ${index + 1}`
+      }
+    });
+
+    const drag = screen.getByRole('button', { name: 'Reorder Alpha 1' });
+    const remove = screen.getByRole('button', { name: 'Delete Alpha 1' });
+    expect(drag).toHaveAttribute('title', 'Reorder Alpha 1');
+    expect(remove).toHaveAttribute('title', 'Delete Alpha 1');
+  });
+
   it('renders one exclusive current group beside the drag handles and keeps instances independent', () => {
     const first = render(SortableTableEnhancedHarness, {
       props: { items: rows(), currentId: 'a', onCurrentChange: vi.fn() }

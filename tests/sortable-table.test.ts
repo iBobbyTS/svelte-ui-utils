@@ -16,6 +16,33 @@ function dragEvent(type: string, clientY: number, dataTransfer: DragData): Event
 }
 
 describe('SortableTable', () => {
+  it('keeps default drag and remove labels on aria-label and title', () => {
+    render(SortableTableHarness, {
+      props: { items: [{ id: 'a', label: 'Alpha' }], onRemove: vi.fn() }
+    });
+
+    const drag = screen.getByRole('button', { name: 'Drag a' });
+    const remove = screen.getByRole('button', { name: 'Remove a' });
+    expect(drag).toHaveAttribute('title', 'Drag a');
+    expect(remove).toHaveAttribute('title', 'Remove a');
+  });
+
+  it('uses caller-provided drag and remove labels with item and index', () => {
+    render(SortableTableHarness, {
+      props: {
+        items: [{ id: 'internal-a', label: 'Alpha' }],
+        onRemove: vi.fn(),
+        getDragLabel: (item, index) => `Reorder ${item.label} row ${index + 1}`,
+        getRemoveLabel: (item, index) => `Delete ${item.label} row ${index + 1}`
+      }
+    });
+
+    const drag = screen.getByRole('button', { name: 'Reorder Alpha row 1' });
+    const remove = screen.getByRole('button', { name: 'Delete Alpha row 1' });
+    expect(drag).toHaveAttribute('title', 'Reorder Alpha row 1');
+    expect(remove).toHaveAttribute('title', 'Delete Alpha row 1');
+  });
+
   it('keeps browser drag feedback native and table-row state stable', async () => {
     const onReorder = vi.fn();
     render(SortableTableHarness, {
