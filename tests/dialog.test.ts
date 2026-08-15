@@ -97,6 +97,28 @@ describe('dialog', () => {
       '--suu-dialog-countdown-duration: 30000ms;',
     );
   });
+
+  it('applies custom padding to the dialog sections', () => {
+    render(Dialog, {
+      props: {
+        open: true,
+        title: 'Custom spacing',
+        padding: '8px 12px 16px 20px',
+      },
+    });
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute(
+      'style',
+      '--suu-dialog-padding: 8px 12px 16px 20px;',
+    );
+  });
+
+  it('keeps the existing section defaults when padding is omitted', () => {
+    render(Dialog, { props: { open: true, title: 'Default spacing' } });
+
+    expect(screen.getByRole('dialog')).toHaveAttribute('style', '');
+  });
 });
 
 describe('confirm dialog', () => {
@@ -110,6 +132,49 @@ describe('confirm dialog', () => {
     });
 
     expect(screen.getAllByText('14 seconds remaining.')).toHaveLength(1);
+  });
+
+  it('forwards custom padding to the base dialog', () => {
+    render(ConfirmDialog, {
+      props: { open: true, message: 'Spacing', padding: '4px 10px' },
+    });
+
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'style',
+      '--suu-dialog-padding: 4px 10px;',
+    );
+  });
+
+  it('forwards custom padding through the CSV upload wrapper', () => {
+    render(CsvUploadDialog, { props: { open: true, padding: '6px 10px' } });
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'style',
+      '--suu-dialog-padding: 6px 10px;',
+    );
+  });
+
+  it('forwards custom padding through the image preview wrapper', () => {
+    render(ImagePreviewDialog, { props: { open: true, padding: '6px 10px' } });
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'style',
+      '--suu-dialog-padding: 6px 10px;',
+    );
+  });
+
+  it('forwards custom padding through the input wrapper', () => {
+    render(InputDialog, { props: { open: true, padding: '6px 10px' } });
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'style',
+      '--suu-dialog-padding: 6px 10px;',
+    );
+  });
+
+  it('forwards custom padding through the password copy wrapper', () => {
+    render(PasswordCopyDialog, { props: { open: true, padding: '6px 10px' } });
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'style',
+      '--suu-dialog-padding: 6px 10px;',
+    );
   });
 
   it('emits confirm and cancel actions', async () => {

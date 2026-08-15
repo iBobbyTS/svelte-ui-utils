@@ -9,6 +9,7 @@
   export let description = '';
   export let closeLabel = 'Close dialog';
   export let size: DialogSize = 'lg';
+  export let padding: string | undefined = undefined;
   export let dismissible = true;
   export let closeOnBackdrop = true;
   export let closeOnEscape = true;
@@ -103,6 +104,7 @@
   {description}
   {closeLabel}
   {size}
+  {padding}
   {dismissible}
   {closeOnBackdrop}
   {closeOnEscape}

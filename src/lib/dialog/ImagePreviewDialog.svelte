@@ -12,6 +12,7 @@
   export let closeLabel = 'Close dialog';
   export let downloadLabel = 'Download';
   export let size: DialogSize = 'lg';
+  export let padding: string | undefined = undefined;
   export let dismissible = true;
   export let closeOnBackdrop = true;
   export let closeOnEscape = true;
@@ -45,6 +46,7 @@
   title={resolvedTitle}
   {closeLabel}
   {size}
+  {padding}
   {dismissible}
   {closeOnBackdrop}
   {closeOnEscape}

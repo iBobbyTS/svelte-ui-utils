@@ -9,6 +9,7 @@
   export let description = '';
   export let closeLabel = 'Close dialog';
   export let size: DialogSize = 'md';
+  export let padding: string | undefined = undefined;
   export let dismissible = true;
   export let showCloseButton = true;
   export let closeOnBackdrop = true;
@@ -35,6 +36,7 @@
     describedBy ?? (description ? descriptionId : undefined);
   $: backdropStyle =
     `--suu-dialog-backdrop-opacity: ${backdropOpacity}; --suu-dialog-backdrop-blur: ${backdropBlur};`;
+  $: dialogStyle = padding ? `--suu-dialog-padding: ${padding};` : '';
   $: countdownStyle = `--suu-dialog-countdown-duration: ${Math.max(0, countdownDurationMs)}ms;`;
   $: if (open && !wasOpen) {
     wasOpen = true;
@@ -99,6 +101,7 @@
     <div
       bind:this={dialogElement}
       class={`suu-dialog suu-dialog--${size}`}
+      style={dialogStyle}
       role="dialog"
       aria-modal="true"
       aria-labelledby={resolvedLabelledBy}

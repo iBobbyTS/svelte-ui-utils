@@ -189,6 +189,7 @@ adds or removes it from `selectedItems`, clears the query, and emits both
   open={dialogOpen}
   title="Edit record"
   description="Update the shared fields."
+  padding="12px 16px"
   closeLabel="Close dialog"
   blurBackdrop={true}
   showCountdown={true}
@@ -245,7 +246,10 @@ from the close button, backdrop, or Escape key when dismissible; it does not
 mutate `open` internally. Set `dimBackdrop={false}` to disable background
 darkening, `blurBackdrop={true}` to blur content behind the dialog, and
 `showCountdown={true}` with `countdownDurationMs` to show a toast-style top
-countdown bar.
+countdown bar. The optional `padding` prop accepts a CSS padding shorthand and
+applies it consistently to the dialog header, body, and footer. The default
+section-specific spacing is preserved when `padding` is omitted, and the same
+prop is available on all dialog wrapper components.
 
 ## Dropdown
 
