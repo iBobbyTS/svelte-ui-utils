@@ -160,6 +160,58 @@ describe('dropdown', () => {
     expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('274px');
   });
 
+  it('automatically opens toward the side with more viewport space', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        fitViewport: true,
+        options: [
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' }
+        ]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    const rectSpy = vi.spyOn(dropdown, 'getBoundingClientRect');
+    rectSpy.mockReturnValue({
+      top: 100,
+      right: 240,
+      bottom: 140,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 100,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    const menu = container.querySelector('.suu-dropdown__menu');
+    expect(menu).toHaveClass('suu-dropdown__menu--down');
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('474px');
+
+    rectSpy.mockReturnValue({
+      top: 560,
+      right: 240,
+      bottom: 600,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 560,
+      toJSON: () => ({})
+    });
+    window.dispatchEvent(new Event('scroll'));
+    await tick();
+    await tick();
+
+    expect(menu).toHaveClass('suu-dropdown__menu--up');
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('534px');
+  });
+
   it('closes when the trigger leaves the viewport while open', async () => {
     const { container } = render(Dropdown, {
       props: {

@@ -76,6 +76,14 @@ import { ToastManager, Dropdown, DropdownSearch, Dialog, DataTable } from '@ibob
 Supported positions are `top-left`, `top-center`, `top-right`, `right-center`,
 `bottom-right`, `bottom-center`, `bottom-left`, and `left-center`.
 
+## Dropdown
+
+Dropdown menus default to `placement="auto"` and open toward whichever side of
+the trigger has more available viewport space. The direction is recalculated
+while the menu is open when the viewport is resized or a scroll container
+moves. Set `placement="up"` or `placement="down"` to force a direction. Use
+`fitViewport={true}` as well to constrain the panel height to the chosen side.
+
 ## DropdownSearch
 
 ```svelte

@@ -1,6 +1,6 @@
 export type DropdownValue = string | number;
 
-export type DropdownPlacement = 'up' | 'down';
+export type DropdownPlacement = 'auto' | 'up' | 'down';
 
 export type DropdownMenuAlign = 'left' | 'right';
 

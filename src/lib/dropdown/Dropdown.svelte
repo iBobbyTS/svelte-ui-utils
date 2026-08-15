@@ -17,7 +17,7 @@
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   export let ariaLabel: string | undefined = undefined;
-  export let placement: DropdownPlacement = 'down';
+  export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'right';
   export let fitViewport = false;
   export let fitContent = false;
@@ -36,6 +36,7 @@
   let activeValue: DropdownValue = value;
   let dropdownElement: HTMLSpanElement | undefined;
   let buttonElement: HTMLButtonElement | undefined;
+  let resolvedPlacement: Exclude<DropdownPlacement, 'auto'> = placement === 'up' ? 'up' : 'down';
   let viewportPanelMaxHeight: string | undefined = undefined;
   let removeOpenViewportListeners: (() => void) | undefined = undefined;
 
@@ -52,6 +53,7 @@
       void updateViewportPanelMaxHeight();
     } else {
       disableOpenViewportTracking();
+      resolvedPlacement = placement === 'up' ? 'up' : 'down';
       viewportPanelMaxHeight = undefined;
     }
   }
@@ -97,6 +99,9 @@
     if (disabled) {
       return;
     }
+    if (!open) {
+      updateResolvedPlacement();
+    }
     open = !open;
     activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
   }
@@ -122,6 +127,7 @@
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       if (!open) {
+        updateResolvedPlacement();
         open = true;
         activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
       }
@@ -164,6 +170,21 @@
     return rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth;
   }
 
+  function updateResolvedPlacement(rect = dropdownElement?.getBoundingClientRect()) {
+    if (placement !== 'auto') {
+      resolvedPlacement = placement;
+      return;
+    }
+    if (!rect || typeof window === 'undefined') {
+      resolvedPlacement = 'down';
+      return;
+    }
+
+    const availableAbove = rect.top - viewportMargin - menuGap;
+    const availableBelow = window.innerHeight - rect.bottom - viewportMargin - menuGap;
+    resolvedPlacement = availableBelow >= availableAbove ? 'down' : 'up';
+  }
+
   async function updateViewportPanelMaxHeight() {
     await tick();
 
@@ -176,17 +197,18 @@
       return;
     }
 
-    if (!fitViewport) {
-      return;
-    }
-
     const rect = dropdownElement?.getBoundingClientRect();
     if (!rect) {
       return;
     }
 
+    updateResolvedPlacement(rect);
+    if (!fitViewport) {
+      return;
+    }
+
     const available =
-      placement === 'up'
+      resolvedPlacement === 'up'
         ? rect.top - viewportMargin - menuGap
         : window.innerHeight - rect.bottom - viewportMargin - menuGap;
     viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
@@ -252,8 +274,8 @@
   {#if open}
     <div
       class="suu-dropdown__menu"
-      class:suu-dropdown__menu--up={placement === 'up'}
-      class:suu-dropdown__menu--down={placement === 'down'}
+      class:suu-dropdown__menu--up={resolvedPlacement === 'up'}
+      class:suu-dropdown__menu--down={resolvedPlacement === 'down'}
       class:suu-dropdown__menu--left={menuAlign === 'left'}
       class:suu-dropdown__menu--right={menuAlign === 'right'}
       class:suu-dropdown__menu--fit-content={fitContent}
