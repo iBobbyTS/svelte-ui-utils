@@ -3,5 +3,8 @@ export * from './dropdown/index.js';
 export * from './dropdown-search/index.js';
 export * from './dialog/index.js';
 export * from './data-table/index.js';
+export * from './sortable-list/index.js';
+export * from './ordered-list/index.js';
+export * from './sortable-table/index.js';
 export { getUiMessages, resolveUiLanguage, uiLanguages } from './i18n.js';
 export type { UiLanguage, UiMessages } from './i18n.js';

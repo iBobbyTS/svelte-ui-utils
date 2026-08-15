@@ -170,6 +170,69 @@ In multiselect mode, the text input remains a search query. Selecting an item
 adds or removes it from `selectedItems`, clears the query, and emits both
 `onChange` and `onSelectedItemsChange`.
 
+## SortableList
+
+`SortableList` provides controlled vertical HTML5 drag-and-drop ordering. Each
+item has a string `id` (and may contain any additional fields); `getId` can
+project a different string key while retaining that typed item contract. The
+caller owns the item array and receives the reordered array through
+`onReorder`. Use the third snippet argument to attach drag bindings to a
+dedicated handle. `listTag` and `itemTag` can be changed when the list must
+render valid table markup such as direct `<tr>` children under `<tbody>`.
+
+```svelte
+<script lang="ts">
+  import { SortableList } from '@ibobbyts/svelte-ui-utils/sortable-list';
+
+  let items = [{ id: 'a', label: 'First' }, { id: 'b', label: 'Second' }];
+</script>
+
+<SortableList {items} onReorder={(next) => (items = next)}>
+  {#snippet children(item, _index, handle)}
+    <div {...handle} aria-label={`Drag ${item.label}`}>⠿</div>
+    <span>{item.label}</span>
+  {/snippet}
+</SortableList>
+```
+
+Dragging over the target item's upper or lower half displays a before/after
+insertion indicator. Dropping on the same item or while `disabled={true}` is a
+no-op. The component does not persist order or perform rollback; those remain
+the responsibility of the controlled parent.
+
+## OrderedListEditor
+
+`OrderedListEditor` is the shared editor for ordered fields. It renders the
+provided content first, an optional current/select action next, and a trash-icon
+remove action at the far right. Reorder arrows are intentionally not rendered;
+use `SortableList` when drag-and-drop ordering is needed. Set
+`allowRemoveLast={true}` when an empty list is valid.
+
+```svelte
+<script lang="ts">
+  import { OrderedListEditor } from '@ibobbyts/svelte-ui-utils/ordered-list';
+</script>
+
+<OrderedListEditor items={rows} onremove={(id) => remove(id)}>
+  {#snippet children(item)}
+    <input value={item.value ?? ''} />
+  {/snippet}
+</OrderedListEditor>
+```
+
+## SortableTable
+
+`SortableTable` is the table-level ordering primitive. It owns the table rows,
+the left drag-handle column, and the right trash-icon delete column. Callers
+provide only the header cells and the middle row cells through snippets.
+
+```svelte
+<SortableTable items={rows} onReorder={reorder} onRemove={remove}>
+  {#snippet header()}<th>Name</th><th>Protocol</th>{/snippet}
+  {#snippet children(row)}<td>{row.name}</td><td>{row.protocol}</td>{/snippet}
+</SortableTable>
+```
+
 ## Dialogs
 
 ```svelte
