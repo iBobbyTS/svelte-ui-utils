@@ -9,8 +9,10 @@
     disabled = false,
     allowRemoveLast = false,
     tableClass = '',
+    getRowClass,
     onReorder,
     onRemove,
+    dragAccessory,
     header,
     children
   }: {
@@ -19,8 +21,10 @@
     disabled?: boolean;
     allowRemoveLast?: boolean;
     tableClass?: string;
+    getRowClass?: (item: Item, index: number) => string | undefined | null;
     onReorder?: (items: Item[], detail: SortableTableReorderDetail) => void;
     onRemove?: (item: Item) => void;
+    dragAccessory?: Snippet<[Item, number]>;
     header: Snippet;
     children: Snippet<[Item, number]>;
   } = $props();
@@ -63,8 +67,8 @@
     next.splice(targetIndex + (targetPosition === 'after' ? 1 : 0), 0, source);
     void onReorder?.(next, { sourceId, targetId, position: targetPosition });
   }
-  function rowClass(item: Item): string {
-    return ['suu-sortable-table__row', draggingId === getId(item) ? 'suu-sortable-table__row--dragging' : '', indicator?.id === getId(item) ? `suu-sortable-table__row--drop-${indicator.position}` : ''].filter(Boolean).join(' ');
+  function rowClass(item: Item, index: number): string {
+    return ['suu-sortable-table__row', getRowClass?.(item, index), draggingId === getId(item) ? 'suu-sortable-table__row--dragging' : '', indicator?.id === getId(item) ? `suu-sortable-table__row--drop-${indicator.position}` : ''].filter(Boolean).join(' ');
   }
 </script>
 
@@ -73,9 +77,10 @@
   <tbody>
     {#each items as item, index (getId(item))}
       {@const id = getId(item)}
-      <tr class={rowClass(item)} data-sortable-id={id} ondragover={(event) => dragOver(event, id)} ondrop={(event) => drop(event, id)}>
+      <tr class={rowClass(item, index)} data-sortable-id={id} ondragover={(event) => dragOver(event, id)} ondrop={(event) => drop(event, id)}>
         <td class="suu-sortable-table__drag-cell">
           <button type="button" class="suu-sortable-table__drag-handle" disabled={disabled} draggable={!disabled} aria-label={`Drag ${id}`} title={`Drag ${id}`} ondragstart={(event) => startDrag(event, id)} ondragend={finishDrag}>⋮⋮</button>
+          {#if dragAccessory}{@render dragAccessory(item, index)}{/if}
         </td>
         {@render children(item, index)}
         <td class="suu-sortable-table__remove-cell">

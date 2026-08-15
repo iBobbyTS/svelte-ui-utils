@@ -233,6 +233,29 @@ provide only the header cells and the middle row cells through snippets.
 </SortableTable>
 ```
 
+`SortableTableEnhanced` composes the same table and adds a controlled current
+radio immediately after each drag handle. `currentId` is read-only input;
+`onCurrentChange` asks the caller to persist a new current item. Use
+`getCurrentDisabled` for per-row eligibility and `getRowColorPreset` to select
+the package-owned `red`, `yellow`, or `green` background. The presets include
+light and dark defaults and expose `--suu-sortable-table-row-*-light` and
+`--suu-sortable-table-row-*-dark` override variables.
+
+```svelte
+<SortableTableEnhanced
+  items={rows}
+  currentId={currentRowId}
+  onCurrentChange={(row) => selectCurrent(row.id)}
+  getCurrentDisabled={(row) => row.exhausted}
+  getRowColorPreset={(row) => row.exhausted ? 'red' : row.cooling ? 'yellow' : 'green'}
+  onReorder={reorder}
+  onRemove={remove}
+>
+  {#snippet header()}<th>Name</th><th>Protocol</th>{/snippet}
+  {#snippet children(row)}<td>{row.name}</td><td>{row.protocol}</td>{/snippet}
+</SortableTableEnhanced>
+```
+
 ## Dialogs
 
 ```svelte

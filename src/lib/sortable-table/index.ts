@@ -1,2 +1,10 @@
 export { default as SortableTable } from './SortableTable.svelte';
-export type { SortableTableHandle, SortableTableItem, SortableTableReorderDetail } from './types.js';
+export { default as SortableTableEnhanced } from './SortableTableEnhanced.svelte';
+export type {
+  SortableTableHandle,
+  SortableTableItem,
+  SortableTableReorderDetail,
+  SortableTableRowClassGetter,
+  SortableTableRowColorPreset,
+  SortableTableRowColorPresetGetter
+} from './types.js';
