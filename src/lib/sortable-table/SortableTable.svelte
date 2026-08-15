@@ -33,7 +33,10 @@
     if (disabled) { event.preventDefault(); return; }
     draggingId = id;
     indicator = null;
-    if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); }
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', id);
+    }
   }
   function position(event: DragEvent): SortableListDropPosition {
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -99,7 +102,6 @@
   .suu-sortable-table__row { position: relative; border-bottom: 1px solid var(--suu-color-border, #d1d5db); }
   .suu-sortable-table :global(td) { border-bottom: 0; }
   .suu-sortable-table__row--dragging { opacity: .55; }
-  .suu-sortable-table__row--drop-before::before, .suu-sortable-table__row--drop-after::after { position: absolute; right: 0; left: 0; z-index: 2; height: 3px; border-radius: 999px; background: var(--suu-color-accent, #2563eb); content: ''; pointer-events: none; }
-  .suu-sortable-table__row--drop-before::before { top: -3px; }
-  .suu-sortable-table__row--drop-after::after { bottom: -3px; }
+  .suu-sortable-table__row--drop-before :global(td) { box-shadow: inset 0 3px 0 var(--suu-color-accent, #2563eb); }
+  .suu-sortable-table__row--drop-after :global(td) { box-shadow: inset 0 -3px 0 var(--suu-color-accent, #2563eb); }
 </style>
