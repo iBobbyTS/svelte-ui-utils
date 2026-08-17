@@ -382,6 +382,74 @@ below the trigger and remains scrollable when its contents exceed that height.
 Set `fitViewport={false}` to fall back to the stylesheet's viewport-height
 limit (`100vh`).
 
+### Allowing a Dropdown menu to extend outside a modal
+
+`fitViewport` chooses the opening direction and limits the panel height against
+the browser viewport. It does not portal the menu to `document.body`, so an
+ancestor with `overflow: auto` or `overflow: hidden` can still clip the menu or
+include it in the ancestor's scrollable overflow area.
+
+For a modal whose content otherwise fits without scrolling, use a full-width
+positioning boundary around the Dropdown and release the modal overflow only
+while the menu exists:
+
+```svelte
+<div class="app-modal">
+  <div class="app-modal__body">
+    <div class="dropdown-overflow-boundary">
+      <Dropdown
+        value={selectedValue}
+        options={options}
+        onChange={(next) => {
+          selectedValue = next;
+        }}
+      />
+    </div>
+  </div>
+</div>
+```
+
+```css
+.dropdown-overflow-boundary {
+  position: relative;
+}
+
+/* Position the absolute menu against the full-width boundary, not the
+   intrinsic-width Dropdown trigger. */
+.dropdown-overflow-boundary .suu-dropdown {
+  position: static;
+}
+
+.dropdown-overflow-boundary .suu-dropdown__menu {
+  width: max-content;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dropdown-overflow-boundary .suu-dropdown__option {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* :has() scopes the overflow exception to the time the menu is open. */
+.app-modal:has(.dropdown-overflow-boundary .suu-dropdown__menu),
+.app-modal:has(.dropdown-overflow-boundary .suu-dropdown__menu) .app-modal__body {
+  overflow: visible;
+}
+```
+
+This keeps the trigger at its intrinsic width, lets the menu grow toward its
+aligned edge up to the modal content width, wraps longer options, and allows
+the menu to paint outside the modal. The default `fitViewport={true}` still
+sets the panel's upper or lower limit from the browser viewport and keeps an
+oversized option list scrollable.
+
+This CSS pattern intentionally does not implement a portal. If the modal body
+must remain independently scrollable while the menu is open, use a portal or
+floating-layer component instead; releasing `overflow` would change that
+scrolling contract. `:has()` also requires a browser that supports the CSS
+relational pseudo-class.
+
 The original flat `options` API remains available. New callers may opt into
 grouped options with `optionGroups`; each group can have an
 optional accessible label and its options keep the same keyboard and disabled
