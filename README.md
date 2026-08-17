@@ -10,19 +10,19 @@ Install from the public npm registry. No GitHub Packages token is required.
 With Bun:
 
 ```bash
-bun add @ibobbyts/svelte-ui-utils@0.2.3
+bun add @ibobbyts/svelte-ui-utils@0.3.0
 ```
 
 Canonical Bun pull address:
 
 ```text
-@ibobbyts/svelte-ui-utils@0.2.3
+@ibobbyts/svelte-ui-utils@0.3.0
 ```
 
 With npm:
 
 ```bash
-npm install @ibobbyts/svelte-ui-utils@0.2.3
+npm install @ibobbyts/svelte-ui-utils@0.3.0
 ```
 
 The repository does not track `dist/`; releases and local integration builds run
@@ -82,7 +82,8 @@ Dropdown menus default to `placement="auto"` and open toward whichever side of
 the trigger has more available viewport space. The direction is recalculated
 while the menu is open when the viewport is resized or a scroll container
 moves. Set `placement="up"` or `placement="down"` to force a direction. Use
-`fitViewport={true}` as well to constrain the panel height to the chosen side.
+`fitViewport={false}` to disable the default panel-height constraint for the
+chosen side.
 
 ## DropdownSearch
 
@@ -363,7 +364,6 @@ prop is available on all dialog wrapper components.
   options={pageSizeOptions}
   ariaLabel="Rows"
   placement="down"
-  menuAlign="left"
   onChange={(next) => {
     pageSize = next;
   }}
@@ -372,19 +372,18 @@ prop is available on all dialog wrapper components.
 
 `Dropdown` is a controlled select-like component for simple option lists. Use
 `placement="up"` when the menu should open above the trigger, such as bottom
-pagination bars. Use `menuAlign="left"` when the expanded menu should share the
-trigger's left edge; the default is `right` for backward compatibility.
-`fitContent` can be combined with `menuAlign="left"` to size the menu to its
-longest option while keeping its left edge aligned. `DataTable` uses this same
-component for its page-size picker.
+pagination bars. The expanded menu shares the trigger's left edge by default;
+use `menuAlign="right"` to align their right edges instead. `fitContent` sizes
+the menu to its longest option while keeping the selected edge aligned.
+`DataTable` uses this same component for its page-size picker.
 
-The dropdown panel defaults to the viewport height (`100vh`) and remains
-scrollable when its contents exceed that height. When `fitViewport` is enabled,
-the component replaces that default with the space available above or below the
-trigger.
+The dropdown panel is constrained by default to the space available above or
+below the trigger and remains scrollable when its contents exceed that height.
+Set `fitViewport={false}` to fall back to the stylesheet's viewport-height
+limit (`100vh`).
 
-The original flat `options` API and all default behavior remain unchanged. New
-callers may opt into grouped options with `optionGroups`; each group can have an
+The original flat `options` API remains available. New callers may opt into
+grouped options with `optionGroups`; each group can have an
 optional accessible label and its options keep the same keyboard and disabled
 semantics. `width`, `minWidth`, `maxWidth`, and `className` are optional styling
 hooks. `onTriggerClick` runs before the dropdown toggles, so a nested control
@@ -640,7 +639,7 @@ consumer project and installs the released npm version without registry-specific
 tokens:
 
 ```bash
-bun add @ibobbyts/svelte-ui-utils@0.2.0 svelte
+bun add @ibobbyts/svelte-ui-utils@0.3.0 svelte
 ```
 
 Use it after each release when a Bun-based project will consume the package.

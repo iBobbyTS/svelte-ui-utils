@@ -18,8 +18,8 @@
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
-  export let menuAlign: DropdownMenuAlign = 'right';
-  export let fitViewport = false;
+  export let menuAlign: DropdownMenuAlign = 'left';
+  export let fitViewport = true;
   export let fitContent = false;
   export let disabled = false;
   export let width: string | undefined = undefined;

@@ -81,12 +81,11 @@ describe('dropdown', () => {
     );
   });
 
-  it('aligns the menu left edge with the trigger when requested', async () => {
+  it('aligns the menu left edge with the trigger by default', async () => {
     const { container } = render(Dropdown, {
       props: {
         value: 'active',
         ariaLabel: 'Status',
-        menuAlign: 'left',
         options: [{ label: 'Active', value: 'active' }]
       }
     });
@@ -98,12 +97,28 @@ describe('dropdown', () => {
     expect(menu?.classList.contains('suu-dropdown__menu--right')).toBe(false);
   });
 
-  it('can fit the menu panel to the available viewport below the trigger', async () => {
+  it('allows callers to retain right-edge menu alignment', async () => {
     const { container } = render(Dropdown, {
       props: {
         value: 'active',
         ariaLabel: 'Status',
-        fitViewport: true,
+        menuAlign: 'right',
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    const menu = container.querySelector('.suu-dropdown__menu');
+    expect(menu).toHaveClass('suu-dropdown__menu--right');
+    expect(menu).not.toHaveClass('suu-dropdown__menu--left');
+  });
+
+  it('fits the menu panel to the available viewport below the trigger by default', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
         options: [
           { label: 'Active', value: 'active' },
           { label: 'Inactive', value: 'inactive' }
@@ -127,6 +142,34 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
 
     expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('374px');
+  });
+
+  it('allows callers to disable viewport fitting', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        fitViewport: false,
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      right: 240,
+      bottom: 140,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 100,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('');
   });
 
   it('can fit the menu panel to the available viewport above the trigger', async () => {
@@ -300,7 +343,7 @@ describe('dropdown', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
     expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--down');
-    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--right');
+    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--left');
     expect(screen.queryAllByRole('group')).toHaveLength(0);
   });
 
