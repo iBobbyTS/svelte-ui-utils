@@ -16,6 +16,14 @@ function dragEvent(type: string, clientY: number, dataTransfer: DragData): Event
 }
 
 describe('SortableTable', () => {
+  it('renders the table inside the same rounded border container pattern as DataTable', () => {
+    const { container } = render(SortableTableHarness, {
+      props: { items: [{ id: 'a', label: 'Alpha' }] }
+    });
+
+    expect(container.querySelector('.suu-sortable-table')?.parentElement).toHaveClass('suu-sortable-table-wrap');
+  });
+
   it('keeps default drag and remove labels on aria-label and title', () => {
     render(SortableTableHarness, {
       props: { items: [{ id: 'a', label: 'Alpha' }], onRemove: vi.fn() }

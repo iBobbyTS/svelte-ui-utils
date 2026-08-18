@@ -76,32 +76,35 @@
   }
 </script>
 
-<table class={`suu-sortable-table ${tableClass}`.trim()}>
-  <thead><tr><th class="suu-sortable-table__drag-column" aria-hidden="true"></th>{@render header()}<th class="suu-sortable-table__remove-column" aria-hidden="true"></th></tr></thead>
-  <tbody>
-    {#each items as item, index (getId(item))}
-      {@const id = getId(item)}
-      {@const dragLabel = getDragLabel(item, index)}
-      {@const removeLabel = getRemoveLabel(item, index)}
-      <tr class={rowClass(item, index)} data-sortable-id={id} ondragover={(event) => dragOver(event, id)} ondrop={(event) => drop(event, id)}>
-        <td class="suu-sortable-table__drag-cell">
-          <button type="button" class="suu-sortable-table__drag-handle" disabled={disabled} draggable={!disabled} aria-label={dragLabel} title={dragLabel} ondragstart={(event) => startDrag(event, id)} ondragend={finishDrag}>⋮⋮</button>
-          {#if dragAccessory}{@render dragAccessory(item, index)}{/if}
-        </td>
-        {@render children(item, index)}
-        <td class="suu-sortable-table__remove-cell">
-          {#if onRemove}
-            <button type="button" class="suu-sortable-table__remove" disabled={disabled || (!allowRemoveLast && items.length === 1)} aria-label={removeLabel} title={removeLabel} onclick={() => onRemove?.(item)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 21V8h12v13H6Z" fill="currentColor"/></svg>
-            </button>
-          {/if}
-        </td>
-      </tr>
-    {/each}
-  </tbody>
-</table>
+<div class="suu-sortable-table-wrap">
+  <table class={`suu-sortable-table ${tableClass}`.trim()}>
+    <thead><tr><th class="suu-sortable-table__drag-column" aria-hidden="true"></th>{@render header()}<th class="suu-sortable-table__remove-column" aria-hidden="true"></th></tr></thead>
+    <tbody>
+      {#each items as item, index (getId(item))}
+        {@const id = getId(item)}
+        {@const dragLabel = getDragLabel(item, index)}
+        {@const removeLabel = getRemoveLabel(item, index)}
+        <tr class={rowClass(item, index)} data-sortable-id={id} ondragover={(event) => dragOver(event, id)} ondrop={(event) => drop(event, id)}>
+          <td class="suu-sortable-table__drag-cell">
+            <button type="button" class="suu-sortable-table__drag-handle" disabled={disabled} draggable={!disabled} aria-label={dragLabel} title={dragLabel} ondragstart={(event) => startDrag(event, id)} ondragend={finishDrag}>⋮⋮</button>
+            {#if dragAccessory}{@render dragAccessory(item, index)}{/if}
+          </td>
+          {@render children(item, index)}
+          <td class="suu-sortable-table__remove-cell">
+            {#if onRemove}
+              <button type="button" class="suu-sortable-table__remove" disabled={disabled || (!allowRemoveLast && items.length === 1)} aria-label={removeLabel} title={removeLabel} onclick={() => onRemove?.(item)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 21V8h12v13H6Z" fill="currentColor"/></svg>
+              </button>
+            {/if}
+          </td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+</div>
 
 <style>
+  .suu-sortable-table-wrap { overflow: auto; border: 1px solid var(--suu-color-border, #d1d5db); border-radius: var(--suu-radius, 8px); }
   .suu-sortable-table { width: 100%; border-collapse: collapse; }
   .suu-sortable-table__drag-column, .suu-sortable-table__remove-column { width: 38px; }
   .suu-sortable-table__drag-cell, .suu-sortable-table__remove-cell { width: 38px; padding: 6px; text-align: center; vertical-align: middle; }
@@ -111,6 +114,7 @@
   .suu-sortable-table__drag-handle:active { cursor: grabbing; }
   .suu-sortable-table__drag-handle:disabled, .suu-sortable-table__remove:disabled { cursor: default; opacity: .35; }
   .suu-sortable-table__row { position: relative; border-bottom: 1px solid var(--suu-color-border, #d1d5db); }
+  .suu-sortable-table__row:last-child { border-bottom: 0; }
   .suu-sortable-table :global(td) { border-bottom: 0; }
   .suu-sortable-table__row--dragging { opacity: .55; }
   .suu-sortable-table__row--drop-before :global(td) { box-shadow: inset 0 3px 0 var(--suu-color-accent, #2563eb); }

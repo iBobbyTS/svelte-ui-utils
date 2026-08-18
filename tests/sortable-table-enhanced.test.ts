@@ -11,6 +11,14 @@ function rows() {
 }
 
 describe('SortableTableEnhanced', () => {
+  it('inherits the base sortable table border container', () => {
+    const { container } = render(SortableTableEnhancedHarness, {
+      props: { items: rows().slice(0, 1) }
+    });
+
+    expect(container.querySelector('.suu-sortable-table-enhanced')?.parentElement).toHaveClass('suu-sortable-table-wrap');
+  });
+
   it('forwards caller-provided drag and remove labels to the base controls', () => {
     render(SortableTableEnhancedHarness, {
       props: {
