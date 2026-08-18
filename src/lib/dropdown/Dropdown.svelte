@@ -267,7 +267,7 @@
     on:click={handleTriggerClick}
     on:keydown={handleKeydown}
   >
-    <span>{selectedText}</span>
+    <span class="suu-dropdown__label">{selectedText}</span>
     <span class="suu-dropdown__chevron" aria-hidden="true"></span>
   </button>
 
@@ -301,7 +301,7 @@
               }}
               on:click={() => selectOption(option)}
             >
-              {option.label}
+              <span class="suu-dropdown__label">{option.label}</span>
             </button>
           {/each}
         {:else}
@@ -329,7 +329,7 @@
                   }}
                   on:click={() => selectOption(option)}
                 >
-                  {option.label}
+                  <span class="suu-dropdown__label">{option.label}</span>
                 </button>
               {/each}
             </div>

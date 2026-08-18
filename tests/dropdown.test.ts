@@ -81,6 +81,26 @@ describe('dropdown', () => {
     );
   });
 
+  it('wraps dropdown labels to two lines and truncates longer text', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'long',
+        ariaLabel: 'Provider',
+        options: [
+          { label: 'A provider name that is longer than two lines', value: 'long' },
+          { label: 'Another provider name', value: 'other' }
+        ]
+      }
+    });
+
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent(
+      'A provider name that is longer than two lines'
+    );
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+    expect(container.querySelectorAll('.suu-dropdown__option .suu-dropdown__label')).toHaveLength(2);
+  });
+
   it('aligns the menu left edge with the trigger by default', async () => {
     const { container } = render(Dropdown, {
       props: {
