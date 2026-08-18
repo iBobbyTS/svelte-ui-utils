@@ -101,6 +101,64 @@ describe('dropdown', () => {
     expect(container.querySelectorAll('.suu-dropdown__option .suu-dropdown__label')).toHaveLength(2);
   });
 
+  it('can render the open menu outside an overflow-bound container', async () => {
+    const { unmount } = render(Dropdown, {
+      props: {
+        value: 'one',
+        ariaLabel: 'Provider',
+        portal: true,
+        options: [
+          { label: 'One', value: 'one' },
+          { label: 'Two', value: 'two' }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal');
+    expect(menu).toBeTruthy();
+    expect(menu?.parentElement).toBe(document.body);
+    unmount();
+    expect(document.body.querySelector('.suu-dropdown__menu--portal')).toBeNull();
+  });
+
+  it('keeps portal placement variables when opening upward and aligning right', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'one',
+        ariaLabel: 'Provider',
+        portal: true,
+        placement: 'up',
+        menuAlign: 'right',
+        options: [
+          { label: 'One', value: 'one' },
+          { label: 'Two', value: 'two' }
+        ]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 500,
+      bottom: 340,
+      left: 380,
+      width: 120,
+      height: 40,
+      x: 380,
+      y: 300,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerWidth', 1000);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    expect(menu).toHaveClass('suu-dropdown__menu--up', 'suu-dropdown__menu--right');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('294px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-right')).toBe('500px');
+  });
+
   it('aligns the menu left edge with the trigger by default', async () => {
     const { container } = render(Dropdown, {
       props: {

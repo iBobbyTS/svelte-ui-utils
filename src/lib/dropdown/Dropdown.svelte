@@ -26,6 +26,7 @@
   export let minWidth: string | undefined = undefined;
   export let maxWidth: string | undefined = undefined;
   export let className: string | undefined = undefined;
+  export let portal = false;
   export let onChange: DropdownChangeHandler | undefined = undefined;
   export let onTriggerClick: DropdownTriggerClickHandler | undefined = undefined;
 
@@ -36,8 +37,13 @@
   let activeValue: DropdownValue = value;
   let dropdownElement: HTMLSpanElement | undefined;
   let buttonElement: HTMLButtonElement | undefined;
+  let menuElement: HTMLDivElement | undefined;
   let resolvedPlacement: Exclude<DropdownPlacement, 'auto'> = placement === 'up' ? 'up' : 'down';
   let viewportPanelMaxHeight: string | undefined = undefined;
+  let portalMenuTop = '-9999px';
+  let portalMenuLeft: string | undefined = undefined;
+  let portalMenuRight: string | undefined = undefined;
+  let portalMenuWidth: string | undefined = undefined;
   let removeOpenViewportListeners: (() => void) | undefined = undefined;
 
   $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
@@ -147,6 +153,9 @@
 
   function handleFocusout(event: FocusEvent) {
     const nextTarget = event.relatedTarget;
+    if (portal && nextTarget instanceof Node && menuElement?.contains(nextTarget)) {
+      return;
+    }
     if (nextTarget instanceof Node && event.currentTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
       return;
     }
@@ -204,6 +213,7 @@
 
     updateResolvedPlacement(rect);
     if (!fitViewport) {
+      updatePortalPosition(rect);
       return;
     }
 
@@ -212,6 +222,39 @@
         ? rect.top - viewportMargin - menuGap
         : window.innerHeight - rect.bottom - viewportMargin - menuGap;
     viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
+    updatePortalPosition(rect);
+  }
+
+  function updatePortalPosition(rect: DOMRect) {
+    if (!portal || typeof window === 'undefined') {
+      return;
+    }
+
+    const menuHeight = menuElement?.getBoundingClientRect().height ?? 0;
+    portalMenuTop = `${Math.round(
+      resolvedPlacement === 'up' ? rect.top - menuHeight - menuGap : rect.bottom + menuGap
+    )}px`;
+    if (menuAlign === 'right') {
+      portalMenuLeft = undefined;
+      portalMenuRight = `${Math.round(window.innerWidth - rect.right)}px`;
+    } else {
+      portalMenuLeft = `${Math.round(rect.left)}px`;
+      portalMenuRight = undefined;
+    }
+    portalMenuWidth = fitContent ? undefined : `${Math.round(rect.width)}px`;
+  }
+
+  function portalMenu(node: HTMLDivElement, enabled: boolean) {
+    if (enabled && typeof document !== 'undefined') {
+      document.body.appendChild(node);
+    }
+    return {
+      destroy() {
+        if (node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      }
+    };
   }
 
   function enableOpenViewportTracking() {
@@ -273,12 +316,19 @@
 
   {#if open}
     <div
+      bind:this={menuElement}
+      use:portalMenu={portal}
       class="suu-dropdown__menu"
+      class:suu-dropdown__menu--portal={portal}
       class:suu-dropdown__menu--up={resolvedPlacement === 'up'}
       class:suu-dropdown__menu--down={resolvedPlacement === 'down'}
       class:suu-dropdown__menu--left={menuAlign === 'left'}
       class:suu-dropdown__menu--right={menuAlign === 'right'}
       class:suu-dropdown__menu--fit-content={fitContent}
+      style:--suu-dropdown-menu-top={portalMenuTop}
+      style:--suu-dropdown-menu-left={portalMenuLeft}
+      style:--suu-dropdown-menu-right={portalMenuRight}
+      style:--suu-dropdown-menu-width={portalMenuWidth}
     >
       <div class="suu-dropdown__panel" role="listbox" aria-label={ariaLabel}>
         {#if optionGroups === undefined}
