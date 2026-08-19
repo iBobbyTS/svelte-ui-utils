@@ -8,6 +8,7 @@
     getId = (item: Item) => item.id,
     disabled = false,
     allowRemoveLast = false,
+    verticalSeparators = false,
     tableClass = '',
     getRowClass,
     getDragLabel = (item: Item) => `Drag ${getId(item)}`,
@@ -22,6 +23,7 @@
     getId?: (item: Item) => string;
     disabled?: boolean;
     allowRemoveLast?: boolean;
+    verticalSeparators?: boolean;
     tableClass?: string;
     getRowClass?: (item: Item, index: number) => string | undefined | null;
     getDragLabel?: (item: Item, index: number) => string;
@@ -77,7 +79,7 @@
 </script>
 
 <div class="suu-sortable-table-wrap">
-  <table class={`suu-sortable-table ${tableClass}`.trim()}>
+  <table class:suu-sortable-table--vertical-separators={verticalSeparators} class={`suu-sortable-table ${tableClass}`.trim()}>
     <thead><tr><th class="suu-sortable-table__drag-column" aria-hidden="true"></th>{@render header()}<th class="suu-sortable-table__remove-column" aria-hidden="true"></th></tr></thead>
     <tbody>
       {#each items as item, index (getId(item))}
@@ -118,6 +120,8 @@
   .suu-sortable-table__row { position: relative; border-bottom: 1px solid var(--suu-color-border, #d1d5db); }
   .suu-sortable-table__row:last-child { border-bottom: 0; }
   .suu-sortable-table :global(td) { border-bottom: 0; }
+  .suu-sortable-table--vertical-separators :global(th:not(:first-child)),
+  .suu-sortable-table--vertical-separators :global(td:not(:first-child)) { border-left: 1px solid var(--suu-color-border, #d1d5db); }
   .suu-sortable-table__row--dragging { opacity: .55; }
   .suu-sortable-table__row--drop-before :global(td) { box-shadow: inset 0 3px 0 var(--suu-color-accent, #2563eb); }
   .suu-sortable-table__row--drop-after :global(td) { box-shadow: inset 0 -3px 0 var(--suu-color-accent, #2563eb); }

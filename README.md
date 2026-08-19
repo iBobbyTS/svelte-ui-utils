@@ -238,6 +238,9 @@ controls need caller-owned accessible labels. Each label is applied to both
 </SortableTable>
 ```
 
+Set `verticalSeparators={true}` to show vertical lines between the drag,
+content, and remove columns. The option is disabled by default.
+
 `SortableTableEnhanced` composes the same table and adds a controlled current
 radio immediately after each drag handle. `currentId` is read-only input;
 `onCurrentChange` asks the caller to persist a new current item. Use
@@ -259,6 +262,7 @@ light and dark defaults and expose `--suu-sortable-table-row-*-light` and
   getRowColorPreset={(row) => row.exhausted ? 'red' : row.cooling ? 'yellow' : 'green'}
   onReorder={reorder}
   onRemove={remove}
+  verticalSeparators={true}
 >
   {#snippet header()}<th>Name</th><th>Protocol</th>{/snippet}
   {#snippet children(row)}<td>{row.name}</td><td>{row.protocol}</td>{/snippet}

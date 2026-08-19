@@ -12,6 +12,7 @@
     getId = (item: Item) => item.id,
     disabled = false,
     allowRemoveLast = false,
+    verticalSeparators = false,
     tableClass = '',
     showCurrentControl = true,
     currentId = null,
@@ -30,6 +31,7 @@
     getId?: (item: Item) => string;
     disabled?: boolean;
     allowRemoveLast?: boolean;
+    verticalSeparators?: boolean;
     tableClass?: string;
     showCurrentControl?: boolean;
     currentId?: string | null;
@@ -76,6 +78,7 @@
   {getId}
   {disabled}
   {allowRemoveLast}
+  {verticalSeparators}
   tableClass={`suu-sortable-table-enhanced ${tableClass}`.trim()}
   getRowClass={rowClass}
   {getDragLabel}

@@ -19,6 +19,14 @@ describe('SortableTableEnhanced', () => {
     expect(container.querySelector('.suu-sortable-table-enhanced')?.parentElement).toHaveClass('suu-sortable-table-wrap');
   });
 
+  it('forwards optional vertical separators to the base table', () => {
+    const { container } = render(SortableTableEnhancedHarness, {
+      props: { items: rows().slice(0, 1), verticalSeparators: true }
+    });
+
+    expect(container.querySelector('.suu-sortable-table')).toHaveClass('suu-sortable-table--vertical-separators');
+  });
+
   it('forwards caller-provided drag and remove labels to the base controls', () => {
     render(SortableTableEnhancedHarness, {
       props: {

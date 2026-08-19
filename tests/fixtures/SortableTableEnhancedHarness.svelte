@@ -11,6 +11,7 @@
   export let currentId: string | null = null;
   export let showCurrentControl = true;
   export let disabled = false;
+  export let verticalSeparators = false;
   export let onReorder: ((items: Row[], detail: SortableTableReorderDetail) => void) | undefined = undefined;
   export let onRemove: ((item: Row) => void) | undefined = undefined;
   export let onCurrentChange: ((item: Row) => void | Promise<void>) | undefined = undefined;
@@ -28,6 +29,7 @@
   {currentId}
   {showCurrentControl}
   {disabled}
+  {verticalSeparators}
   onReorder={update}
   {onRemove}
   {onCurrentChange}

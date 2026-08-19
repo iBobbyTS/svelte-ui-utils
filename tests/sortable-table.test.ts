@@ -24,6 +24,14 @@ describe('SortableTable', () => {
     expect(container.querySelector('.suu-sortable-table')?.parentElement).toHaveClass('suu-sortable-table-wrap');
   });
 
+  it('optionally renders vertical separators between columns', () => {
+    const { container } = render(SortableTableHarness, {
+      props: { items: [{ id: 'a', label: 'Alpha' }], verticalSeparators: true }
+    });
+
+    expect(container.querySelector('.suu-sortable-table')).toHaveClass('suu-sortable-table--vertical-separators');
+  });
+
   it('keeps default drag and remove labels on aria-label and title', () => {
     render(SortableTableHarness, {
       props: { items: [{ id: 'a', label: 'Alpha' }], onRemove: vi.fn() }

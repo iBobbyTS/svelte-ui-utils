@@ -5,6 +5,7 @@
   export let items: Array<{ id: string; label: string }> = [];
   export let onReorder: ((items: Array<{ id: string; label: string }>, detail: SortableTableReorderDetail) => void) | undefined = undefined;
   export let onRemove: ((item: { id: string; label: string }) => void) | undefined = undefined;
+  export let verticalSeparators = false;
   export let getDragLabel: ((item: { id: string; label: string }, index: number) => string) | undefined = undefined;
   export let getRemoveLabel: ((item: { id: string; label: string }, index: number) => string) | undefined = undefined;
 
@@ -14,7 +15,7 @@
   }
 </script>
 
-<SortableTable {items} onReorder={update} {onRemove} {getDragLabel} {getRemoveLabel} allowRemoveLast={true}>
+<SortableTable {items} onReorder={update} {onRemove} {getDragLabel} {getRemoveLabel} {verticalSeparators} allowRemoveLast={true}>
   {#snippet header()}<th>Label</th>{/snippet}
   {#snippet children(item)}<td>{item.label}</td>{/snippet}
 </SortableTable>
