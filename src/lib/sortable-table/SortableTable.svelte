@@ -106,7 +106,7 @@
 </div>
 
 <style>
-  .suu-sortable-table-wrap { overflow: auto; border: 1px solid var(--suu-color-border, #d1d5db); border-radius: var(--suu-radius, 8px); }
+  .suu-sortable-table-wrap { overflow: auto; border: 1px solid var(--suu-sortable-table-border, var(--suu-color-border, #d1d5db)); border-radius: var(--suu-radius, 8px); }
   .suu-sortable-table { width: 100%; border-collapse: collapse; }
   .suu-sortable-table__drag-column { width: 1%; }
   .suu-sortable-table__remove-column { width: 38px; }
@@ -117,11 +117,17 @@
   .suu-sortable-table__remove svg { width: 16px; height: 16px; }
   .suu-sortable-table__drag-handle:active { cursor: grabbing; }
   .suu-sortable-table__drag-handle:disabled, .suu-sortable-table__remove:disabled { cursor: default; opacity: .35; }
-  .suu-sortable-table__row { position: relative; border-bottom: 1px solid var(--suu-color-border, #d1d5db); }
+  .suu-sortable-table__row { position: relative; border-bottom: 1px solid var(--suu-sortable-table-border, var(--suu-color-border, #d1d5db)); }
   .suu-sortable-table__row:last-child { border-bottom: 0; }
   .suu-sortable-table :global(td) { border-bottom: 0; }
   .suu-sortable-table--vertical-separators :global(th:not(:first-child)),
-  .suu-sortable-table--vertical-separators :global(td:not(:first-child)) { border-left: 1px solid var(--suu-color-border, #d1d5db); }
+  .suu-sortable-table--vertical-separators :global(td:not(:first-child)) { border-left: 1px solid var(--suu-sortable-table-separator, var(--suu-sortable-table-border, var(--suu-color-border, #d1d5db))); }
+  @media (prefers-color-scheme: dark) {
+    .suu-sortable-table-wrap { border-color: var(--suu-sortable-table-border-dark, var(--suu-sortable-table-border, #46516a)); }
+    .suu-sortable-table__row { border-bottom-color: var(--suu-sortable-table-border-dark, var(--suu-sortable-table-border, #46516a)); }
+    .suu-sortable-table--vertical-separators :global(th:not(:first-child)),
+    .suu-sortable-table--vertical-separators :global(td:not(:first-child)) { border-left-color: var(--suu-sortable-table-separator-dark, var(--suu-sortable-table-border-dark, var(--suu-sortable-table-separator, #46516a))); }
+  }
   .suu-sortable-table__row--dragging { opacity: .55; }
   .suu-sortable-table__row--drop-before :global(td) { box-shadow: inset 0 3px 0 var(--suu-color-accent, #2563eb); }
   .suu-sortable-table__row--drop-after :global(td) { box-shadow: inset 0 -3px 0 var(--suu-color-accent, #2563eb); }

@@ -239,7 +239,12 @@ controls need caller-owned accessible labels. Each label is applied to both
 ```
 
 Set `verticalSeparators={true}` to show vertical lines between the drag,
-content, and remove columns. The option is disabled by default.
+content, and remove columns. The option is disabled by default. Override
+`--suu-sortable-table-border` and `--suu-sortable-table-separator` to tune
+light-mode borders. For dark mode, optionally override
+`--suu-sortable-table-border-dark` and
+`--suu-sortable-table-separator-dark`; both default to a higher-contrast
+blue-gray color.
 
 `SortableTableEnhanced` composes the same table and adds a controlled current
 radio immediately after each drag handle. `currentId` is read-only input;
