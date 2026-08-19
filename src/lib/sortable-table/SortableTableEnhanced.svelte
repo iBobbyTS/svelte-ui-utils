@@ -13,6 +13,7 @@
     disabled = false,
     allowRemoveLast = false,
     tableClass = '',
+    showCurrentControl = true,
     currentId = null,
     getCurrentDisabled = () => false,
     getCurrentLabel = (item: Item) => `Set ${getId(item)} as current`,
@@ -30,6 +31,7 @@
     disabled?: boolean;
     allowRemoveLast?: boolean;
     tableClass?: string;
+    showCurrentControl?: boolean;
     currentId?: string | null;
     getCurrentDisabled?: (item: Item, index: number) => boolean;
     getCurrentLabel?: (item: Item, index: number) => string;
@@ -80,7 +82,7 @@
   {getRemoveLabel}
   {onReorder}
   {onRemove}
-  dragAccessory={currentControl}
+  dragAccessory={showCurrentControl ? currentControl : undefined}
   {header}
   {children}
 />

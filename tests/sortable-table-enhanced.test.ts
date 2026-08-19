@@ -57,6 +57,44 @@ describe('SortableTableEnhanced', () => {
     expect(secondRadio.name).not.toBe(firstRadios[0]!.name);
   });
 
+  it('can hide current controls without removing drag, remove, reorder, or row color behavior', async () => {
+    const onRemove = vi.fn();
+    const onReorder = vi.fn();
+    const { container } = render(SortableTableEnhancedHarness, {
+      props: {
+        items: rows(),
+        currentId: 'a',
+        showCurrentControl: false,
+        onCurrentChange: vi.fn(),
+        onRemove,
+        onReorder
+      }
+    });
+
+    expect(within(container).queryAllByRole('radio')).toHaveLength(0);
+    expect(within(container).getAllByRole('button', { name: /Drag / })).toHaveLength(3);
+    expect(within(container).getAllByRole('button', { name: /Remove / })).toHaveLength(3);
+    expect(container.querySelector('[data-sortable-id="a"]')).toHaveClass('suu-sortable-table-enhanced__row--green');
+
+    await fireEvent.click(within(container).getByRole('button', { name: 'Remove b' }));
+    expect(onRemove).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
+
+    const source = within(container).getByRole('button', { name: 'Drag a' });
+    const target = container.querySelector<HTMLElement>('[data-sortable-id="b"]')!;
+    Object.defineProperty(target, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ top: 0, bottom: 100, left: 0, right: 100, width: 100, height: 100 })
+    });
+    const dataTransfer = { effectAllowed: '', setData: vi.fn() };
+    await fireEvent.dragStart(source, { dataTransfer });
+    await fireEvent.dragOver(target, { clientY: 90, dataTransfer });
+    await fireEvent.drop(target, { clientY: 90, dataTransfer });
+    expect(onReorder).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'b' }), expect.objectContaining({ id: 'a' }), expect.objectContaining({ id: 'c' })],
+      { sourceId: 'a', targetId: 'b', position: 'after' }
+    );
+  });
+
   it('emits current, remove and reorder through the controlled component', async () => {
     const onCurrentChange = vi.fn();
     const onRemove = vi.fn();

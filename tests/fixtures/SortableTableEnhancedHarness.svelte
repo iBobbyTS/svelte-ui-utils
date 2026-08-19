@@ -9,6 +9,7 @@
 
   export let items: Row[] = [];
   export let currentId: string | null = null;
+  export let showCurrentControl = true;
   export let disabled = false;
   export let onReorder: ((items: Row[], detail: SortableTableReorderDetail) => void) | undefined = undefined;
   export let onRemove: ((item: Row) => void) | undefined = undefined;
@@ -25,6 +26,7 @@
 <SortableTableEnhanced
   {items}
   {currentId}
+  {showCurrentControl}
   {disabled}
   onReorder={update}
   {onRemove}

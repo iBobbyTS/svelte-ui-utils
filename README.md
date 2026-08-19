@@ -241,6 +241,8 @@ controls need caller-owned accessible labels. Each label is applied to both
 `SortableTableEnhanced` composes the same table and adds a controlled current
 radio immediately after each drag handle. `currentId` is read-only input;
 `onCurrentChange` asks the caller to persist a new current item. Use
+`showCurrentControl={false}` to omit the radios while retaining the table's
+drag, remove, reorder, and row-color behavior. Use
 `getCurrentDisabled` for per-row eligibility and `getRowColorPreset` to select
 the package-owned `red`, `yellow`, or `green` background. The presets include
 light and dark defaults and expose `--suu-sortable-table-row-*-light` and
