@@ -106,8 +106,10 @@
 <style>
   .suu-sortable-table-wrap { overflow: auto; border: 1px solid var(--suu-color-border, #d1d5db); border-radius: var(--suu-radius, 8px); }
   .suu-sortable-table { width: 100%; border-collapse: collapse; }
-  .suu-sortable-table__drag-column, .suu-sortable-table__remove-column { width: 38px; }
-  .suu-sortable-table__drag-cell, .suu-sortable-table__remove-cell { width: 38px; padding: 6px; text-align: center; vertical-align: middle; }
+  .suu-sortable-table__drag-column { width: 1%; }
+  .suu-sortable-table__remove-column { width: 38px; }
+  .suu-sortable-table__drag-cell { width: 1%; padding: 6px; text-align: center; vertical-align: middle; white-space: nowrap; }
+  .suu-sortable-table__remove-cell { width: 38px; padding: 6px; text-align: center; vertical-align: middle; }
   .suu-sortable-table__drag-handle, .suu-sortable-table__remove { display: inline-grid; place-items: center; border: 0; background: transparent; cursor: grab; color: var(--suu-color-text-dim, #6b7280); padding: 4px; font: inherit; }
   .suu-sortable-table__remove { width: 30px; height: 30px; cursor: pointer; color: var(--suu-color-danger, #dc2626); }
   .suu-sortable-table__remove svg { width: 16px; height: 16px; }

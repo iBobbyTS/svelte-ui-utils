@@ -88,13 +88,6 @@
 />
 
 <style>
-  :global(.suu-sortable-table-enhanced .suu-sortable-table__drag-column),
-  :global(.suu-sortable-table-enhanced .suu-sortable-table__drag-cell) {
-    width: 68px;
-  }
-  :global(.suu-sortable-table-enhanced .suu-sortable-table__drag-cell) {
-    white-space: nowrap;
-  }
   .suu-sortable-table-enhanced__current {
     width: 16px;
     height: 16px;
