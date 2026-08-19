@@ -1,5 +1,9 @@
 export type DropdownValue = string | number;
 
+export type DropdownMultiValue = DropdownValue[];
+
+export type DropdownSelection = DropdownValue | DropdownMultiValue;
+
 export type DropdownPlacement = 'auto' | 'up' | 'down';
 
 export type DropdownMenuAlign = 'left' | 'right';
@@ -16,5 +20,11 @@ export interface DropdownOptionGroup {
 }
 
 export type DropdownChangeHandler = (value: DropdownValue) => void | Promise<void>;
+
+export type DropdownMultiChangeHandler = (value: DropdownMultiValue) => void | Promise<void>;
+
+export type DropdownSelectionChangeHandler = {
+	bivarianceHack(value: DropdownSelection): void | Promise<void>;
+}['bivarianceHack'];
 
 export type DropdownTriggerClickHandler = (event: MouseEvent) => void;

@@ -5,15 +5,20 @@
   import type {
     DropdownChangeHandler,
     DropdownMenuAlign,
+    DropdownMultiChangeHandler,
+    DropdownMultiValue,
     DropdownOption,
     DropdownOptionGroup,
     DropdownPlacement,
+    DropdownSelectionChangeHandler,
+    DropdownSelection,
     DropdownTriggerClickHandler,
     DropdownValue
   } from './types.js';
 
   export let id: string | undefined = undefined;
-  export let value: DropdownValue = '';
+  export let value: DropdownSelection = '';
+  export let multiselect = false;
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   export let ariaLabel: string | undefined = undefined;
@@ -27,14 +32,14 @@
   export let maxWidth: string | undefined = undefined;
   export let className: string | undefined = undefined;
   export let portal = false;
-  export let onChange: DropdownChangeHandler | undefined = undefined;
+  export let onChange: DropdownSelectionChangeHandler | undefined = undefined;
   export let onTriggerClick: DropdownTriggerClickHandler | undefined = undefined;
 
   const viewportMargin = 20;
   const menuGap = 6;
 
   let open = false;
-  let activeValue: DropdownValue = value;
+  let activeValue: DropdownValue = '';
   let dropdownElement: HTMLSpanElement | undefined;
   let buttonElement: HTMLButtonElement | undefined;
   let menuElement: HTMLDivElement | undefined;
@@ -45,20 +50,31 @@
   let portalMenuRight: string | undefined = undefined;
   let portalMenuWidth: string | undefined = undefined;
   let removeOpenViewportListeners: (() => void) | undefined = undefined;
+  let removeOutsidePointerListener: (() => void) | undefined = undefined;
 
   $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
-  $: selectedOption = resolvedOptions.find((option) => option.value === value);
-  $: selectedText = selectedOption?.label ?? String(value);
+  $: selectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
+  $: selectedOption = Array.isArray(value) ? undefined : resolvedOptions.find((option) => option.value === value);
+  $: selectedText = multiselect
+    ? resolvedOptions
+        .filter((option) => selectedValues.includes(option.value))
+        .map((option) => option.label)
+        .join(', ')
+    : selectedOption?.label ?? String(value);
   $: if (!open) {
-    activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
+    activeValue = initialActiveValue();
   }
   $: {
     placement;
     if (open) {
       enableOpenViewportTracking();
+      if (multiselect) {
+        enableOutsidePointerDismissal();
+      }
       void updateViewportPanelMaxHeight();
     } else {
       disableOpenViewportTracking();
+      disableOutsidePointerDismissal();
       resolvedPlacement = placement === 'up' ? 'up' : 'down';
       viewportPanelMaxHeight = undefined;
     }
@@ -68,12 +84,36 @@
     return resolvedOptions.find((option) => !option.disabled);
   }
 
+  function normalizeSelectedValues(nextValues: DropdownMultiValue): DropdownMultiValue {
+    const incoming = new Set(nextValues);
+    const normalized: DropdownMultiValue = [];
+    for (const option of resolvedOptions) {
+      if (incoming.has(option.value) && !normalized.includes(option.value)) {
+        normalized.push(option.value);
+      }
+    }
+    return normalized;
+  }
+
+  function initialActiveValue(): DropdownValue {
+    const firstSelectedEnabled = resolvedOptions.find(
+      (option) => selectedValues.includes(option.value) && !option.disabled
+    );
+    return firstSelectedEnabled?.value ?? selectedOption?.value ?? firstEnabledOption()?.value ?? '';
+  }
+
+  function isOptionSelected(option: DropdownOption): boolean {
+    return multiselect ? selectedValues.includes(option.value) : option.value === value;
+  }
+
   function activeOptionIndex(nextActiveValue: DropdownValue): number {
     const index = resolvedOptions.findIndex((option) => option.value === nextActiveValue && !option.disabled);
     if (index >= 0) {
       return index;
     }
-    const fallbackIndex = resolvedOptions.findIndex((option) => option.value === value && !option.disabled);
+    const fallbackIndex = resolvedOptions.findIndex(
+      (option) => isOptionSelected(option) && !option.disabled
+    );
     if (fallbackIndex >= 0) {
       return fallbackIndex;
     }
@@ -95,9 +135,21 @@
     if (option.disabled) {
       return;
     }
-    open = false;
     activeValue = option.value;
-    void onChange?.(option.value);
+    if (multiselect) {
+      const nextSelected = new Set(selectedValues);
+      if (nextSelected.has(option.value)) {
+        nextSelected.delete(option.value);
+      } else {
+        nextSelected.add(option.value);
+      }
+      const nextValues = normalizeSelectedValues([...nextSelected]);
+      void (onChange as DropdownMultiChangeHandler | undefined)?.(nextValues);
+      return;
+    }
+
+    open = false;
+    void (onChange as DropdownChangeHandler | undefined)?.(option.value);
     buttonElement?.focus();
   }
 
@@ -109,7 +161,7 @@
       updateResolvedPlacement();
     }
     open = !open;
-    activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
+    activeValue = initialActiveValue();
   }
 
   function handleTriggerClick(event: MouseEvent) {
@@ -135,7 +187,7 @@
       if (!open) {
         updateResolvedPlacement();
         open = true;
-        activeValue = selectedOption?.value ?? firstEnabledOption()?.value ?? value;
+        activeValue = initialActiveValue();
       }
       moveActiveOption(event.key === 'ArrowDown' ? 1 : -1);
       return;
@@ -279,13 +331,44 @@
     removeOpenViewportListeners?.();
   }
 
-  onDestroy(disableOpenViewportTracking);
+  function enableOutsidePointerDismissal() {
+    if (removeOutsidePointerListener || typeof document === 'undefined') {
+      return;
+    }
+
+    const handleOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (dropdownElement?.contains(target) || menuElement?.contains(target)) {
+        return;
+      }
+      open = false;
+    };
+
+    document.addEventListener('pointerdown', handleOutsidePointer, true);
+    removeOutsidePointerListener = () => {
+      document.removeEventListener('pointerdown', handleOutsidePointer, true);
+      removeOutsidePointerListener = undefined;
+    };
+  }
+
+  function disableOutsidePointerDismissal() {
+    removeOutsidePointerListener?.();
+  }
+
+  onDestroy(() => {
+    disableOpenViewportTracking();
+    disableOutsidePointerDismissal();
+  });
 </script>
 
 <span
   bind:this={dropdownElement}
   class={[
     'suu-dropdown',
+    multiselect ? 'suu-dropdown--multiselect' : '',
     width !== undefined || minWidth !== undefined || maxWidth !== undefined
       ? 'suu-dropdown--sized'
       : '',
@@ -306,7 +389,7 @@
     aria-label={ariaLabel}
     aria-haspopup="listbox"
     aria-expanded={open}
-    data-value={String(value)}
+    data-value={Array.isArray(value) ? value.map(String).join(',') : String(value)}
     on:click={handleTriggerClick}
     on:keydown={handleKeydown}
   >
@@ -330,7 +413,12 @@
       style:--suu-dropdown-menu-right={portalMenuRight}
       style:--suu-dropdown-menu-width={portalMenuWidth}
     >
-      <div class="suu-dropdown__panel" role="listbox" aria-label={ariaLabel}>
+      <div
+        class="suu-dropdown__panel"
+        role="listbox"
+        aria-label={ariaLabel}
+        aria-multiselectable={multiselect || undefined}
+      >
         {#if optionGroups === undefined}
           {#each options as option}
             <button
@@ -339,7 +427,7 @@
               class:suu-dropdown__option--active={option.value === activeValue}
               class:suu-dropdown__option--disabled={option.disabled}
               role="option"
-              aria-selected={option.value === value}
+              aria-selected={multiselect ? selectedValues.includes(option.value) : option.value === value}
               aria-disabled={option.disabled}
               disabled={option.disabled}
               data-value={String(option.value)}
@@ -351,6 +439,13 @@
               }}
               on:click={() => selectOption(option)}
             >
+              {#if multiselect}
+                <span
+                  class="suu-dropdown__checkbox"
+                  data-checked={multiselect ? selectedValues.includes(option.value) : option.value === value}
+                  aria-hidden="true"
+                ></span>
+              {/if}
               <span class="suu-dropdown__label">{option.label}</span>
             </button>
           {/each}
@@ -367,7 +462,7 @@
                   class:suu-dropdown__option--active={option.value === activeValue}
                   class:suu-dropdown__option--disabled={option.disabled}
                   role="option"
-                  aria-selected={option.value === value}
+                  aria-selected={multiselect ? selectedValues.includes(option.value) : option.value === value}
                   aria-disabled={option.disabled}
                   disabled={option.disabled}
                   data-value={String(option.value)}
@@ -379,6 +474,13 @@
                   }}
                   on:click={() => selectOption(option)}
                 >
+                  {#if multiselect}
+                    <span
+                      class="suu-dropdown__checkbox"
+                      data-checked={multiselect ? selectedValues.includes(option.value) : option.value === value}
+                      aria-hidden="true"
+                    ></span>
+                  {/if}
                   <span class="suu-dropdown__label">{option.label}</span>
                 </button>
               {/each}

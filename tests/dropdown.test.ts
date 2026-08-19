@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Dropdown } from '../src/lib/dropdown/index.js';
+import { Dropdown, DropdownMultiSelect } from '../src/lib/dropdown/index.js';
+import ControlledDropdownMultiSelectHarness from './fixtures/ControlledDropdownMultiSelectHarness.svelte';
 
 describe('dropdown', () => {
   afterEach(() => {
@@ -482,5 +483,141 @@ describe('dropdown', () => {
     expect(onTriggerClick).toHaveBeenCalledOnce();
     expect(parentClick).not.toHaveBeenCalled();
     expect(screen.getByRole('listbox', { name: 'Choice' })).toBeInTheDocument();
+  });
+
+  it('toggles multiple values in option order without closing the menu', async () => {
+    const onChange = vi.fn();
+    const options = [
+      { label: 'Alpha', value: 'alpha' },
+      { label: 'Beta', value: 'beta' },
+      { label: 'Gamma', value: 'gamma', disabled: true }
+    ];
+    const { container, rerender } = render(DropdownMultiSelect, {
+      props: {
+        value: ['beta'],
+        options,
+        ariaLabel: 'Members',
+        maxWidth: '12rem',
+        onChange
+      }
+    });
+
+    expect(container.querySelector('.suu-dropdown')).toHaveClass(
+      'suu-dropdown--multiselect',
+      'suu-dropdown--sized'
+    );
+    expect(container.querySelector('.suu-dropdown')).toHaveStyle({ maxWidth: '12rem' });
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('Beta');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Members' }));
+    expect(screen.getByRole('listbox', { name: 'Members' })).toHaveAttribute('aria-multiselectable', 'true');
+    expect(screen.getByRole('option', { name: 'Beta' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'Alpha' })).toHaveAttribute('aria-selected', 'false');
+    expect(container.querySelectorAll('.suu-dropdown__checkbox')).toHaveLength(3);
+    expect(
+      screen.getByRole('option', { name: 'Beta' }).querySelector('.suu-dropdown__checkbox')
+    ).toHaveAttribute('data-checked', 'true');
+
+    await fireEvent.click(screen.getByRole('option', { name: 'Alpha' }));
+    expect(onChange).toHaveBeenLastCalledWith(['alpha', 'beta']);
+    expect(screen.getByRole('listbox', { name: 'Members' })).toBeInTheDocument();
+
+    await rerender({ value: ['beta', 'missing', 'alpha'], options, ariaLabel: 'Members', maxWidth: '12rem', onChange });
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('Alpha, Beta');
+    expect(screen.getByRole('option', { name: 'Alpha' })).toHaveAttribute('aria-selected', 'true');
+
+    await fireEvent.click(screen.getByRole('option', { name: 'Beta' }));
+    expect(onChange).toHaveBeenLastCalledWith(['alpha']);
+    expect(screen.getByRole('listbox', { name: 'Members' })).toBeInTheDocument();
+  });
+
+  it('updates open option checkboxes immediately when a controlled parent removes a value', async () => {
+    render(ControlledDropdownMultiSelectHarness);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Controlled choices' }));
+    const alphaOption = screen.getByRole('option', { name: 'Alpha' });
+    const alphaCheckbox = alphaOption.querySelector('.suu-dropdown__checkbox');
+    expect(alphaOption).toHaveAttribute('aria-selected', 'true');
+    expect(alphaCheckbox).toHaveAttribute('data-checked', 'true');
+
+    await fireEvent.click(alphaOption);
+
+    expect(screen.getByRole('listbox', { name: 'Controlled choices' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Selected values')).toHaveTextContent('beta');
+    expect(alphaOption).toHaveAttribute('aria-selected', 'false');
+    expect(alphaCheckbox).toHaveAttribute('data-checked', 'false');
+  });
+
+  it('supports grouped and disabled options in multiselect mode', async () => {
+    const onChange = vi.fn();
+    render(DropdownMultiSelect, {
+      props: {
+        value: [],
+        ariaLabel: 'Protocols',
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat', disabled: true }] },
+          { label: 'Other', options: [{ label: 'Responses', value: 'responses', disabled: true }] }
+        ],
+        onChange
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Protocols' });
+    expect(trigger.querySelector('.suu-dropdown__label')).toHaveTextContent('');
+    await fireEvent.click(trigger);
+    expect(screen.getByRole('group', { name: 'Core' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Other' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeDisabled();
+    await fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    await fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox', { name: 'Protocols' })).toBeInTheDocument();
+  });
+
+  it('keeps multiselect open for keyboard toggles and closes through each dismissal path', async () => {
+    const options = [
+      { label: 'One', value: 'one' },
+      { label: 'Two', value: 'two' }
+    ];
+    const onChange = vi.fn();
+    const { rerender, unmount } = render(DropdownMultiSelect, {
+      props: { value: ['one'], options, ariaLabel: 'Keyboard choices', onChange }
+    });
+    const trigger = screen.getByRole('button', { name: 'Keyboard choices' });
+
+    await fireEvent.click(trigger);
+    await fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    await fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(onChange).toHaveBeenLastCalledWith(['one', 'two']);
+    expect(screen.getByRole('listbox', { name: 'Keyboard choices' })).toBeInTheDocument();
+
+    await rerender({ value: ['one', 'two'], options, ariaLabel: 'Keyboard choices', onChange });
+    await fireEvent.keyDown(trigger, { key: ' ' });
+    expect(onChange).toHaveBeenLastCalledWith(['one']);
+    expect(screen.getByRole('listbox', { name: 'Keyboard choices' })).toBeInTheDocument();
+
+    await fireEvent.keyDown(trigger, { key: 'Escape' });
+    expect(screen.queryByRole('listbox', { name: 'Keyboard choices' })).not.toBeInTheDocument();
+    await fireEvent.click(trigger);
+    await fireEvent.click(trigger);
+    expect(screen.queryByRole('listbox', { name: 'Keyboard choices' })).not.toBeInTheDocument();
+    await fireEvent.click(trigger);
+    await fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('listbox', { name: 'Keyboard choices' })).not.toBeInTheDocument();
+    unmount();
+  });
+
+  it('keeps the single-select listbox contract unchanged', async () => {
+    render(Dropdown, {
+      props: {
+        value: 'one',
+        ariaLabel: 'Single choice',
+        options: [{ label: 'One', value: 'one' }]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Single choice' }));
+    expect(screen.getByRole('listbox', { name: 'Single choice' })).not.toHaveAttribute('aria-multiselectable');
+    expect(document.querySelector('.suu-dropdown__checkbox')).toBeNull();
   });
 });

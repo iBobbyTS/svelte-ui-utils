@@ -350,7 +350,12 @@ prop is available on all dialog wrapper components.
 
 ```svelte
 <script lang="ts">
-  import { Dropdown, type DropdownOption, type DropdownValue } from '@ibobbyts/svelte-ui-utils/dropdown';
+  import {
+    Dropdown,
+    DropdownMultiSelect,
+    type DropdownOption,
+    type DropdownValue
+  } from '@ibobbyts/svelte-ui-utils/dropdown';
 
   const pageSizeOptions: DropdownOption[] = [
     { label: '10', value: 10 },
@@ -378,6 +383,36 @@ pagination bars. The expanded menu shares the trigger's left edge by default;
 use `menuAlign="right"` to align their right edges instead. `fitContent` sizes
 the menu to its longest option while keeping the selected edge aligned.
 `DataTable` uses this same component for its page-size picker.
+
+Set `multiselect={true}` to control the component with a `DropdownValue[]`.
+Each option then shows a checkbox, selecting or deselecting an option keeps the
+menu open, and `onChange` receives the complete selected-value array in option
+display order. `DropdownMultiSelect` is the convenience wrapper for this mode:
+
+```svelte
+<script lang="ts">
+  import { DropdownMultiSelect, type DropdownMultiValue } from '@ibobbyts/svelte-ui-utils/dropdown';
+
+  let selectedRoles: DropdownMultiValue = ['editor'];
+</script>
+
+<DropdownMultiSelect
+  value={selectedRoles}
+  options={[
+    { label: 'Editor', value: 'editor' },
+    { label: 'Reviewer', value: 'reviewer' }
+  ]}
+  ariaLabel="Roles"
+  maxWidth="18rem"
+  onChange={(next) => {
+    selectedRoles = next;
+  }}
+/>
+```
+
+The collapsed trigger joins selected labels with `", "` and truncates the
+single line when it exceeds the existing `width` or `maxWidth` constraint.
+Grouped and disabled options retain the same behavior as single-select mode.
 
 The dropdown panel is constrained by default to the space available above or
 below the trigger and remains scrollable when its contents exceed that height.
