@@ -25,7 +25,7 @@
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
   export let fitViewport = true;
-  export let fitContent = false;
+  export let fitContent = true;
   export let disabled = false;
   export let width: string | undefined = undefined;
   export let minWidth: string | undefined = undefined;
@@ -274,6 +274,11 @@
         ? rect.top - viewportMargin - menuGap
         : window.innerHeight - rect.bottom - viewportMargin - menuGap;
     viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
+    // Portal menus are moved under document.body, so the reactive style
+    // binding on the original root cannot reach them before this measurement.
+    // Apply the value directly first; otherwise the first upward open can
+    // measure the fallback 100vh height and place the menu above the viewport.
+    menuElement?.style.setProperty('--suu-dropdown-panel-max-height', viewportPanelMaxHeight);
     updatePortalPosition(rect);
   }
 
@@ -412,6 +417,7 @@
       style:--suu-dropdown-menu-left={portalMenuLeft}
       style:--suu-dropdown-menu-right={portalMenuRight}
       style:--suu-dropdown-menu-width={portalMenuWidth}
+      style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
     >
       <div
         class="suu-dropdown__panel"

@@ -82,6 +82,27 @@ describe('dropdown', () => {
     );
   });
 
+  it('uses content-sized menus by default and preserves the explicit opt-out', async () => {
+    const { container, rerender } = render(Dropdown, {
+      props: {
+        value: 'short',
+        ariaLabel: 'Default sizing',
+        options: [{ label: 'A longer option label', value: 'short' }]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Default sizing' }));
+    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--fit-content');
+
+    await rerender({
+      value: 'short',
+      ariaLabel: 'Default sizing',
+      fitContent: false,
+      options: [{ label: 'A longer option label', value: 'short' }]
+    });
+    expect(container.querySelector('.suu-dropdown__menu')).not.toHaveClass('suu-dropdown__menu--fit-content');
+  });
+
   it('wraps dropdown labels to two lines and truncates longer text', async () => {
     const { container } = render(Dropdown, {
       props: {
@@ -158,6 +179,100 @@ describe('dropdown', () => {
     expect(menu).toHaveClass('suu-dropdown__menu--up', 'suu-dropdown__menu--right');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('294px');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-right')).toBe('500px');
+  });
+
+  it('applies viewport height to the body-mounted portal menu', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        portal: true,
+        fitViewport: true,
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      right: 240,
+      bottom: 140,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 100,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('474px');
+  });
+
+  it('positions an upward portal menu correctly on its first open', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        portal: true,
+        placement: 'up',
+        fitViewport: true,
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 240,
+      bottom: 340,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 300,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    let menuMeasurements = 0;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('suu-dropdown__menu')) {
+        menuMeasurements += 1;
+        const height = this.style.getPropertyValue('--suu-dropdown-panel-max-height') ? 120 : 640;
+        return {
+          top: 0,
+          right: 0,
+          bottom: height,
+          left: 0,
+          width: 120,
+          height,
+          x: 0,
+          y: 0,
+          toJSON: () => ({})
+        };
+      }
+      return {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => ({})
+      };
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+    await tick();
+
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('274px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('174px');
+    expect(menuMeasurements).toBe(1);
   });
 
   it('aligns the menu left edge with the trigger by default', async () => {
