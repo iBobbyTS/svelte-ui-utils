@@ -262,6 +262,8 @@ describe('data table components', () => {
           }
         ],
         bordered: false,
+        zebra: false,
+        hoverable: false,
         verticalSeparators: true,
         tableLayout: 'fixed',
         stickyHeaderTop: '4rem',
@@ -271,6 +273,9 @@ describe('data table components', () => {
     });
 
     expect(container.querySelector('.suu-table-wrap--borderless')).toBeTruthy();
+    expect(container.querySelector('.suu-table--plain')).toBeTruthy();
+    expect(container.querySelector('.suu-table--zebra')).toBeFalsy();
+    expect(container.querySelector('.suu-table--hoverable')).toBeFalsy();
     expect(container.querySelector('.suu-table--vertical-separators')).toBeTruthy();
     expect(container.querySelector('.suu-table--layout-fixed')).toBeTruthy();
     expect(container.querySelector('.suu-table--sticky-header')).toBeTruthy();
@@ -607,6 +612,7 @@ describe('data table components', () => {
 
     const filterTable = container.querySelector('.suu-filter-table__filters');
     expect(filterTable).toBeTruthy();
+    expect(filterTable?.classList.contains('suu-filter-table__filters--borderless')).toBe(false);
     expect(getComputedStyle(filterTable as Element).backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(container.querySelector('.suu-filter-table__filters-wrap')).toBeFalsy();
     expect(container.querySelector('.suu-table')).toBeFalsy();
@@ -616,6 +622,44 @@ describe('data table components', () => {
 
     await fireEvent.click(screen.getByLabelText('Member'));
     expect(onRoleChange).toHaveBeenLastCalledWith('member');
+  });
+
+  it('can render FilterTable without its outer border', () => {
+    const { container } = render(FilterTable, {
+      props: {
+        bordered: false,
+        rows: []
+      }
+    });
+
+    expect(container.querySelector('.suu-filter-table__filters--borderless')).toBeTruthy();
+  });
+
+  it('uses an explicit plain background and supports disabling row hover changes', () => {
+    const { container } = render(DataTable, {
+      props: {
+        showPagination: false,
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }],
+        zebra: false,
+        hoverable: false
+      }
+    });
+
+    expect(container.querySelector('.suu-table--plain')).toBeTruthy();
+    expect(container.querySelector('.suu-table--hoverable')).toBeFalsy();
+  });
+
+  it('keeps row hover changes enabled by default', () => {
+    const { container } = render(DataTable, {
+      props: {
+        showPagination: false,
+        rows: [{ name: 'Jane' }],
+        columns: [{ key: 'name', header: 'Name' }]
+      }
+    });
+
+    expect(container.querySelector('.suu-table--hoverable')).toBeTruthy();
   });
 
   it('renders container filters with dropdown search, button, link, and select controls', async () => {

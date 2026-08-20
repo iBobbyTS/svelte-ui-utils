@@ -648,14 +648,20 @@
 
 .suu-filter-table__filters {
   width: 100%;
+  border: 1px solid var(--suu-color-border);
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: inherit;
+  border-radius: var(--suu-radius);
+}
+
+.suu-filter-table__filters--borderless {
+  border: 0;
+  border-radius: 0;
 }
 
 .suu-filter-table__filters th,
 .suu-filter-table__filters td {
-  padding: 16px 20px;
+  padding: 10px 12px;
   background: var(--suu-color-bg);
   text-align: left;
   vertical-align: middle;
@@ -682,22 +688,6 @@
   right: 0;
   width: 1px;
   background: var(--suu-color-border);
-}
-
-.suu-filter-table__filters tr:first-child th {
-  border-top-left-radius: calc(var(--suu-radius) + 3px);
-}
-
-.suu-filter-table__filters tr:first-child td {
-  border-top-right-radius: calc(var(--suu-radius) + 3px);
-}
-
-.suu-filter-table__filters tr:last-child th {
-  border-bottom-left-radius: calc(var(--suu-radius) + 3px);
-}
-
-.suu-filter-table__filters tr:last-child td {
-  border-bottom-right-radius: calc(var(--suu-radius) + 3px);
 }
 
 .suu-filter-table__filters td {
@@ -982,11 +972,15 @@
   background: color-mix(in srgb, var(--suu-color-surface) 70%, transparent);
 }
 
+.suu-table--plain tbody {
+  background: var(--suu-color-bg);
+}
+
 .suu-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.suu-table tbody tr:hover {
+.suu-table--hoverable tbody tr:hover {
   background: color-mix(in srgb, var(--suu-color-surface) 88%, transparent);
 }
 

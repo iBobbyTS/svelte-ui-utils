@@ -7,10 +7,11 @@
 
   export let rows: FilterTableRow[] = [];
   export let language: UiLanguage = 'en_us';
+  export let bordered = true;
 </script>
 
 <div class="suu-filter-table">
-  <table class="suu-filter-table__filters">
+  <table class:suu-filter-table__filters--borderless={!bordered} class="suu-filter-table__filters">
     <tbody>
       {#each rows as row (row.key)}
         <tr>

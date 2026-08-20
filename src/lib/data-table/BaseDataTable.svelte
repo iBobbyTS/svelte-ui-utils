@@ -19,6 +19,7 @@
   export let sort: SortState | null = null;
   export let showHeader = true;
   export let zebra = true;
+  export let hoverable = true;
   export let bordered = true;
   export let verticalSeparators = false;
   export let tableLayout: DataTableLayout = 'auto';
@@ -228,6 +229,8 @@
         class:suu-table--layout-fixed={tableLayout === 'fixed'}
         class:suu-table--sticky-header={stickyHeader}
         class:suu-table--zebra={zebra}
+        class:suu-table--plain={!zebra}
+        class:suu-table--hoverable={hoverable}
         class:suu-table--vertical-separators={verticalSeparators}
         class="suu-table"
       >
@@ -282,6 +285,8 @@
     class:suu-table--sticky-header={stickyHeader}
     class:suu-table--sticky-header-shadowed={showHeader && stickyHeaderVisible}
     class:suu-table--zebra={zebra}
+    class:suu-table--plain={!zebra}
+    class:suu-table--hoverable={hoverable}
     class:suu-table--vertical-separators={verticalSeparators}
     class="suu-table"
   >

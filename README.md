@@ -557,6 +557,11 @@ tables that should render body rows without a header section. Sortable headers
 preserve the current window scroll position by default and wait for an async
 `onSortChange` before restoring scroll position.
 
+Body rows change background on pointer hover by default. Set
+`hoverable={false}` to disable that behavior. When `zebra={false}`, the body
+uses `var(--suu-color-bg)` as its explicit background instead of alternating
+row colors.
+
 Column alignment is configured separately for headers and body cells.
 Horizontal alignment accepts `left`, `center`, or `right`; vertical alignment
 accepts `top`, `middle`, or `bottom`. Header alignment defaults to
@@ -631,6 +636,10 @@ for the left column and a controlled filter created with the `filter` helper:
 
 <FilterTable rows={filterRows} language="en_us" />
 ```
+
+`FilterTable` uses the same `1px solid var(--suu-color-border)` outer border
+and `var(--suu-radius)` corner radius as a bordered `DataTable`. Set
+`bordered={false}` to remove both the border and outer corner radius.
 
 `filter.select` uses the shared `Dropdown` component, so select filters keep the
 same menu, keyboard, and visual behavior as standalone dropdowns.

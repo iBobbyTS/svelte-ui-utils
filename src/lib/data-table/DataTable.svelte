@@ -32,6 +32,7 @@
   export let maxPageButtons = 15;
   export let onPaginationChange: PaginationChangeHandler | undefined = undefined;
   export let zebra = true;
+  export let hoverable = true;
   export let bordered = true;
   export let verticalSeparators = true;
   export let tableLayout: DataTableLayout = 'auto';
@@ -75,6 +76,7 @@
     {sort}
     {showHeader}
     {zebra}
+    {hoverable}
     {bordered}
     {verticalSeparators}
     {tableLayout}
