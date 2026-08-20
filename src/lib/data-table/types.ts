@@ -5,7 +5,15 @@ import type {
   DropdownSearchLoadOptions,
   DropdownSearchStatus
 } from '../dropdown-search/types.js';
-import type { DropdownPlacement } from '../dropdown/types.js';
+import type {
+  DropdownMenuAlign,
+  DropdownMultiChangeHandler,
+  DropdownMultiValue,
+  DropdownOption,
+  DropdownOptionGroup,
+  DropdownPlacement,
+  DropdownTriggerClickHandler
+} from '../dropdown/types.js';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -118,6 +126,25 @@ export interface FilterSelectControl {
   onChange: (value: string) => void | Promise<void>;
 }
 
+export interface DropdownMultiSelectFilterControl {
+  type: 'dropdownMultiSelect';
+  value: DropdownMultiValue;
+  options?: DropdownOption[];
+  optionGroups?: DropdownOptionGroup[];
+  ariaLabel?: string;
+  placement?: DropdownPlacement;
+  menuAlign?: DropdownMenuAlign;
+  fitViewport?: boolean;
+  fitContent?: boolean;
+  disabled?: boolean;
+  width?: string;
+  minWidth?: string;
+  maxWidth?: string;
+  portal?: boolean;
+  onChange: DropdownMultiChangeHandler;
+  onTriggerClick?: DropdownTriggerClickHandler;
+}
+
 export type DateRangePreset =
   | 'last24Hours'
   | 'last7Days'
@@ -220,6 +247,7 @@ export type FilterControl =
   | FilterButtonControl
   | FilterLinkControl
   | FilterSelectControl
+  | DropdownMultiSelectFilterControl
   | FilterContainerControl;
 
 export interface FilterTableRow {
@@ -231,11 +259,13 @@ export interface FilterTableRow {
 export type CheckboxFilterDefinition = CheckboxFilterControl & { key: string; label: string };
 export type RadioFilterDefinition = RadioFilterControl & { key: string; label: string };
 export type DropdownSearchFilterDefinition = DropdownSearchFilterControl & { key: string; label: string };
+export type DropdownMultiSelectFilterDefinition = DropdownMultiSelectFilterControl & { key: string; label: string };
 export type DateRangeFilterDefinition = DateRangeFilterControl & { key: string; label: string };
 export type NumberRangeFilterDefinition = NumberRangeFilterControl & { key: string; label: string };
 export type FilterDefinition =
   | CheckboxFilterDefinition
   | RadioFilterDefinition
   | DropdownSearchFilterDefinition
+  | DropdownMultiSelectFilterDefinition
   | DateRangeFilterDefinition
   | NumberRangeFilterDefinition;

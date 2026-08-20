@@ -635,6 +635,35 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-filter-table__filters--borderless')).toBeTruthy();
   });
 
+  it('renders a multi-select dropdown filter and keeps its menu open across selections', async () => {
+    const onChange = vi.fn();
+    const { container } = render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'groups',
+            title: 'Groups',
+            filter: filter.dropdownMultiSelect({
+              value: [],
+              options: [
+                { label: 'A', value: 'a' },
+                { label: 'B', value: 'b' }
+              ],
+              ariaLabel: 'Groups',
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Groups' }));
+    expect(screen.getByRole('option', { name: 'A' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('option', { name: 'A' }));
+    expect(onChange).toHaveBeenLastCalledWith(['a']);
+    expect(container.querySelector('.suu-dropdown__menu')).toBeTruthy();
+  });
+
   it('uses an explicit plain background and supports disabling row hover changes', () => {
     const { container } = render(DataTable, {
       props: {

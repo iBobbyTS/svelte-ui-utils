@@ -1,6 +1,7 @@
 import type {
   CheckboxFilterControl,
   DateRangeFilterControl,
+  DropdownMultiSelectFilterControl,
   DropdownSearchFilterControl,
   FilterButtonControl,
   FilterContainerControl,
@@ -43,6 +44,12 @@ function select(options: Omit<FilterSelectControl, 'type'>): FilterSelectControl
   return { type: 'select', ...options };
 }
 
+function dropdownMultiSelect(
+  options: Omit<DropdownMultiSelectFilterControl, 'type'>
+): DropdownMultiSelectFilterControl {
+  return { type: 'dropdownMultiSelect', ...options };
+}
+
 function container(controls: FilterControl[]): FilterContainerControl {
   return { type: 'container', controls };
 }
@@ -56,5 +63,6 @@ export const filter = {
   button,
   link,
   select,
+  dropdownMultiSelect,
   container
 };

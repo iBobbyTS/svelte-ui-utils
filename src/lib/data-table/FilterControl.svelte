@@ -2,6 +2,7 @@
 
 <script lang="ts">
   import Dropdown from '../dropdown/Dropdown.svelte';
+  import DropdownMultiSelect from '../dropdown/DropdownMultiSelect.svelte';
   import DropdownSearch from '../dropdown-search/DropdownSearch.svelte';
   import type { UiLanguage } from '../i18n.js';
   import DateRangeFilter from './DateRangeFilter.svelte';
@@ -190,5 +191,23 @@
         void control.onChange(String(value));
       }
     }}
+  />
+{:else if control.type === 'dropdownMultiSelect'}
+  <DropdownMultiSelect
+    value={control.value}
+    options={control.options}
+    optionGroups={control.optionGroups}
+    ariaLabel={control.ariaLabel}
+    placement={control.placement}
+    menuAlign={control.menuAlign}
+    fitViewport={control.fitViewport}
+    fitContent={control.fitContent}
+    disabled={control.disabled}
+    width={control.width}
+    minWidth={control.minWidth}
+    maxWidth={control.maxWidth}
+    portal={control.portal}
+    onChange={control.onChange}
+    onTriggerClick={control.onTriggerClick}
   />
 {/if}

@@ -38,6 +38,8 @@ export type {
   DataTableStateChangeHandler,
   DropdownSearchFilterDefinition,
   DropdownSearchFilterControl,
+  DropdownMultiSelectFilterDefinition,
+  DropdownMultiSelectFilterControl,
   FilterDefinition,
   FilterButtonControl,
   FilterContainerControl,
