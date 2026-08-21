@@ -1509,9 +1509,16 @@
 
 .suu-tooltip__panel img {
   display: block;
-  max-width: 280px;
-  max-height: 280px;
+  width: auto;
+  max-width: calc(100vw - 36px);
+  max-height: calc(100vh - 36px);
   height: auto;
+  object-fit: contain;
+}
+
+.suu-tooltip__panel:has(img) {
+  max-width: calc(100vw - 16px);
+  overflow: hidden;
 }
 
 .suu-dialog__button {
