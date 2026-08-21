@@ -1493,6 +1493,7 @@
   left: var(--suu-tooltip-left, 0px);
   z-index: 1300;
   max-width: min(320px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
   padding: 8px 10px;
   border: 1px solid var(--suu-color-border);
   border-radius: var(--suu-radius);
@@ -1502,6 +1503,7 @@
   font-size: 0.875rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
+  overflow-y: auto;
   pointer-events: none;
 }
 
