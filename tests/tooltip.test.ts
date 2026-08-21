@@ -26,12 +26,15 @@ describe('tooltip', () => {
   });
 
   it('shows content while the trigger is focused and provides tooltip semantics', async () => {
-    render(TooltipHarness, { props: { triggerLabel: 'Bilibili help', image: true } });
+    render(TooltipHarness, {
+      props: { triggerLabel: 'Bilibili help', image: true, imageText: '图片填写说明' },
+    });
 
     const trigger = screen.getByRole('button', { name: 'Bilibili help' });
     await fireEvent.focusIn(trigger);
 
     const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('图片填写说明');
     expect(tooltip).toContainElement(screen.getByRole('img', { name: '账号示例' }));
 
     await fireEvent.focusOut(trigger, { relatedTarget: document.body });

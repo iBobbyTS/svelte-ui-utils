@@ -1489,6 +1489,7 @@
 
 .suu-tooltip__panel {
   position: fixed;
+  box-sizing: border-box;
   top: var(--suu-tooltip-top, 0px);
   left: var(--suu-tooltip-left, 0px);
   z-index: 1300;
@@ -1517,8 +1518,15 @@
 }
 
 .suu-tooltip__panel:has(img) {
+  display: flex;
+  flex-direction: column;
   max-width: calc(100vw - 16px);
   overflow: hidden;
+}
+
+.suu-tooltip__panel:has(img) img {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .suu-dialog__button {
