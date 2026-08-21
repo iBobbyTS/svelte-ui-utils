@@ -1481,6 +1481,37 @@
   background: color-mix(in srgb, var(--suu-color-surface) 64%, var(--suu-color-bg));
 }
 
+.suu-tooltip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.suu-tooltip__panel {
+  position: fixed;
+  top: var(--suu-tooltip-top, 0px);
+  left: var(--suu-tooltip-left, 0px);
+  z-index: 1300;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 8px 10px;
+  border: 1px solid var(--suu-color-border);
+  border-radius: var(--suu-radius);
+  background: var(--suu-color-surface);
+  color: var(--suu-color-text);
+  box-shadow: var(--suu-shadow);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.suu-tooltip__panel img {
+  display: block;
+  max-width: 280px;
+  max-height: 280px;
+  height: auto;
+}
+
 .suu-dialog__button {
   min-height: 38px;
   padding: 7px 14px;
