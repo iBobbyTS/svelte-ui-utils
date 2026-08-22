@@ -41,7 +41,7 @@
     {/each}
   </div>
 {:else if control.type === 'checkbox'}
-  <div class="suu-filter-table__options" class:suu-filter-table__options--grouped={Boolean(control.optionGroups?.length)}>
+  <div class="suu-filter-table__options">
     {#if control.optionGroups?.length}
       {#each control.optionGroups as group, groupIndex}
         {#each group.options as option, optionIndex}
