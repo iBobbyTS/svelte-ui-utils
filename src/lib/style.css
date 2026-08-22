@@ -728,10 +728,14 @@
   align-items: center;
 }
 
+.suu-filter-table__options--grouped {
+  column-gap: 24px;
+}
+
 .suu-filter-table__option--group-end::after {
   position: absolute;
   top: 5%;
-  left: calc(100% + 8px);
+  left: calc(100% + 12px);
   bottom: 5%;
   width: 1px;
   background: var(--suu-color-border);
