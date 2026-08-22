@@ -2,6 +2,7 @@ export * from './toast/index.js';
 export * from './dropdown/index.js';
 export * from './dropdown-search/index.js';
 export * from './dialog/index.js';
+export * from './tooltip/index.js';
 export * from './data-table/index.js';
 export * from './sortable-list/index.js';
 export * from './ordered-list/index.js';
