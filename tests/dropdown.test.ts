@@ -103,6 +103,27 @@ describe('dropdown', () => {
     expect(container.querySelector('.suu-dropdown__menu')).not.toHaveClass('suu-dropdown__menu--fit-content');
   });
 
+  it('uses content-sized menus for multiselect by default and preserves the explicit opt-out', async () => {
+    const { container, rerender } = render(DropdownMultiSelect, {
+      props: {
+        value: [],
+        ariaLabel: 'Default multiselect sizing',
+        options: [{ label: 'A longer option label', value: 'long' }]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Default multiselect sizing' }));
+    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--fit-content');
+
+    await rerender({
+      value: [],
+      ariaLabel: 'Default multiselect sizing',
+      fitContent: false,
+      options: [{ label: 'A longer option label', value: 'long' }]
+    });
+    expect(container.querySelector('.suu-dropdown__menu')).not.toHaveClass('suu-dropdown__menu--fit-content');
+  });
+
   it('wraps dropdown labels to two lines and truncates longer text', async () => {
     const { container } = render(Dropdown, {
       props: {

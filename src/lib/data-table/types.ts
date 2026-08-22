@@ -171,6 +171,7 @@ export interface CheckboxFilterControl {
   type: 'checkbox';
   value: Array<string | number>;
   options: FilterOption[];
+  optionGroups?: DropdownOptionGroup[];
   onChange: (value: Array<string | number>) => void | Promise<void>;
 }
 

@@ -624,6 +624,32 @@ describe('data table components', () => {
     expect(onRoleChange).toHaveBeenLastCalledWith('member');
   });
 
+  it('renders grouped checkbox options with dividers and keeps one selection callback', async () => {
+    const onChange = vi.fn();
+    const { container } = render(FilterTable, {
+      props: {
+        rows: [{
+          key: 'categories',
+          title: 'Categories',
+          filter: filter.checkbox({
+            value: [],
+            options: [],
+            optionGroups: [
+              { label: '前期', options: [{ label: '制作统筹', value: 'producer' }] },
+              { label: '演奏', options: [{ label: '乐手', value: 'musician' }] }
+            ],
+            onChange
+          })
+        }]
+      }
+    });
+
+    expect(container.querySelectorAll('.suu-filter-table__option-group')).toHaveLength(2);
+    expect(container.querySelectorAll('.suu-filter-table__option-group--divided')).toHaveLength(1);
+    await fireEvent.click(screen.getByLabelText('乐手'));
+    expect(onChange).toHaveBeenLastCalledWith(['musician']);
+  });
+
   it('can render FilterTable without its outer border', () => {
     const { container } = render(FilterTable, {
       props: {
@@ -659,6 +685,7 @@ describe('data table components', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Groups' }));
     expect(screen.getByRole('option', { name: 'A' })).toBeTruthy();
+    expect(container.querySelector('.suu-dropdown__menu')).toHaveClass('suu-dropdown__menu--fit-content');
     await fireEvent.click(screen.getByRole('option', { name: 'A' }));
     expect(onChange).toHaveBeenLastCalledWith(['a']);
     expect(container.querySelector('.suu-dropdown__menu')).toBeTruthy();

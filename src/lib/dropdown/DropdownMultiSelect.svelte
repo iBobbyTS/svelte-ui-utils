@@ -20,7 +20,7 @@
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
   export let fitViewport = true;
-  export let fitContent = false;
+  export let fitContent = true;
   export let disabled = false;
   export let width: string | undefined = undefined;
   export let minWidth: string | undefined = undefined;
