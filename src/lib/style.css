@@ -728,23 +728,14 @@
   align-items: center;
 }
 
-.suu-filter-table__options--grouped {
-  flex-wrap: nowrap;
-  align-items: stretch;
-}
-
-.suu-filter-table__option-group {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  align-items: center;
-}
-
-.suu-filter-table__option-group--divided {
-  border-right: 1px solid var(--suu-color-border);
-  padding-right: 14px;
+.suu-filter-table__option--group-end::after {
+  position: absolute;
+  top: 5%;
+  left: calc(100% + 8px);
+  bottom: 5%;
+  width: 1px;
+  background: var(--suu-color-border);
+  content: '';
 }
 
 .suu-filter-table__option {

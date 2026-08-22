@@ -644,8 +644,8 @@ describe('data table components', () => {
       }
     });
 
-    expect(container.querySelectorAll('.suu-filter-table__option-group')).toHaveLength(2);
-    expect(container.querySelectorAll('.suu-filter-table__option-group--divided')).toHaveLength(1);
+    expect(container.querySelectorAll('.suu-filter-table__option')).toHaveLength(2);
+    expect(container.querySelectorAll('.suu-filter-table__option--group-end')).toHaveLength(1);
     await fireEvent.click(screen.getByLabelText('乐手'));
     expect(onChange).toHaveBeenLastCalledWith(['musician']);
   });

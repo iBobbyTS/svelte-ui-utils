@@ -41,29 +41,31 @@
     {/each}
   </div>
 {:else if control.type === 'checkbox'}
-  <div class:suu-filter-table__options--grouped={control.optionGroups?.length} class="suu-filter-table__options">
+  <div class="suu-filter-table__options">
     {#if control.optionGroups?.length}
       {#each control.optionGroups as group, groupIndex}
-        <div class:suu-filter-table__option-group--divided={groupIndex < (control.optionGroups?.length ?? 0) - 1} class="suu-filter-table__option-group">
-          {#each group.options as option}
-            <label class="suu-filter-table__option" class:suu-filter-table__option--checked={control.value.includes(option.value)}>
-              <input
-                class="suu-filter-table__option-input"
-                type="checkbox"
-                value={option.value}
-                disabled={option.disabled}
-                checked={control.value.includes(option.value)}
-                on:change={(event) => toggleCheckbox(option.value, (event.currentTarget as HTMLInputElement).checked)}
-              />
-              <span class="suu-filter-table__option-label">{option.label}</span>
-              <span class="suu-filter-table__option-check" aria-hidden="true">
-                <svg viewBox="0 0 20 20">
-                  <path d="m5 10 3 3 7-7"></path>
-                </svg>
-              </span>
-            </label>
-          {/each}
-        </div>
+        {#each group.options as option, optionIndex}
+          <label
+            class="suu-filter-table__option"
+            class:suu-filter-table__option--checked={control.value.includes(option.value)}
+            class:suu-filter-table__option--group-end={groupIndex < control.optionGroups.length - 1 && optionIndex === group.options.length - 1}
+          >
+            <input
+              class="suu-filter-table__option-input"
+              type="checkbox"
+              value={option.value}
+              disabled={option.disabled}
+              checked={control.value.includes(option.value)}
+              on:change={(event) => toggleCheckbox(option.value, (event.currentTarget as HTMLInputElement).checked)}
+            />
+            <span class="suu-filter-table__option-label">{option.label}</span>
+            <span class="suu-filter-table__option-check" aria-hidden="true">
+              <svg viewBox="0 0 20 20">
+                <path d="m5 10 3 3 7-7"></path>
+              </svg>
+            </span>
+          </label>
+        {/each}
       {/each}
     {:else}
       {#each control.options as option}
