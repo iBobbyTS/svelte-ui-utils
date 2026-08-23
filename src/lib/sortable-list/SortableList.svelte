@@ -156,7 +156,7 @@
     left: 0;
     z-index: 2;
     height: 3px;
-    border-radius: 999px;
+    border-radius: var(--suu-radius-pill);
     background: var(--suu-color-accent, #2563eb);
     box-shadow: 0 0 8px color-mix(in srgb, var(--suu-color-accent, #2563eb) 65%, transparent);
     content: '';

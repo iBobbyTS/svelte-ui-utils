@@ -12,7 +12,13 @@
   --suu-color-warning: #d97706;
   --suu-color-info: #2563eb;
   --suu-shadow: 0 12px 30px rgb(15 23 42 / 0.14);
-  --suu-radius: 8px;
+  --suu-radius-xs: 4px;
+  --suu-radius-sm: 6px;
+  --suu-radius-md: 8px;
+  --suu-radius-pill: 999px;
+  --suu-radius: var(--suu-radius-md);
+  --suu-radius-lg: calc(var(--suu-radius) + 2px);
+  --suu-radius-inner: max(0px, calc(var(--suu-radius) - 1px));
   --suu-font: inherit;
 }
 
@@ -170,7 +176,7 @@
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   background: transparent;
   color: var(--suu-color-muted);
   cursor: pointer;
@@ -236,7 +242,7 @@
   gap: 6px;
   padding: 4px 6px 4px 10px;
   border: 1px solid color-mix(in srgb, var(--suu-color-accent) 34%, var(--suu-color-border));
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   background: color-mix(in srgb, var(--suu-color-accent) 9%, var(--suu-color-bg));
   color: var(--suu-color-text);
   font-size: 0.875rem;
@@ -257,7 +263,7 @@
   height: 1.25rem;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   background: transparent;
   color: var(--suu-color-muted);
   cursor: pointer;
@@ -349,7 +355,7 @@
   height: 1.5rem;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   background: transparent;
   color: var(--suu-color-muted);
   cursor: pointer;
@@ -451,7 +457,7 @@
   width: 1rem;
   height: 1rem;
   border: 1px solid var(--suu-color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--suu-radius-xs);
   color: transparent;
 }
 
@@ -496,7 +502,7 @@
   height: 0.875rem;
   border: 2px solid color-mix(in srgb, var(--suu-color-muted) 28%, transparent);
   border-top-color: var(--suu-color-accent);
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   animation: suu-dropdown-spinner 700ms linear infinite;
 }
 
@@ -691,19 +697,19 @@
 }
 
 .suu-filter-table__filters:not(.suu-filter-table__filters--borderless) tr:first-child th {
-  border-top-left-radius: calc(var(--suu-radius) + 3px);
+  border-top-left-radius: var(--suu-radius-inner);
 }
 
 .suu-filter-table__filters:not(.suu-filter-table__filters--borderless) tr:first-child td {
-  border-top-right-radius: calc(var(--suu-radius) + 3px);
+  border-top-right-radius: var(--suu-radius-inner);
 }
 
 .suu-filter-table__filters:not(.suu-filter-table__filters--borderless) tr:last-child th {
-  border-bottom-left-radius: calc(var(--suu-radius) + 3px);
+  border-bottom-left-radius: var(--suu-radius-inner);
 }
 
 .suu-filter-table__filters:not(.suu-filter-table__filters--borderless) tr:last-child td {
-  border-bottom-right-radius: calc(var(--suu-radius) + 3px);
+  border-bottom-right-radius: var(--suu-radius-inner);
 }
 
 .suu-filter-table__filters td {
@@ -802,7 +808,7 @@
   height: 1em;
   place-items: center;
   border: 1px solid var(--suu-color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   color: transparent;
   transform: translateY(0.06em);
 }
@@ -1318,7 +1324,7 @@
   width: 1em;
   height: 1em;
   border: 1px solid var(--suu-color-border);
-  border-radius: 0.2em;
+  border-radius: var(--suu-radius-xs);
   background: var(--suu-color-bg);
 }
 
@@ -1389,7 +1395,7 @@
   max-height: min(720px, calc(100vh - 48px));
   overflow: hidden;
   border: 1px solid var(--suu-color-border);
-  border-radius: calc(var(--suu-radius) + 2px);
+  border-radius: var(--suu-radius-lg);
   background: var(--suu-color-bg);
   box-shadow: var(--suu-shadow);
 }
@@ -1461,7 +1467,7 @@
   height: 2rem;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   background: transparent;
   color: var(--suu-color-muted);
   cursor: pointer;
@@ -1704,7 +1710,7 @@
   height: 1rem;
   border: 2px solid color-mix(in srgb, var(--suu-color-muted) 28%, transparent);
   border-top-color: var(--suu-color-accent);
-  border-radius: 999px;
+  border-radius: var(--suu-radius-pill);
   animation: suu-dropdown-spinner 700ms linear infinite;
 }
 

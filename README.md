@@ -736,6 +736,27 @@ inside a theme root:
 }
 ```
 
+### Corner-radius tokens
+
+All non-zero component corner radii come from the token definitions in
+`src/lib/style.css`. Reuse an existing token before adding another radius; when
+a confirmed design requirement needs a new size, define it in that token block
+first and reference it from components.
+
+| Token | Default | Intended use |
+| --- | ---: | --- |
+| `--suu-radius-xs` | `4px` | compact checks and small indicators |
+| `--suu-radius-sm` | `6px` | compact controls |
+| `--suu-radius-md` | `8px` | standard controls and surfaces |
+| `--suu-radius-lg` | standard radius plus `2px` | dialogs and prominent surfaces |
+| `--suu-radius-pill` | `999px` | pills and circular controls |
+| `--suu-radius` | `--suu-radius-md` | backward-compatible standard radius override |
+| `--suu-radius-inner` | standard radius minus `1px` | inner fill inside a standard `1px` border |
+
+Use `0` directly when a component intentionally has square corners. Component
+styles must not introduce other numeric `border-radius` values or ad hoc radius
+calculations.
+
 ## Release
 
 Do not publish this package as part of consumer-app local integration work.

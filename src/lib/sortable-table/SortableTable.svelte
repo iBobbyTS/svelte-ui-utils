@@ -106,7 +106,7 @@
 </div>
 
 <style>
-  .suu-sortable-table-wrap { overflow: auto; border: 1px solid var(--suu-sortable-table-border, var(--suu-color-border, #d1d5db)); border-radius: var(--suu-radius, 8px); }
+  .suu-sortable-table-wrap { overflow: auto; border: 1px solid var(--suu-sortable-table-border, var(--suu-color-border, #d1d5db)); border-radius: var(--suu-radius); }
   .suu-sortable-table { width: 100%; border-collapse: collapse; }
   .suu-sortable-table__drag-column { width: 1%; }
   .suu-sortable-table__remove-column { width: 38px; }

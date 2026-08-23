@@ -54,7 +54,7 @@
   .suu-ordered-list-editor__row :global(label input) { flex: 0; }
   .compact .suu-ordered-list-editor__row { gap: 3px; }
   .suu-ordered-list-editor__current { margin-left: auto; }
-  .suu-ordered-list-editor__remove { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #dc2626; cursor: pointer; }
+  .suu-ordered-list-editor__remove { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 6px; border: 1px solid transparent; border-radius: var(--suu-radius-sm); background: transparent; color: #dc2626; cursor: pointer; }
   .suu-ordered-list-editor__remove svg { width: 16px; height: 16px; }
   .suu-ordered-list-editor__remove:disabled { cursor: default; opacity: .35; }
 </style>
