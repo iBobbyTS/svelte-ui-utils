@@ -415,6 +415,72 @@ describe('DropdownSearch component', () => {
     });
   });
 
+  it('clears loaded search state when the containing form resets', async () => {
+    const form = document.body.appendChild(document.createElement('form'));
+    const changes: Array<{
+      value: string;
+      selectedItem: DropdownSearchItem | null;
+      status: string;
+    }> = [];
+
+    render(DropdownSearch, {
+      target: form,
+      props: {
+        debounceMs: 0,
+        loadOptions: () => ({ options: [jane], exactMatch: jane }),
+        onChange: (detail) => changes.push(detail),
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.input(input, { target: { value: 'Jane Doe' } });
+    await waitFor(() => expect(screen.getByRole('option')).toBeInTheDocument());
+    await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'false'));
+
+    form.reset();
+    await tick();
+
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    expect(changes.at(-1)).toMatchObject({
+      value: '',
+      selectedItem: null,
+      status: 'empty',
+    });
+  });
+
+  it('aborts an active search when the containing form resets', async () => {
+    let searchSignal: AbortSignal | undefined;
+    let resolveSearch: ((result: { options: DropdownSearchItem[] }) => void) | undefined;
+    const form = document.body.appendChild(document.createElement('form'));
+
+    render(DropdownSearch, {
+      target: form,
+      props: {
+        debounceMs: 0,
+        loadOptions: (_query, { signal }) => {
+          searchSignal = signal;
+          return new Promise((resolve) => {
+            resolveSearch = resolve;
+          });
+        },
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.input(input, { target: { value: 'Jane' } });
+    await waitFor(() => expect(searchSignal).toBeDefined());
+
+    form.reset();
+    await tick();
+
+    expect(searchSignal?.aborted).toBe(true);
+    expect(input).toHaveValue('');
+    resolveSearch?.({ options: [jane] });
+    await tick();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  });
+
   it('uses localized default labels when no text override is passed', async () => {
     const loadOptions = vi.fn<DropdownSearchLoadOptions>(() => ({
       options: [],

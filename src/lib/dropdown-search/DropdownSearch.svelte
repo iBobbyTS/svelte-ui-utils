@@ -301,6 +301,33 @@
     }, 0);
   }
 
+  function handleFormReset() {
+    clearSearchTimer();
+    clearBlurTimer();
+    abortActiveSearch();
+    value = '';
+    inputValue = '';
+    lastHandledValue = '';
+    if (!multiselect) {
+      selectedItem = null;
+    }
+    exactMatch = null;
+    options = [];
+    showingFocusOptions = false;
+    setStatus(
+      resolveDropdownSearchStatus({
+        value,
+        selectedItem,
+        selectedItems,
+        exactMatch,
+        minLength,
+        validate,
+        multiselect,
+      }),
+    );
+    emitChange();
+  }
+
   function handleFocus() {
     clearBlurTimer();
     focused = true;
@@ -526,12 +553,15 @@
   });
 
   onMount(() => {
+    const formElement = inputElement?.form;
+    formElement?.addEventListener('reset', handleFormReset);
     if (showOptionsOnFocus && focused) {
       showFocusOptions();
     }
     if (searchOnExternalValueChange && normalizeDropdownSearchValue(value)) {
       handleExternalValue(value);
     }
+    return () => formElement?.removeEventListener('reset', handleFormReset);
   });
 </script>
 
