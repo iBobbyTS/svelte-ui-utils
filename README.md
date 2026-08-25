@@ -507,7 +507,16 @@ can stop event propagation without preventing the dropdown from opening.
 
 ```svelte
 <script lang="ts">
-  import { DataTable } from '@ibobbyts/svelte-ui-utils/table';
+  import {
+    DataTable,
+    type PaginationState,
+    type SortState
+  } from '@ibobbyts/svelte-ui-utils/table';
+
+  type UserRow = {
+    name: string;
+    createdAt: string;
+  };
 
   const columns = [
     { key: 'name', header: 'Name', sortable: true },
@@ -522,9 +531,27 @@ can stop event propagation without preventing the dropdown from opening.
     }
   ];
 
-  let sort = null;
-  let page = 1;
-  let pageSize = 20;
+  let rows: UserRow[] = [];
+  let totalRows = 0;
+  let searchTerm = '';
+  let sort: SortState | null = null;
+
+  async function loadRows({ page, pageSize }: PaginationState) {
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+      search: searchTerm
+    });
+    const response = await fetch(`/api/users?${params}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to load users');
+    }
+
+    const result = (await response.json()) as { rows: UserRow[]; totalRows: number };
+    rows = result.rows;
+    totalRows = result.totalRows;
+  }
 </script>
 
 <DataTable
@@ -532,27 +559,44 @@ can stop event propagation without preventing the dropdown from opening.
   rows={rows}
   {columns}
   {sort}
-  {page}
-  {pageSize}
-  totalRows={totalRows}
+  pagination={{
+    tableId: 'admin-users',
+    totalRows,
+    defaultPageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    persistPageSize: true,
+    queryKey: searchTerm,
+    onRequest: loadRows
+  }}
   tableLayout="auto"
   stickyHeader={true}
   onSortChange={(next) => {
     sort = next;
-    page = 1;
-  }}
-  onPaginationChange={(next) => {
-    page = next.page;
-    pageSize = next.pageSize;
   }}
 />
 ```
 
+`DataTable` only supports server pagination. Pass the current page rows in
+`rows`, the server count in `pagination.totalRows`, and load each requested page
+through `pagination.onRequest`. The component owns page and page-size state,
+resets to page `1` when the primitive `queryKey` changes, disables both
+pagination bars while a request is pending, and rolls back its controls if that
+request rejects. The callback remains responsible for presenting request errors.
+
+Set `persistPageSize: true` and provide a stable, non-empty `tableId` to retain
+the selected page size in browser `localStorage`. The generated key is
+`svelte-ui-utils:data-table:<tableId>:page-size`; callers do not construct it.
+Stored values are accepted only when present in the normalized
+`pageSizeOptions`. Storage failures are ignored. Options default to
+`[10, 20, 50, 100]`, and `defaultPageSize` falls back to the first unique
+positive integer option when omitted or invalid.
+
 `DataTable` renders page-number pagination above and below the data table by
 default, including a page-size selector. Use `language` for package-owned
 defaults such as empty state, pagination label, and page-size label; use
-`pageSizeLabel` or `emptyText` when a specific app needs to override them.
-Use `showPagination={false}` for static tables. Use `showHeader={false}` for
+`pagination.pageSizeLabel` or `emptyText` when a specific app needs to override
+them.
+Pass `pagination={false}` for static tables. Use `showHeader={false}` for
 tables that should render body rows without a header section. Sortable headers
 preserve the current window scroll position by default and wait for an async
 `onSortChange` before restoring scroll position.
@@ -590,9 +634,10 @@ pagination outside `DataTable`:
 />
 ```
 
-Render two synchronized pagination bars by passing both instances the same
-controlled `pagination` value and the same `onPaginationChange` handler. This
-is the same contract `DataTable` uses for its top and bottom pagination.
+Render two synchronized standalone pagination bars by passing both instances
+the same controlled `pagination` value and the same `onPaginationChange`
+handler. Standalone `Pagination` remains controlled; `DataTable` owns its own
+server-pagination state.
 
 `FilterTable` is filter-only. It accepts `rows`, where each row has a `title`
 for the left column and a controlled filter created with the `filter` helper:
@@ -676,16 +721,17 @@ toast close labels, dropdown loading/empty/clear labels, table empty and
 pagination labels, date range labels and presets, and number range labels.
 Business labels such as column headers, filter row titles, button labels, and
 placeholders should still be passed by the consuming app. Explicit props such
-as `closeLabel`, `clearLabel`, `noResultsText`, `emptyText`, `pageSizeLabel`,
-`startLabel`, and `minLabel` always override the language defaults.
+as `closeLabel`, `clearLabel`, `noResultsText`, `emptyText`, `startLabel`, and
+`minLabel`, plus nested settings such as `pagination.pageSizeLabel`, always
+override the language defaults.
 
-Use `DataTable showPagination={false}` for a non-paginated data table:
+Pass `pagination={false}` for a non-paginated data table:
 
 ```svelte
 <DataTable
   rows={rows}
   {columns}
-  showPagination={false}
+  pagination={false}
   rowKey="id"
   tableLayout="fixed"
   stickyHeader={true}

@@ -26,6 +26,8 @@ export type {
   DataTableClassValue,
   DataTableHorizontalAlign,
   DataTableLayout,
+  DataTablePaginationQueryKey,
+  DataTableServerPagination,
   DataTableVerticalAlign,
   DateRangeFilterDefinition,
   DateRangeFilterControl,

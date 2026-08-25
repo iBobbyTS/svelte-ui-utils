@@ -14,6 +14,7 @@
   export let pageSizeLabel: string | undefined = undefined;
   export let maxPageButtons = 15;
   export let pageSizeDropdownPlacement: PaginationDropdownPlacement = 'down';
+  export let disabled = false;
   export let onPaginationChange: PaginationChangeHandler | undefined = undefined;
 
   type PaginationItem = { kind: 'page'; page: number } | { kind: 'ellipsis' };
@@ -74,10 +75,16 @@
   }
 
   function setPage(page: number) {
+    if (disabled) {
+      return;
+    }
     void onPaginationChange?.(normalizePagination({ ...normalized, page }, totalRows));
   }
 
   function setPageSize(nextValue: DropdownValue) {
+    if (disabled) {
+      return;
+    }
     const pageSize = typeof nextValue === 'number' ? nextValue : Number(nextValue);
     if (!Number.isFinite(pageSize)) {
       return;
@@ -95,6 +102,7 @@
           class:suu-pagination__page-button={true}
           class:suu-pagination__page-button--active={item.page === normalized.page}
           aria-current={item.page === normalized.page ? 'page' : undefined}
+          {disabled}
           on:click={() => setPage(item.page)}
         >
           {item.page}
@@ -111,6 +119,7 @@
       options={pageSizeDropdownOptions}
       ariaLabel={resolvedPageSizeLabel}
       placement={pageSizeDropdownPlacement}
+      {disabled}
       onChange={setPageSize}
     />
   </div>

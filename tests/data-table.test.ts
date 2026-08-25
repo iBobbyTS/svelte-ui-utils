@@ -60,6 +60,42 @@ function mockWindowScroll(initialX: number, initialY: number) {
   };
 }
 
+function mockLocalStorage(initialEntries: Record<string, string> = {}) {
+  const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+  const values = new Map(Object.entries(initialEntries));
+  const storage = {
+    getItem: vi.fn((key: string) => values.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => values.set(key, String(value))),
+    removeItem: vi.fn((key: string) => values.delete(key)),
+    clear: vi.fn(() => values.clear()),
+    key: vi.fn((index: number) => [...values.keys()][index] ?? null),
+    get length() {
+      return values.size;
+    }
+  } as Storage;
+  Object.defineProperty(window, 'localStorage', { configurable: true, value: storage });
+  return {
+    storage,
+    restore() {
+      if (original) {
+        Object.defineProperty(window, 'localStorage', original);
+      } else {
+        Reflect.deleteProperty(window, 'localStorage');
+      }
+    }
+  };
+}
+
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 function makeRect(overrides: Partial<DOMRect> = {}): DOMRect {
   const left = overrides.left ?? overrides.x ?? 0;
   const top = overrides.top ?? overrides.y ?? 0;
@@ -171,7 +207,7 @@ describe('data table components', () => {
 
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', sortable: true }],
         sort: null,
@@ -200,7 +236,7 @@ describe('data table components', () => {
     try {
       render(DataTable, {
         props: {
-          showPagination: false,
+          pagination: false,
           rows: [{ name: 'Jane' }],
           columns: [{ key: 'name', header: 'Name', sortable: true }],
           sort: null,
@@ -222,7 +258,7 @@ describe('data table components', () => {
   it('renders sorted states with single-direction svg arrows', async () => {
     const { container, rerender } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name', sortable: true }],
         sort: { key: 'name', direction: 'asc' }
@@ -235,7 +271,7 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table__sort-icon--desc')).toBeFalsy();
 
     await rerender({
-      showPagination: false,
+      pagination: false,
       rows: [{ name: 'Jane' }],
       columns: [{ key: 'name', header: 'Name', sortable: true }],
       sort: { key: 'name', direction: 'desc' }
@@ -248,7 +284,7 @@ describe('data table components', () => {
   it('renders row attributes and optional table styling classes', () => {
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ id: 42, name: 'Jane' }],
         columns: [
           {
@@ -290,7 +326,7 @@ describe('data table components', () => {
   it('uses separate default header and cell alignment values', () => {
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }]
       }
@@ -304,7 +340,7 @@ describe('data table components', () => {
     const { container } = render(DataTable, {
       props: {
         showHeader: false,
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane', role: 'Admin' }],
         columns: [
           { key: 'name', header: 'Name' },
@@ -322,7 +358,7 @@ describe('data table components', () => {
   it('can disable sticky headers', () => {
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
         stickyHeader: false
@@ -335,7 +371,7 @@ describe('data table components', () => {
   it('shows the fixed header as soon as the original header reaches the sticky offset', async () => {
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ id: 1, name: 'Jane' }],
         columns: [
           { key: 'id', header: 'ID', sortable: true },
@@ -373,7 +409,7 @@ describe('data table components', () => {
       props: {
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 1,
+        pagination: false,
         tableLayout: 'fixed',
         stickyHeaderTop: '3rem',
         stickyHeaderOffset: '64px'
@@ -398,7 +434,7 @@ describe('data table components', () => {
         props: {
           rows: [{ name: 'Jane' }],
           columns: [{ key: 'name', header: 'Name', sortable: true }],
-          totalRows: 1,
+          pagination: false,
           onSortChange
         }
       });
@@ -478,100 +514,247 @@ describe('data table components', () => {
     ]);
   });
 
-  it('renders DataTable pagination above and below the table by default', async () => {
+  it('renders synchronized server pagination above and below the table', async () => {
+    const onRequest = vi.fn();
     const { container } = render(DataTable, {
       props: {
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 42,
-        page: 2,
-        pageSize: 20
+        pagination: { tableId: 'members', totalRows: 42, defaultPageSize: 20, onRequest }
       }
     });
 
     expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: '3' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '1' })).toHaveLength(2);
     expect(screen.getByText('Jane')).toBeTruthy();
 
     const pageSizeButtons = screen.getAllByRole('button', { name: 'Rows' });
-    await fireEvent.click(pageSizeButtons[0]);
+    await fireEvent.click(pageSizeButtons[0] as HTMLElement);
     expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--down')).toBe(true);
-    await fireEvent.click(pageSizeButtons[0]);
-
-    await fireEvent.click(pageSizeButtons[1]);
+    await fireEvent.click(pageSizeButtons[0] as HTMLElement);
+    await fireEvent.click(pageSizeButtons[1] as HTMLElement);
     expect(container.querySelector('.suu-dropdown__menu')?.classList.contains('suu-dropdown__menu--up')).toBe(true);
+    expect(onRequest).not.toHaveBeenCalled();
   });
 
-  it('hides DataTable pagination when total rows are below the smallest page size option', () => {
-    const { container } = render(DataTable, {
+  it('restores and persists a valid page size through the table id', async () => {
+    const storageKey = 'svelte-ui-utils:data-table:members:page-size';
+    const localStorage = mockLocalStorage({ [storageKey]: '50' });
+    const onRequest = vi.fn();
+    try {
+      render(DataTable, {
+        props: {
+          rows: [{ name: 'Jane' }],
+          columns: [{ key: 'name', header: 'Name' }],
+          pagination: {
+            tableId: 'members', totalRows: 100, defaultPageSize: 20,
+            pageSizeOptions: [20, 50, 100], persistPageSize: true, onRequest
+          }
+        }
+      });
+
+      await waitFor(() => expect(onRequest).toHaveBeenCalledWith({ page: 1, pageSize: 50 }));
+      expect(screen.getAllByRole('button', { name: 'Rows' }).map((button) => button.textContent?.trim())).toEqual(['50', '50']);
+
+      await fireEvent.click(screen.getAllByRole('button', { name: 'Rows' })[0] as HTMLElement);
+      await fireEvent.click(screen.getByRole('option', { name: '100' }));
+      await waitFor(() => expect(localStorage.storage.getItem(storageKey)).toBe('100'));
+      expect(onRequest).toHaveBeenLastCalledWith({ page: 1, pageSize: 100 });
+    } finally {
+      localStorage.restore();
+    }
+  });
+
+  it('ignores stored page sizes outside the normalized options', async () => {
+    const storageKey = 'svelte-ui-utils:data-table:members:page-size';
+    const localStorage = mockLocalStorage({ [storageKey]: '75' });
+    const onRequest = vi.fn();
+    try {
+      render(DataTable, {
+        props: {
+          rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }],
+          pagination: {
+            tableId: 'members', totalRows: 100, defaultPageSize: 20,
+            pageSizeOptions: [20, 50, 100], persistPageSize: true, onRequest
+          }
+        }
+      });
+      await waitFor(() => expect(screen.getAllByRole('button', { name: 'Rows' })).toHaveLength(2));
+      expect(onRequest).not.toHaveBeenCalled();
+      expect(screen.getAllByRole('button', { name: 'Rows' })[0]?.textContent?.trim()).toBe('20');
+    } finally {
+      localStorage.restore();
+    }
+  });
+
+  it('normalizes page size options and falls back to the first valid default', async () => {
+    render(DataTable, {
       props: {
-        rows: [{ name: 'Jane' }, { name: 'John' }],
-        columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 2,
-        pageSizeOptions: [10, 20]
+        rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }],
+        pagination: {
+          tableId: 'members', totalRows: 100, defaultPageSize: 50,
+          pageSizeOptions: [20, 20, -1, 12.5, 0], onRequest: vi.fn()
+        }
       }
     });
+    const pageSizeButton = screen.getAllByRole('button', { name: 'Rows' })[0] as HTMLElement;
+    expect(pageSizeButton.textContent?.trim()).toBe('20');
+    await fireEvent.click(pageSizeButton);
+    expect(screen.getAllByRole('option').map((option) => option.textContent?.trim())).toEqual(['20']);
+  });
 
+  it('updates optimistically, disables both controls, and keeps state after success', async () => {
+    const request = deferred();
+    const onRequest = vi.fn(() => request.promise);
+    render(DataTable, {
+      props: {
+        rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }],
+        pagination: { tableId: 'members', totalRows: 35, defaultPageSize: 10, onRequest }
+      }
+    });
+    await fireEvent.click(screen.getAllByRole('button', { name: '3' })[0] as HTMLElement);
+    expect(onRequest).toHaveBeenCalledWith({ page: 3, pageSize: 10 });
+    expect(screen.getAllByRole('button', { name: '3' }).map((button) => button.getAttribute('aria-current'))).toEqual(['page', 'page']);
+    expect(screen.getAllByRole('button', { name: 'Rows' }).every((button) => button.hasAttribute('disabled'))).toBe(true);
+    request.resolve();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Rows' })[0]?.hasAttribute('disabled')).toBe(false));
+  });
+
+  it('rolls back and unlocks controls after a rejected request', async () => {
+    const request = deferred();
+    const onRequest = vi.fn(() => request.promise);
+    render(DataTable, {
+      props: {
+        rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }],
+        pagination: { tableId: 'members', totalRows: 35, defaultPageSize: 10, onRequest }
+      }
+    });
+    await fireEvent.click(screen.getAllByRole('button', { name: '3' })[0] as HTMLElement);
+    request.reject(new Error('request failed'));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: '1' }).map((button) => button.getAttribute('aria-current'))).toEqual(['page', 'page']));
+    expect(screen.getAllByRole('button', { name: 'Rows' })[0]?.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('resets to page 1 when queryKey changes without requesting on initial mount', async () => {
+    const onRequest = vi.fn();
+    const basePagination = { tableId: 'members', totalRows: 35, defaultPageSize: 10, onRequest };
+    const props = { rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }] };
+    const { rerender } = render(DataTable, { props: { ...props, pagination: { ...basePagination, queryKey: 'active' } } });
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Rows' })).toHaveLength(2));
+    expect(onRequest).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getAllByRole('button', { name: '3' })[0] as HTMLElement);
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith({ page: 3, pageSize: 10 }));
+    onRequest.mockClear();
+    await rerender({ ...props, pagination: { ...basePagination, queryKey: 'archived' } });
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith({ page: 1, pageSize: 10 }));
+  });
+
+  it('does not let an older request completion unlock or replace newer pagination state', async () => {
+    const firstRequest = deferred();
+    const secondRequest = deferred();
+    const onRequest = vi.fn()
+      .mockImplementationOnce(() => firstRequest.promise)
+      .mockImplementationOnce(() => secondRequest.promise);
+    const basePagination = { tableId: 'members', totalRows: 35, defaultPageSize: 10, onRequest };
+    const props = { rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }] };
+    const { rerender } = render(DataTable, { props: { ...props, pagination: { ...basePagination, queryKey: 'active' } } });
+
+    await fireEvent.click(screen.getAllByRole('button', { name: '3' })[0] as HTMLElement);
+    await rerender({ ...props, pagination: { ...basePagination, queryKey: 'archived' } });
+    await waitFor(() => expect(onRequest).toHaveBeenNthCalledWith(2, { page: 1, pageSize: 10 }));
+
+    firstRequest.resolve();
+    await Promise.resolve();
+    expect(screen.getAllByRole('button', { name: 'Rows' })[0]?.hasAttribute('disabled')).toBe(true);
+    expect(screen.getAllByRole('button', { name: '1' })[0]?.getAttribute('aria-current')).toBe('page');
+
+    secondRequest.resolve();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Rows' })[0]?.hasAttribute('disabled')).toBe(false));
+    expect(screen.getAllByRole('button', { name: '1' })[0]?.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('continues without requesting when localStorage is unavailable', async () => {
+    const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('storage unavailable');
+      }
+    });
+    const onRequest = vi.fn();
+    try {
+      render(DataTable, {
+        props: {
+          rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }],
+          pagination: { tableId: 'members', totalRows: 35, persistPageSize: true, onRequest }
+        }
+      });
+      await waitFor(() => expect(screen.getAllByRole('button', { name: 'Rows' })).toHaveLength(2));
+      expect(onRequest).not.toHaveBeenCalled();
+    } finally {
+      if (original) {
+        Object.defineProperty(window, 'localStorage', original);
+      }
+    }
+  });
+
+  it('requests the final valid page when totalRows shrinks and does not request an empty page', async () => {
+    const onRequest = vi.fn();
+    const basePagination = { tableId: 'members', defaultPageSize: 10, onRequest };
+    const props = { rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }] };
+    const { rerender } = render(DataTable, { props: { ...props, pagination: { ...basePagination, totalRows: 100 } } });
+    await fireEvent.click(screen.getAllByRole('button', { name: '10' })[0] as HTMLElement);
+    await waitFor(() => expect(onRequest).toHaveBeenLastCalledWith({ page: 10, pageSize: 10 }));
+    onRequest.mockClear();
+    await rerender({ ...props, pagination: { ...basePagination, totalRows: 15 } });
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith({ page: 2, pageSize: 10 }));
+    onRequest.mockClear();
+    await rerender({ ...props, rows: [], pagination: { ...basePagination, totalRows: 0 } });
+    await waitFor(() => expect(screen.queryByRole('button', { name: '2' })).toBeNull());
+    expect(onRequest).not.toHaveBeenCalled();
+  });
+
+  it('hides pagination below the smallest page size and shows it at the boundary', () => {
+    const props = { rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }] };
+    const { container, rerender } = render(DataTable, {
+      props: { ...props, pagination: { tableId: 'members', totalRows: 2, pageSizeOptions: [10, 20], onRequest: vi.fn() } }
+    });
     expect(container.querySelector('.suu-pagination')).toBeFalsy();
-    expect(screen.getByText('Jane')).toBeTruthy();
+    void rerender({ ...props, pagination: { tableId: 'members', totalRows: 10, pageSizeOptions: [10, 20], onRequest: vi.fn() } });
+    return waitFor(() => expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2));
   });
 
-  it('keeps DataTable pagination when total rows equal the smallest page size option', () => {
-    const { container } = render(DataTable, {
-      props: {
-        rows: Array.from({ length: 10 }, (_, index) => ({ name: `Member ${index + 1}` })),
-        columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 10,
-        pageSizeOptions: [10, 20]
-      }
-    });
-
-    expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
-  });
-
-  it('renders an active first page when row count fits the selected page size but still needs page-size controls', () => {
+  it('renders an active first page when the selected size exceeds the row count', () => {
     const { container } = render(DataTable, {
       props: {
         rows: Array.from({ length: 12 }, (_, index) => ({ name: `Member ${index + 1}` })),
         columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 12,
-        page: 1,
-        pageSize: 20,
-        pageSizeOptions: [10, 20, 50]
+        pagination: {
+          tableId: 'members', totalRows: 12, defaultPageSize: 20,
+          pageSizeOptions: [10, 20, 50], onRequest: vi.fn()
+        }
       }
     });
-
     expect(container.querySelectorAll('.suu-pagination')).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: '1' }).map((button) => button.getAttribute('aria-current'))).toEqual([
-      'page',
-      'page'
-    ]);
+    expect(screen.getAllByRole('button', { name: '1' }).map((button) => button.getAttribute('aria-current'))).toEqual(['page', 'page']);
   });
 
   it('uses localized DataTable defaults when labels are not overridden', () => {
     const { container } = render(DataTable, {
       props: {
-        rows: [],
-        columns: [{ key: 'name', header: 'Name' }],
-        totalRows: 12,
-        language: 'zh_cn'
+        rows: [], columns: [{ key: 'name', header: 'Name' }], language: 'zh_cn',
+        pagination: { tableId: 'members', totalRows: 12, onRequest: vi.fn() }
       }
     });
-
     expect(screen.getByText('暂无记录')).toBeTruthy();
     expect(screen.getAllByText('每页')).toHaveLength(2);
     expect(container.querySelectorAll('.suu-pagination[aria-label="分页"]')).toHaveLength(2);
   });
 
-  it('can render DataTable without pagination', () => {
+  it('renders static tables only when pagination is explicitly false', () => {
     const { container } = render(DataTable, {
-      props: {
-        showPagination: false,
-        rows: [{ name: 'Jane' }],
-        columns: [{ key: 'name', header: 'Name' }]
-      }
+      props: { pagination: false, rows: [{ name: 'Jane' }], columns: [{ key: 'name', header: 'Name' }] }
     });
-
     expect(container.querySelector('.suu-pagination')).toBeFalsy();
     expect(screen.getByText('Jane')).toBeTruthy();
   });
@@ -694,7 +877,7 @@ describe('data table components', () => {
   it('uses an explicit plain background and supports disabling row hover changes', () => {
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }],
         zebra: false,
@@ -709,7 +892,7 @@ describe('data table components', () => {
   it('keeps row hover changes enabled by default', () => {
     const { container } = render(DataTable, {
       props: {
-        showPagination: false,
+        pagination: false,
         rows: [{ name: 'Jane' }],
         columns: [{ key: 'name', header: 'Name' }]
       }

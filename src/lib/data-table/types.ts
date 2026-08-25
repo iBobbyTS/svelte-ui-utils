@@ -33,6 +33,19 @@ export interface PaginationState {
   pageSize: number;
 }
 
+export type DataTablePaginationQueryKey = string | number | boolean | null | undefined;
+
+export type DataTableServerPagination = {
+  tableId: string;
+  totalRows: number;
+  defaultPageSize?: number;
+  pageSizeOptions?: number[];
+  pageSizeLabel?: string;
+  persistPageSize?: boolean;
+  queryKey?: DataTablePaginationQueryKey;
+  onRequest: (pagination: PaginationState) => void | Promise<void>;
+};
+
 export type PaginationDropdownPlacement = DropdownPlacement;
 
 export type PaginationChangeHandler = (pagination: PaginationState) => void | Promise<void>;
