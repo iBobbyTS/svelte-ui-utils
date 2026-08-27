@@ -561,7 +561,24 @@
     if (searchOnExternalValueChange && normalizeDropdownSearchValue(value)) {
       handleExternalValue(value);
     }
-    return () => formElement?.removeEventListener('reset', handleFormReset);
+
+    const visibilityObserver =
+      typeof IntersectionObserver === 'undefined'
+        ? undefined
+        : new IntersectionObserver(([entry]) => {
+            if (!entry?.isIntersecting) {
+              focused = false;
+              showingFocusOptions = false;
+            }
+          });
+    if (inputElement && visibilityObserver) {
+      visibilityObserver.observe(inputElement);
+    }
+
+    return () => {
+      formElement?.removeEventListener('reset', handleFormReset);
+      visibilityObserver?.disconnect();
+    };
   });
 </script>
 

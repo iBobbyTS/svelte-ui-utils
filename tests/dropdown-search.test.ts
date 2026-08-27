@@ -81,6 +81,41 @@ describe('dropdown search state', () => {
 describe('DropdownSearch component', () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('closes the menu when the input leaves the browser viewport', async () => {
+    let visibilityCallback: IntersectionObserverCallback | undefined;
+    class MockIntersectionObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        visibilityCallback = callback;
+      }
+
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+
+    render(DropdownSearch, {
+      props: {
+        value: 'Jane',
+        status: 'invalid',
+        loadOptions: () => ({ options: [], exactMatch: null }),
+      },
+    });
+
+    const input = screen.getByRole('textbox');
+    await fireEvent.focus(input);
+    expect(screen.getByText('Empty')).toBeInTheDocument();
+
+    visibilityCallback?.(
+      [{ isIntersecting: false } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+    await tick();
+
+    expect(screen.queryByText('Empty')).not.toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('debounces searches and turns valid on a unique exact match', async () => {
