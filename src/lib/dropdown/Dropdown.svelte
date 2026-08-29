@@ -55,6 +55,7 @@
   let removeOutsidePointerListener: (() => void) | undefined = undefined;
   let typeaheadBuffer = '';
   let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
+  let typeaheadGeneration = 0;
   // Keep the buffer long enough for users to type multi-character aliases
   // while the menu is rendering a large option list.
   const typeaheadTimeoutMs = 1000;
@@ -140,6 +141,7 @@
 
   function clearTypeaheadBuffer() {
     typeaheadBuffer = '';
+    typeaheadGeneration += 1;
     if (typeaheadTimer !== undefined) {
       clearTimeout(typeaheadTimer);
       typeaheadTimer = undefined;
@@ -147,10 +149,14 @@
   }
 
   function scheduleTypeaheadReset() {
+    const generation = ++typeaheadGeneration;
     if (typeaheadTimer !== undefined) {
       clearTimeout(typeaheadTimer);
     }
     typeaheadTimer = setTimeout(() => {
+      if (generation !== typeaheadGeneration) {
+        return;
+      }
       typeaheadBuffer = '';
       typeaheadTimer = undefined;
     }, typeaheadTimeoutMs);
