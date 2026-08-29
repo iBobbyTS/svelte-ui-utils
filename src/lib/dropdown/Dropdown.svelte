@@ -55,7 +55,9 @@
   let removeOutsidePointerListener: (() => void) | undefined = undefined;
   let typeaheadBuffer = '';
   let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
-  const typeaheadTimeoutMs = 500;
+  // Keep the buffer long enough for users to type multi-character aliases
+  // while the menu is rendering a large option list.
+  const typeaheadTimeoutMs = 1000;
 
   $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
   $: selectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);

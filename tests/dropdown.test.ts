@@ -599,7 +599,7 @@ describe('dropdown', () => {
     const trigger = screen.getByRole('button', { name: 'Choice' });
     await fireEvent.keyDown(trigger, { key: 'a' });
     expect(screen.queryByRole('option', { name: 'Alpha' })).toBeNull();
-    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(1000);
     await fireEvent.keyDown(trigger, { key: 'b' });
     await tick();
 
@@ -653,6 +653,28 @@ describe('dropdown', () => {
     expect(trigger).toHaveTextContent('');
     await fireEvent.keyDown(trigger, { key: 'Enter' });
     expect(onChange).toHaveBeenCalledWith('cn');
+  });
+
+  it('keeps a multi-character search alias when typing between buffer ticks', async () => {
+    vi.useFakeTimers();
+    render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'Country',
+        options: [
+          { label: '智利', searchText: 'Chile', value: 'cl' },
+          { label: '中国', searchText: 'China', value: 'cn' }
+        ]
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Country' });
+    for (const key of ['c', 'h', 'i', 'n']) {
+      await fireEvent.keyDown(trigger, { key });
+      await vi.advanceTimersByTimeAsync(700);
+    }
+
+    expect(screen.getByRole('option', { name: '中国' })).toHaveClass('suu-dropdown__option--active');
   });
 
   it('bridges a single selection to form data while leaving the trigger nameless', async () => {
