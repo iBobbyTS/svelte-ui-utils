@@ -10,6 +10,8 @@ export type DropdownMenuAlign = 'left' | 'right';
 
 export interface DropdownOption {
   label: string;
+  /** Optional text used for keyboard typeahead matching instead of (or in addition to) the label. */
+  searchText?: string;
   value: DropdownValue;
   disabled?: boolean;
 }

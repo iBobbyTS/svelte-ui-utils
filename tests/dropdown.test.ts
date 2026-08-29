@@ -631,6 +631,30 @@ describe('dropdown', () => {
     expect(trigger).toHaveAttribute('data-value', '');
   });
 
+  it('uses optional search text for typeahead while keeping the display label', async () => {
+    const onChange = vi.fn();
+    render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'Country',
+        options: [
+          { label: '中国', searchText: 'China', value: 'cn' },
+          { label: '加拿大', searchText: 'Canada', value: 'ca' }
+        ],
+        onChange
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Country' });
+    await fireEvent.keyDown(trigger, { key: 'c' });
+    await fireEvent.keyDown(trigger, { key: 'h' });
+
+    expect(screen.getByRole('option', { name: '中国' })).toHaveClass('suu-dropdown__option--active');
+    expect(trigger).toHaveTextContent('');
+    await fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('cn');
+  });
+
   it('bridges a single selection to form data while leaving the trigger nameless', async () => {
     const form = document.createElement('form');
     document.body.append(form);

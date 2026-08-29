@@ -173,7 +173,11 @@
     const nextBuffer = `${typeaheadBuffer}${normalizedKey}`;
     const findMatch = (prefix: string) =>
       resolvedOptions.find(
-        (option) => !option.disabled && option.label.toLocaleLowerCase().startsWith(prefix)
+        (option) =>
+          !option.disabled &&
+          [option.searchText, option.label]
+            .filter((text): text is string => text !== undefined)
+            .some((text) => text.toLocaleLowerCase().startsWith(prefix))
       );
     const match = findMatch(nextBuffer) ?? findMatch(normalizedKey);
 
