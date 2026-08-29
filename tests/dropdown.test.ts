@@ -6,6 +6,7 @@ import ControlledDropdownMultiSelectHarness from './fixtures/ControlledDropdownM
 
 describe('dropdown', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -537,6 +538,142 @@ describe('dropdown', () => {
     await fireEvent.keyDown(button, { key: 'Enter' });
 
     expect(onChange).toHaveBeenCalledWith('medium');
+  });
+
+  it('uses printable prefixes to activate the first enabled grouped option without selecting it', async () => {
+    const onChange = vi.fn();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView
+    });
+
+    render(Dropdown, {
+      props: {
+        value: 'initial',
+        ariaLabel: 'Protocol',
+        optionGroups: [
+          { label: 'Unavailable', options: [{ label: 'Alpha', value: 'disabled', disabled: true }] },
+          {
+            label: 'Available',
+            options: [
+              { label: 'Alpine', value: 'alpine' },
+              { label: 'Alpha', value: 'alpha' },
+              { label: 'Beta', value: 'beta' }
+            ]
+          }
+        ],
+        onChange
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Protocol' });
+    await fireEvent.keyDown(trigger, { key: 'a' });
+    await tick();
+
+    expect(screen.getByRole('option', { name: 'Alpine' })).toHaveClass('suu-dropdown__option--active');
+    for (const option of screen.getAllByRole('option', { name: 'Alpha' })) {
+      expect(option).not.toHaveClass('suu-dropdown__option--active');
+    }
+    expect(onChange).not.toHaveBeenCalled();
+    expect(trigger).toHaveAttribute('data-value', 'initial');
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+  });
+
+  it('resets the typeahead prefix after its timeout and skips disabled matches', async () => {
+    vi.useFakeTimers();
+    const onChange = vi.fn();
+    render(Dropdown, {
+      props: {
+        value: 'initial',
+        ariaLabel: 'Choice',
+        options: [
+          { label: 'Alpha', value: 'alpha', disabled: true },
+          { label: 'Beta', value: 'beta' }
+        ],
+        onChange
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Choice' });
+    await fireEvent.keyDown(trigger, { key: 'a' });
+    expect(screen.queryByRole('option', { name: 'Alpha' })).toBeNull();
+    await vi.advanceTimersByTimeAsync(500);
+    await fireEvent.keyDown(trigger, { key: 'b' });
+    await tick();
+
+    expect(screen.getByRole('option', { name: 'Beta' })).toHaveClass('suu-dropdown__option--active');
+    expect(onChange).not.toHaveBeenCalled();
+    expect(trigger).toHaveAttribute('data-value', 'initial');
+  });
+
+  it('matches a multi-character prefix including browser code-style keys', async () => {
+    render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'Community',
+        options: [
+          { label: 'Banff Trail', value: 'banff' },
+          { label: 'Brentwood', value: 'brentwood' },
+          { label: 'Bowness', value: 'bowness' }
+        ]
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Community' });
+    for (const key of ['KeyB', 'KeyR', 'KeyE', 'KeyN']) {
+      await fireEvent.keyDown(trigger, { key });
+    }
+    await tick();
+
+    expect(screen.getByRole('option', { name: 'Brentwood' })).toHaveClass('suu-dropdown__option--active');
+    expect(trigger).toHaveAttribute('data-value', '');
+  });
+
+  it('bridges a single selection to form data while leaving the trigger nameless', async () => {
+    const form = document.createElement('form');
+    document.body.append(form);
+    const { container, rerender } = render(Dropdown, {
+      target: form,
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        name: 'status',
+        required: true,
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+
+    const input = container.querySelector('input[name="status"]') as HTMLInputElement;
+    const trigger = screen.getByRole('button', { name: 'Status' });
+    expect(input).toHaveAttribute('type', 'text');
+    expect(input).not.toHaveAttribute('readonly');
+    expect(input).toHaveAttribute('tabindex', '-1');
+    expect(input).toHaveValue('active');
+    expect(trigger).not.toHaveAttribute('name');
+    expect(new FormData(form).get('status')).toBe('active');
+    expect(form.checkValidity()).toBe(true);
+
+    await rerender({
+      value: '',
+      ariaLabel: 'Status',
+      name: 'status',
+      required: true,
+      options: [{ label: 'Active', value: 'active' }]
+    });
+    expect(form.checkValidity()).toBe(false);
+
+    await rerender({
+      value: 'active',
+      ariaLabel: 'Status',
+      name: 'status',
+      required: true,
+      disabled: true,
+      options: [{ label: 'Active', value: 'active' }]
+    });
+    expect(new FormData(form).has('status')).toBe(false);
+    form.remove();
   });
 
   it('keeps the legacy flat-options defaults unchanged', async () => {

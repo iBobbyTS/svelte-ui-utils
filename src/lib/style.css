@@ -41,6 +41,7 @@
 
 .suu-visually-hidden {
   position: absolute;
+  pointer-events: none;
   overflow: hidden;
   width: 1px;
   height: 1px;

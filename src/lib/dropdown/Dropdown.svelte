@@ -27,6 +27,8 @@
   export let fitViewport = true;
   export let fitContent = true;
   export let disabled = false;
+  export let name: string | undefined = undefined;
+  export let required = false;
   export let width: string | undefined = undefined;
   export let minWidth: string | undefined = undefined;
   export let maxWidth: string | undefined = undefined;
@@ -51,6 +53,9 @@
   let portalMenuWidth: string | undefined = undefined;
   let removeOpenViewportListeners: (() => void) | undefined = undefined;
   let removeOutsidePointerListener: (() => void) | undefined = undefined;
+  let typeaheadBuffer = '';
+  let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
+  const typeaheadTimeoutMs = 500;
 
   $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
   $: selectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
@@ -131,6 +136,61 @@
     activeValue = enabledOptions[nextIndex]?.value ?? activeValue;
   }
 
+  function clearTypeaheadBuffer() {
+    typeaheadBuffer = '';
+    if (typeaheadTimer !== undefined) {
+      clearTimeout(typeaheadTimer);
+      typeaheadTimer = undefined;
+    }
+  }
+
+  function scheduleTypeaheadReset() {
+    if (typeaheadTimer !== undefined) {
+      clearTimeout(typeaheadTimer);
+    }
+    typeaheadTimer = setTimeout(() => {
+      typeaheadBuffer = '';
+      typeaheadTimer = undefined;
+    }, typeaheadTimeoutMs);
+  }
+
+  function scrollActiveOptionIntoView() {
+    void tick().then(() => {
+      if (!open || typeof document === 'undefined') {
+        return;
+      }
+      const activeElement = Array.from(
+        menuElement?.querySelectorAll<HTMLElement>('.suu-dropdown__option') ?? []
+      ).find((element) => element.dataset.value === String(activeValue));
+      activeElement?.scrollIntoView?.({ block: 'nearest' });
+    });
+  }
+
+  function handleTypeahead(key: string) {
+    const normalizedKey = key.startsWith('Key') && key.length === 4
+      ? key.slice(3).toLocaleLowerCase()
+      : key.toLocaleLowerCase();
+    const nextBuffer = `${typeaheadBuffer}${normalizedKey}`;
+    const findMatch = (prefix: string) =>
+      resolvedOptions.find(
+        (option) => !option.disabled && option.label.toLocaleLowerCase().startsWith(prefix)
+      );
+    const match = findMatch(nextBuffer) ?? findMatch(normalizedKey);
+
+    typeaheadBuffer = match ? (findMatch(nextBuffer) ? nextBuffer : normalizedKey) : nextBuffer;
+    scheduleTypeaheadReset();
+    if (!match) {
+      return;
+    }
+
+    if (!open) {
+      updateResolvedPlacement();
+      open = true;
+    }
+    activeValue = match.value;
+    scrollActiveOptionIntoView();
+  }
+
   function selectOption(option: DropdownOption) {
     if (option.disabled) {
       return;
@@ -144,11 +204,13 @@
         nextSelected.add(option.value);
       }
       const nextValues = normalizeSelectedValues([...nextSelected]);
+      clearTypeaheadBuffer();
       void (onChange as DropdownMultiChangeHandler | undefined)?.(nextValues);
       return;
     }
 
     open = false;
+    clearTypeaheadBuffer();
     void (onChange as DropdownChangeHandler | undefined)?.(option.value);
     buttonElement?.focus();
   }
@@ -160,6 +222,7 @@
     if (!open) {
       updateResolvedPlacement();
     }
+    clearTypeaheadBuffer();
     open = !open;
     activeValue = initialActiveValue();
   }
@@ -179,6 +242,7 @@
         event.preventDefault();
         open = false;
       }
+      clearTypeaheadBuffer();
       return;
     }
 
@@ -190,6 +254,18 @@
         activeValue = initialActiveValue();
       }
       moveActiveOption(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+
+    if (
+      ((event.key.length === 1 && event.key !== ' ') ||
+        (event.key.startsWith('Key') && event.key.length === 4)) &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      handleTypeahead(event.key);
       return;
     }
 
@@ -366,6 +442,7 @@
   onDestroy(() => {
     disableOpenViewportTracking();
     disableOutsidePointerDismissal();
+    clearTypeaheadBuffer();
   });
 </script>
 
@@ -401,6 +478,19 @@
     <span class="suu-dropdown__label">{selectedText}</span>
     <span class="suu-dropdown__chevron" aria-hidden="true"></span>
   </button>
+
+  {#if name !== undefined && !multiselect}
+    <input
+      class="suu-visually-hidden"
+      type="text"
+      name={name}
+      value={String(value)}
+      required={required}
+      disabled={disabled}
+      tabindex="-1"
+      aria-label={ariaLabel}
+    />
+  {/if}
 
   {#if open}
     <div
