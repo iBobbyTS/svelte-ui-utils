@@ -30,3 +30,24 @@ export type DropdownSelectionChangeHandler = {
 }['bivarianceHack'];
 
 export type DropdownTriggerClickHandler = (event: MouseEvent) => void;
+
+export type DropdownLoadStatus = 'idle' | 'loading' | 'success' | 'error';
+
+export interface DropdownLoadContext {
+  limit: number;
+  signal: AbortSignal;
+}
+
+export interface DropdownLoadOptionsResult {
+  /**
+   * Flat options. Ignored whenever `optionGroups` is present on the same
+   * result — groups are then the sole render source.
+   */
+  options?: DropdownOption[];
+  optionGroups?: DropdownOptionGroup[];
+}
+
+export type DropdownLoadOptions = (
+  query: string,
+  context: DropdownLoadContext
+) => Promise<DropdownLoadOptionsResult> | DropdownLoadOptionsResult;

@@ -1,9 +1,17 @@
 <svelte:options runes={false} />
 
+<script context="module" lang="ts">
+  let dropdownInstanceCount = 0;
+</script>
+
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
+  import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type {
     DropdownChangeHandler,
+    DropdownLoadOptions,
+    DropdownLoadOptionsResult,
+    DropdownLoadStatus,
     DropdownMenuAlign,
     DropdownMultiChangeHandler,
     DropdownMultiValue,
@@ -22,6 +30,15 @@
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
+  export let search = false;
+  export let loadOptions: DropdownLoadOptions | undefined = undefined;
+  export let searchDebounceMs = 300;
+  export let searchLimit = 10;
+  export let searchPlaceholder: string | undefined = undefined;
+  export let language: UiLanguage = 'en_us';
+  export let loadingText: string | undefined = undefined;
+  export let noResultsText: string | undefined = undefined;
+  export let errorText: string | undefined = undefined;
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
@@ -40,6 +57,7 @@
 
   const viewportMargin = 20;
   const menuGap = 6;
+  const instanceId = ++dropdownInstanceCount;
 
   let open = false;
   let activeValue: DropdownValue = '';
@@ -58,22 +76,40 @@
   let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
   let typeaheadGeneration = 0;
   let collapsedGroupIndexes = new Set<number>();
+  let searchQuery = '';
+  let searchStatus: DropdownLoadStatus = 'idle';
+  let searchOptions: DropdownOption[] = [];
+  let searchOptionGroups: DropdownOptionGroup[] | undefined = undefined;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  let searchController: AbortController | undefined;
+  let searchRequestId = 0;
+  let searchInputElement: HTMLInputElement | undefined;
+  const knownLabels = new Map<DropdownValue, string>();
   // Keep the buffer long enough for users to type multi-character aliases
   // while the menu is rendering a large option list.
   const typeaheadTimeoutMs = 1000;
 
-  $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
-  $: visibleOptions = optionGroups === undefined
-    ? options
-    : optionGroups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
-  $: selectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
+  $: messages = getUiMessages(language);
+  $: resolvedLoadingText = loadingText?.trim() ? loadingText : messages.dropdownSearch.loadingText;
+  $: resolvedNoResultsText = noResultsText?.trim() ? noResultsText : messages.dropdownSearch.noResultsText;
+  $: resolvedErrorText = errorText?.trim() ? errorText : 'Failed to load options';
+  $: resolvedListboxId = id ? `${id}-listbox` : search ? `suu-dropdown-listbox-${instanceId}` : undefined;
+  // Search results fully replace the instantiated options while searching;
+  // outside of search mode the caller-provided options stay authoritative.
+  $: renderOptions = search ? searchOptions : options;
+  $: renderOptionGroups = search ? searchOptionGroups : optionGroups;
+  $: resolvedOptions = renderOptionGroups === undefined ? renderOptions : renderOptionGroups.flatMap((group) => group.options);
+  $: visibleOptions = renderOptionGroups === undefined
+    ? renderOptions
+    : renderOptionGroups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
+  $: trackOptionLabels(resolvedOptions);
+  $: rawSelectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
+  $: selectedValues = orderSelectedValues(resolvedOptions, rawSelectedValues);
+  $: selectedValueSet = new Set(rawSelectedValues);
   $: selectedOption = Array.isArray(value) ? undefined : resolvedOptions.find((option) => option.value === value);
   $: selectedText = multiselect
-    ? resolvedOptions
-        .filter((option) => selectedValues.includes(option.value))
-        .map((option) => option.label)
-        .join(', ')
-    : selectedOption?.label ?? String(value);
+    ? selectedLabelTexts(selectedValues).join(', ')
+    : labelForValue(Array.isArray(value) ? '' : value);
   $: if (!open) {
     activeValue = initialActiveValue();
   }
@@ -81,13 +117,16 @@
     placement;
     if (open) {
       enableOpenViewportTracking();
-      if (multiselect) {
+      if (multiselect || search) {
         enableOutsidePointerDismissal();
       }
       void updateViewportPanelMaxHeight();
     } else {
       disableOpenViewportTracking();
       disableOutsidePointerDismissal();
+      if (search) {
+        resetSearchOnClose();
+      }
       resolvedPlacement = placement === 'up' ? 'up' : 'down';
       viewportPanelMaxHeight = undefined;
     }
@@ -98,25 +137,82 @@
   }
 
   function normalizeSelectedValues(nextValues: DropdownMultiValue): DropdownMultiValue {
-    const incoming = new Set(nextValues);
+    const seen = new Set<DropdownValue>();
     const normalized: DropdownMultiValue = [];
-    for (const option of resolvedOptions) {
-      if (incoming.has(option.value) && !normalized.includes(option.value)) {
-        normalized.push(option.value);
+    for (const nextValue of nextValues) {
+      if (!seen.has(nextValue)) {
+        seen.add(nextValue);
+        normalized.push(nextValue);
       }
     }
     return normalized;
   }
 
+  // Selected values are reported in option order, but values that are not
+  // present in the current options (e.g. picked during an earlier async
+  // search) are preserved at the end instead of being dropped.
+  function orderSelectedValues(
+    nextOptions: DropdownOption[],
+    nextSelected: DropdownMultiValue
+  ): DropdownMultiValue {
+    const selectedSet = new Set(nextSelected);
+    const ordered = nextOptions
+      .filter((option) => selectedSet.has(option.value))
+      .map((option) => option.value);
+    const orderedSet = new Set(ordered);
+    for (const nextValue of nextSelected) {
+      if (!orderedSet.has(nextValue)) {
+        ordered.push(nextValue);
+      }
+    }
+    return ordered;
+  }
+
+  function trackOptionLabels(nextOptions: DropdownOption[]) {
+    for (const option of nextOptions) {
+      knownLabels.set(option.value, option.label);
+    }
+  }
+
+  function labelForValue(nextValue: DropdownValue): string {
+    const option = resolvedOptions.find((candidate) => candidate.value === nextValue);
+    return option?.label ?? knownLabels.get(nextValue) ?? String(nextValue);
+  }
+
+  // Multiselect trigger text only lists values whose label is known; values
+  // without one never render a raw fallback string into the trigger.
+  function selectedLabelTexts(nextValues: DropdownMultiValue): string[] {
+    const texts: string[] = [];
+    for (const nextValue of nextValues) {
+      const label =
+        resolvedOptions.find((candidate) => candidate.value === nextValue)?.label ??
+        knownLabels.get(nextValue);
+      if (label !== undefined) {
+        texts.push(label);
+      }
+    }
+    return texts;
+  }
+
   function initialActiveValue(): DropdownValue {
-    const firstSelectedEnabled = visibleOptions.find(
-      (option) => selectedValues.includes(option.value) && !option.disabled
+    return initialActiveValueFor(visibleOptions, resolvedOptions);
+  }
+
+  function initialActiveValueFor(
+    nextVisibleOptions: DropdownOption[],
+    nextResolvedOptions: DropdownOption[]
+  ): DropdownValue {
+    const firstSelectedEnabled = nextVisibleOptions.find(
+      (option) => selectedValueSet.has(option.value) && !option.disabled
     );
-    return firstSelectedEnabled?.value ?? selectedOption?.value ?? firstEnabledOption()?.value ?? '';
+    const selectedFallback = Array.isArray(value)
+      ? undefined
+      : nextResolvedOptions.find((option) => option.value === value);
+    return firstSelectedEnabled?.value ?? selectedFallback?.value ?? nextVisibleOptions.find((option) => !option.disabled)?.value ?? '';
   }
 
   function isOptionSelected(option: DropdownOption): boolean {
-    return multiselect ? selectedValues.includes(option.value) : option.value === value;
+    return multiselect ? selectedValueSet.has(option.value) : option.value === value;
   }
 
   function activeOptionIndex(nextActiveValue: DropdownValue): number {
@@ -142,6 +238,7 @@
     const currentIndex = Math.max(0, enabledOptions.findIndex((option) => option.value === activeValue));
     const nextIndex = (currentIndex + offset + enabledOptions.length) % enabledOptions.length;
     activeValue = enabledOptions[nextIndex]?.value ?? activeValue;
+    scrollActiveOptionIntoView();
   }
 
   function clearTypeaheadBuffer() {
@@ -179,10 +276,14 @@
     });
   }
 
-  function handleTypeahead(key: string) {
-    const normalizedKey = key.startsWith('Key') && key.length === 4
+  function normalizeTypeaheadKey(key: string): string {
+    return key.startsWith('Key') && key.length === 4
       ? key.slice(3).toLocaleLowerCase()
       : key.toLocaleLowerCase();
+  }
+
+  function handleTypeahead(key: string) {
+    const normalizedKey = normalizeTypeaheadKey(key);
     const nextBuffer = `${typeaheadBuffer}${normalizedKey}`;
     const findMatch = (prefix: string) =>
       visibleOptions.find(
@@ -201,8 +302,7 @@
     }
 
     if (!open) {
-      updateResolvedPlacement();
-      open = true;
+      openMenu();
     }
     activeValue = match.value;
     scrollActiveOptionIntoView();
@@ -220,7 +320,7 @@
       } else {
         nextSelected.add(option.value);
       }
-      const nextValues = normalizeSelectedValues([...nextSelected]);
+      const nextValues = orderSelectedValues(resolvedOptions, [...nextSelected]);
       clearTypeaheadBuffer();
       void (onChange as DropdownMultiChangeHandler | undefined)?.(nextValues);
       return;
@@ -232,16 +332,136 @@
     buttonElement?.focus();
   }
 
+  function clampSearchLimit(limit: number): number {
+    if (!Number.isFinite(limit)) {
+      return 10;
+    }
+    return Math.min(50, Math.max(1, Math.floor(limit)));
+  }
+
+  function clearSearchTimer() {
+    if (searchTimer !== undefined) {
+      clearTimeout(searchTimer);
+      searchTimer = undefined;
+    }
+  }
+
+  function abortSearchController() {
+    if (searchController !== undefined) {
+      searchController.abort();
+      searchController = undefined;
+    }
+  }
+
+  function scheduleSearch(query: string) {
+    clearSearchTimer();
+    searchTimer = setTimeout(() => {
+      searchTimer = undefined;
+      void runSearch(query);
+    }, Math.max(0, Math.floor(searchDebounceMs)));
+  }
+
+  async function runSearch(query: string) {
+    if (!search || loadOptions === undefined) {
+      return;
+    }
+    abortSearchController();
+    const currentRequestId = ++searchRequestId;
+    const controller = new AbortController();
+    searchController = controller;
+    searchStatus = 'loading';
+
+    try {
+      const result = await loadOptions(query, {
+        limit: clampSearchLimit(searchLimit),
+        signal: controller.signal
+      });
+      // Stale or cancelled responses must never touch the UI.
+      if (controller.signal.aborted || currentRequestId !== searchRequestId) {
+        return;
+      }
+      searchStatus = 'success';
+      applySearchResult(result ?? {});
+    } catch {
+      if (controller.signal.aborted || currentRequestId !== searchRequestId) {
+        return;
+      }
+      searchOptions = [];
+      searchOptionGroups = undefined;
+      searchStatus = 'error';
+    } finally {
+      if (searchController === controller) {
+        searchController = undefined;
+      }
+    }
+  }
+
+  function applySearchResult(result: DropdownLoadOptionsResult) {
+    // optionGroups is the sole render source when present; empty groups stay hidden.
+    const groups = Array.isArray(result.optionGroups)
+      ? result.optionGroups.filter((group) => Array.isArray(group.options) && group.options.length > 0)
+      : undefined;
+    searchOptionGroups = groups;
+    searchOptions = groups === undefined && Array.isArray(result.options) ? result.options : [];
+    initializeCollapsedGroups(groups);
+    const nextResolvedOptions = groups === undefined ? searchOptions : groups.flatMap((group) => group.options);
+    const nextVisibleOptions = groups === undefined
+      ? searchOptions
+      : groups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
+    activeValue = initialActiveValueFor(nextVisibleOptions, nextResolvedOptions);
+    scrollActiveOptionIntoView();
+  }
+
+  function resetSearchOnClose() {
+    clearSearchTimer();
+    abortSearchController();
+    searchQuery = '';
+    searchOptions = [];
+    searchOptionGroups = undefined;
+    searchStatus = 'idle';
+  }
+
+  function beginSearchOnOpen() {
+    searchQuery = '';
+    searchOptions = [];
+    searchOptionGroups = undefined;
+    collapsedGroupIndexes = new Set();
+    clearSearchTimer();
+    abortSearchController();
+    if (loadOptions === undefined) {
+      searchStatus = 'idle';
+      return;
+    }
+    // The empty query fires immediately on every expand.
+    void runSearch('');
+  }
+
+  function openMenu() {
+    updateResolvedPlacement();
+    if (search) {
+      beginSearchOnOpen();
+    } else {
+      initializeCollapsedGroups(renderOptionGroups);
+    }
+    open = true;
+    activeValue = initialActiveValue();
+    if (search) {
+      void tick().then(() => {
+        searchInputElement?.focus();
+      });
+    }
+  }
+
   function toggleOpen() {
     if (disabled) {
       return;
     }
-    if (!open) {
-      updateResolvedPlacement();
-      initializeCollapsedGroups();
-    }
     clearTypeaheadBuffer();
-    open = !open;
+    if (!open) {
+      openMenu();
+      return;
+    }
+    open = false;
     activeValue = initialActiveValue();
   }
 
@@ -249,19 +469,19 @@
     return collapsedGroupIndexes.has(groupIndex);
   }
 
-  function initializeCollapsedGroups() {
-    if (optionGroups === undefined || groupsCollapsedByDefault === 'false') {
+  function initializeCollapsedGroups(nextOptionGroups: DropdownOptionGroup[] | undefined) {
+    if (nextOptionGroups === undefined || groupsCollapsedByDefault === 'false') {
       collapsedGroupIndexes = new Set();
       return;
     }
     if (groupsCollapsedByDefault === 'true') {
       collapsedGroupIndexes = new Set(
-        optionGroups.flatMap((group, index) => group.label ? [index] : [])
+        nextOptionGroups.flatMap((group, index) => group.label ? [index] : [])
       );
       return;
     }
     collapsedGroupIndexes = new Set(
-      optionGroups.flatMap((group, index) =>
+      nextOptionGroups.flatMap((group, index) =>
         group.label && group.options.some((option) => isOptionSelected(option)) ? [] : group.label ? [index] : []
       )
     );
@@ -296,9 +516,7 @@
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       if (!open) {
-        updateResolvedPlacement();
-        open = true;
-        activeValue = initialActiveValue();
+        openMenu();
       }
       moveActiveOption(event.key === 'ArrowDown' ? 1 : -1);
       return;
@@ -312,11 +530,47 @@
       !event.altKey
     ) {
       event.preventDefault();
+      if (search) {
+        const wasOpen = open;
+        if (!wasOpen) {
+          openMenu();
+        }
+        searchQuery = wasOpen ? `${searchQuery}${normalizeTypeaheadKey(event.key)}` : normalizeTypeaheadKey(event.key);
+        scheduleSearch(searchQuery);
+        return;
+      }
       handleTypeahead(event.key);
       return;
     }
 
     if ((event.key === 'Enter' || event.key === ' ') && open) {
+      event.preventDefault();
+      const index = activeOptionIndex(activeValue);
+      const option = index >= 0 ? visibleOptions[index] : undefined;
+      if (option) {
+        selectOption(option);
+      }
+    }
+  }
+
+  function handleSearchInput(event: Event) {
+    searchQuery = (event.currentTarget as HTMLInputElement).value;
+    scheduleSearch(searchQuery);
+  }
+
+  function handleSearchKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      open = false;
+      buttonElement?.focus();
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActiveOption(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (event.key === 'Enter') {
       event.preventDefault();
       const index = activeOptionIndex(activeValue);
       const option = index >= 0 ? visibleOptions[index] : undefined;
@@ -473,6 +727,9 @@
         return;
       }
       open = false;
+      if (search) {
+        buttonElement?.focus();
+      }
     };
 
     document.addEventListener('pointerdown', handleOutsidePointer, true);
@@ -490,6 +747,8 @@
     disableOpenViewportTracking();
     disableOutsidePointerDismissal();
     clearTypeaheadBuffer();
+    clearSearchTimer();
+    abortSearchController();
   });
 </script>
 
@@ -498,6 +757,7 @@
   class={[
     'suu-dropdown',
     multiselect ? 'suu-dropdown--multiselect' : '',
+    search ? 'suu-dropdown--search' : '',
     width !== undefined || minWidth !== undefined || maxWidth !== undefined
       ? 'suu-dropdown--sized'
       : '',
@@ -556,21 +816,54 @@
       style:--suu-dropdown-menu-width={portalMenuWidth}
       style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
     >
+      {#if search}
+        <div class="suu-dropdown__search">
+          <svg class="suu-dropdown__search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m16 16 4 4"></path>
+          </svg>
+          <input
+            bind:this={searchInputElement}
+            class="suu-dropdown__search-input"
+            type="text"
+            value={searchQuery}
+            placeholder={searchPlaceholder ?? ''}
+            aria-label={ariaLabel}
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="true"
+            aria-autocomplete="list"
+            aria-controls={resolvedListboxId}
+            on:input={handleSearchInput}
+            on:keydown={handleSearchKeydown}
+          />
+        </div>
+      {/if}
       <div
         class="suu-dropdown__panel"
+        id={resolvedListboxId}
         role="listbox"
         aria-label={ariaLabel}
         aria-multiselectable={multiselect || undefined}
       >
-        {#if optionGroups === undefined}
-          {#each options as option}
+        {#if search && searchStatus === 'loading'}
+          <div class="suu-dropdown__status suu-dropdown__status--loading" aria-live="polite">
+            <span class="suu-dropdown__spinner" aria-hidden="true"></span>
+            <span>{resolvedLoadingText}</span>
+          </div>
+        {:else if search && searchStatus === 'error'}
+          <div class="suu-dropdown__status suu-dropdown__status--error" role="alert">{resolvedErrorText}</div>
+        {:else if search && resolvedOptions.length === 0}
+          <div class="suu-dropdown__status suu-dropdown__status--empty">{resolvedNoResultsText}</div>
+        {:else if renderOptionGroups === undefined}
+          {#each renderOptions as option}
             <button
               type="button"
               class="suu-dropdown__option"
               class:suu-dropdown__option--active={option.value === activeValue}
               class:suu-dropdown__option--disabled={option.disabled}
               role="option"
-              aria-selected={multiselect ? selectedValues.includes(option.value) : option.value === value}
+              aria-selected={multiselect ? selectedValueSet.has(option.value) : option.value === value}
               aria-disabled={option.disabled}
               disabled={option.disabled}
               data-value={String(option.value)}
@@ -585,7 +878,7 @@
               {#if multiselect}
                 <span
                   class="suu-dropdown__checkbox"
-                  data-checked={multiselect ? selectedValues.includes(option.value) : option.value === value}
+                  data-checked={multiselect ? selectedValueSet.has(option.value) : option.value === value}
                   aria-hidden="true"
                 ></span>
               {/if}
@@ -593,7 +886,7 @@
             </button>
           {/each}
         {:else}
-          {#each optionGroups as group, groupIndex}
+          {#each renderOptionGroups as group, groupIndex}
             <div class="suu-dropdown__group" role="group" aria-label={group.label}>
               {#if group.label}
                 <button
@@ -615,7 +908,7 @@
                   class:suu-dropdown__option--active={option.value === activeValue}
                   class:suu-dropdown__option--disabled={option.disabled}
                   role="option"
-                  aria-selected={multiselect ? selectedValues.includes(option.value) : option.value === value}
+                  aria-selected={multiselect ? selectedValueSet.has(option.value) : option.value === value}
                   aria-disabled={option.disabled}
                   disabled={option.disabled}
                   data-value={String(option.value)}
@@ -630,7 +923,7 @@
                   {#if multiselect}
                     <span
                       class="suu-dropdown__checkbox"
-                      data-checked={multiselect ? selectedValues.includes(option.value) : option.value === value}
+                      data-checked={multiselect ? selectedValueSet.has(option.value) : option.value === value}
                       aria-hidden="true"
                     ></span>
                   {/if}
