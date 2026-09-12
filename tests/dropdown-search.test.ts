@@ -21,9 +21,9 @@ import type {
 } from '../src/lib/dropdown-search/index.js';
 
 const jane: DropdownSearchItem = {
-  id: 'M-123',
-  title: 'Jane Doe',
-  param_dict: { ID: 'M-123', City: 'Calgary' },
+  value: 'M-123',
+  label: 'Jane Doe',
+  param_dict: { ID: 'M-123', City: 'Calgary' }
 };
 
 describe('dropdown search state', () => {
@@ -208,9 +208,9 @@ describe('DropdownSearch component', () => {
       exactMatch: null,
     }));
     const focusOptions: DropdownSearchItem[] = [
-      { id: 2025, title: '2025' },
-      { id: 2026, title: '2026' },
-      { id: 2027, title: '2027' },
+      { value: '2025', label: '2025' },
+      { value: '2026', label: '2026' },
+      { value: '2027', label: '2027' },
     ];
 
     render(DropdownSearch, {
@@ -236,15 +236,15 @@ describe('DropdownSearch component', () => {
     render(DropdownSearch, {
       props: {
         value: '2024',
-        selectedItem: { id: 2024, title: '2024' },
+        selectedItem: { value: '2024', label: '2024' },
         status: 'valid',
         closeOnValid: true,
         showOptionsOnFocus: true,
         focusOptions: [
-          { id: 2024, title: '2024' },
-          { id: 2025, title: '2025' },
-          { id: 2026, title: '2026' },
-          { id: 2027, title: '2027' },
+          { value: '2024', label: '2024' },
+          { value: '2025', label: '2025' },
+          { value: '2026', label: '2026' },
+          { value: '2027', label: '2027' },
         ],
         footerText: 'Other years must be entered manually',
         loadOptions: () => ({ options: [], exactMatch: null }),
@@ -319,8 +319,8 @@ describe('DropdownSearch component', () => {
           setTimeout(
             () =>
               resolve({
-                options: [{ ...jane, title: 'Stale Jane' }],
-                exactMatch: { ...jane, title: 'Stale Jane' },
+                options: [{ ...jane, label: 'Stale Jane' }],
+                exactMatch: { ...jane, label: 'Stale Jane' },
               }),
             100,
           );
@@ -335,7 +335,7 @@ describe('DropdownSearch component', () => {
         debounceMs: 10,
         loadOptions,
         onChange: (detail) =>
-          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+          changes.push(`${detail.status}:${detail.selectedItem?.label ?? ''}`),
       },
     });
 
@@ -367,7 +367,7 @@ describe('DropdownSearch component', () => {
         loadOptions,
         searchOnExternalValueChange: true,
         onChange: (detail) =>
-          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+          changes.push(`${detail.status}:${detail.selectedItem?.label ?? ''}`),
       },
     });
 
@@ -396,7 +396,7 @@ describe('DropdownSearch component', () => {
         loadOptions,
         searchOnExternalValueChange: true,
         onChange: (detail) =>
-          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+          changes.push(`${detail.status}:${detail.selectedItem?.label ?? ''}`),
       },
     });
 
@@ -610,7 +610,7 @@ describe('DropdownSearch component', () => {
         loadOptions,
         validate: false,
         onChange: (detail) =>
-          changes.push(`${detail.status}:${detail.selectedItem?.title ?? ''}`),
+          changes.push(`${detail.status}:${detail.selectedItem?.label ?? ''}`),
       },
     });
 
@@ -683,8 +683,8 @@ describe('DropdownSearch component', () => {
   it('selects and removes multiple items when multiselect is enabled', async () => {
     vi.useFakeTimers();
     const john: DropdownSearchItem = {
-      id: 'M-456',
-      title: 'John Doe',
+      value: 'M-456',
+      label: 'John Doe',
       param_dict: { ID: 'M-456' },
     };
     const selectedChanges: string[][] = [];
@@ -699,9 +699,9 @@ describe('DropdownSearch component', () => {
         loadOptions,
         multiselect: true,
         selectedItemsLabel: 'Selected members',
-        removeSelectedItemLabel: (item) => `Remove ${item.title}`,
+        removeSelectedItemLabel: (item) => `Remove ${item.label}`,
         onSelectedItemsChange: (items) => {
-          selectedChanges.push(items.map((item) => item.title));
+          selectedChanges.push(items.map((item) => item.label));
         },
       },
     });

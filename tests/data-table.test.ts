@@ -1020,7 +1020,7 @@ describe('data table components', () => {
                 width: '24rem',
                 minWidth: '16rem',
                 maxWidth: '100%',
-                getItemValue: (item) => String(item.id),
+                getItemLabel: (item) => item.label,
                 loadOptions: () => ({ options: [], exactMatch: null }),
                 onChange: onSearchChange
               }),
@@ -1068,9 +1068,9 @@ describe('data table components', () => {
               status: 'empty',
               showOptionsOnFocus: true,
               focusOptions: [
-                { id: 2025, title: '2025' },
-                { id: 2026, title: '2026' },
-                { id: 2027, title: '2027' },
+                { value: '2025', label: '2025' },
+                { value: '2026', label: '2026' },
+                { value: '2027', label: '2027' },
               ],
               footerText: 'Other years must be entered manually',
               loadOptions: () => ({ options: [], exactMatch: null }),

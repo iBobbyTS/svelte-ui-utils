@@ -1,11 +1,5 @@
 export * from './toast/index.js';
 export * from './dropdown/index.js';
-export type {
-  DropdownLoadContext,
-  DropdownLoadOptions,
-  DropdownLoadOptionsResult,
-  DropdownLoadStatus
-} from './dropdown/types.js';
 export * from './dropdown-search/index.js';
 export * from './dialog/index.js';
 export * from './tooltip/index.js';

@@ -1,7 +1,7 @@
 import type {
   DropdownSearchChangeDetail,
   DropdownSearchItem,
-  DropdownSearchItemValueGetter,
+  DropdownSearchItemLabelGetter,
   DropdownSearchLoadOptions,
   DropdownSearchStatus
 } from '../dropdown-search/types.js';
@@ -107,7 +107,7 @@ export interface DataTableColumn<Row = unknown> {
 
 export interface FilterOption {
   label: string;
-  value: string | number;
+  value: string;
   disabled?: boolean;
 }
 
@@ -136,7 +136,7 @@ export interface FilterLinkControl {
 
 export interface FilterSelectControl {
   type: 'select';
-  value: string | number;
+  value: string;
   ariaLabel?: string;
   options: FilterOption[];
   onChange: (value: string) => void | Promise<void>;
@@ -212,17 +212,17 @@ export interface NumberRangeFilterValue {
 
 export interface CheckboxFilterControl {
   type: 'checkbox';
-  value: Array<string | number>;
+  value: string[];
   options: FilterOption[];
   optionGroups?: DropdownOptionGroup[];
-  onChange: (value: Array<string | number>) => void | Promise<void>;
+  onChange: (value: string[]) => void | Promise<void>;
 }
 
 export interface RadioFilterControl {
   type: 'radio';
-  value: string | number | null | undefined;
+  value: string | null | undefined;
   options: FilterOption[];
-  onChange: (value: string | number) => void | Promise<void>;
+  onChange: (value: string) => void | Promise<void>;
 }
 
 export interface DropdownSearchFilterControl {
@@ -246,7 +246,7 @@ export interface DropdownSearchFilterControl {
   width?: string;
   minWidth?: string;
   maxWidth?: string;
-  getItemValue?: DropdownSearchItemValueGetter;
+  getItemLabel?: DropdownSearchItemLabelGetter;
   loadOptions: DropdownSearchLoadOptions;
   onChange: (detail: DropdownSearchChangeDetail) => void | Promise<void>;
 }

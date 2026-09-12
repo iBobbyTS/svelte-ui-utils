@@ -25,16 +25,16 @@ describe('dropdown', () => {
     expect(screen.getByRole('button', { name: 'Status' })).toHaveAttribute('id', 'status-dropdown');
   });
 
-  it('emits selected option changes', async () => {
+  it('emits selected option changes as strings even when labels look numeric', async () => {
     const onChange = vi.fn();
 
     render(Dropdown, {
       props: {
-        value: 10,
+        value: '10',
         ariaLabel: 'Rows',
         options: [
-          { label: '10', value: 10 },
-          { label: '20', value: 20 }
+          { label: '10', value: '10' },
+          { label: '20', value: '20' }
         ],
         onChange
       }
@@ -43,7 +43,28 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Rows' }));
     await fireEvent.click(screen.getByRole('option', { name: '20' }));
 
-    expect(onChange).toHaveBeenCalledWith(20);
+    expect(onChange).toHaveBeenCalledWith('20');
+  });
+
+  it('keeps the displayed label distinct from the submitted value', async () => {
+    const onChange = vi.fn();
+
+    render(Dropdown, {
+      props: {
+        value: 'M-123',
+        ariaLabel: 'Member',
+        options: [{ label: 'Jane Doe', value: 'M-123' }],
+        onChange
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'Member' }).textContent).toContain('Jane Doe');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Member' }));
+    await fireEvent.click(screen.getByRole('option', { name: 'Jane Doe' }));
+
+    expect(onChange).toHaveBeenCalledWith('M-123');
+    expect(screen.getByRole('button', { name: 'Member' }).textContent).toContain('Jane Doe');
   });
 
   it('supports upward placement', async () => {

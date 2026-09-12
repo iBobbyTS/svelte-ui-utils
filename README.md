@@ -120,11 +120,16 @@ search mode instead.
 
 ```ts
 {
-  id: '123',
-  title: 'Jane Doe',
+  value: '123',
+  label: 'Jane Doe',
   param_dict: { ID: 'M-123' }
 }
 ```
+
+`label` is the display text and `value` is the submitted string identifier;
+extra fields such as `param_dict` are preserved as business metadata. The
+free-text `value` prop and `onChange` detail stay the raw input text, so they
+never collide with the submitted `item.value`.
 
 The input is valid when the server returns one unique `exactMatch`, or when the
 user selects an item. Non-empty text without a unique match is invalid.
@@ -165,7 +170,7 @@ same controlled contract:
   placeholder="Search members"
   selectedItems={selectedMembers}
   selectedItemsLabel="Selected members"
-  removeSelectedItemLabel={(item) => `Remove ${item.title}`}
+  removeSelectedItemLabel={(item) => `Remove ${item.label}`}
   {loadOptions}
   onSelectedItemsChange={(items) => {
     selectedMembers = items;
@@ -373,12 +378,12 @@ prop is available on all dialog wrapper components.
   } from '@ibobbyts/svelte-ui-utils/dropdown';
 
   const pageSizeOptions: DropdownOption[] = [
-    { label: '10', value: 10 },
-    { label: '20', value: 20 },
-    { label: '50', value: 50 }
+    { label: '10', value: '10' },
+    { label: '20', value: '20' },
+    { label: '50', value: '50' }
   ];
 
-  let pageSize: DropdownValue = 20;
+  let pageSize: DropdownValue = '20';
 </script>
 
 <Dropdown
@@ -392,7 +397,10 @@ prop is available on all dialog wrapper components.
 />
 ```
 
-`Dropdown` is a controlled select-like component for simple option lists. Use
+`Dropdown` is a controlled select-like component for simple option lists.
+Every option submits a string `value` while `label` stays the display text;
+callers with numeric domain state convert with `String`/`Number` at the
+boundary (the bundled `Pagination` does this for its numeric page size). Use
 `placement="up"` when the menu should open above the trigger, such as bottom
 pagination bars. The expanded menu shares the trigger's left edge by default;
 use `menuAlign="right"` to align their right edges instead. `fitContent` sizes

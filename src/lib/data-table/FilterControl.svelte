@@ -16,7 +16,7 @@
     return `suu-filter-table__action suu-filter-table__action--${variant ?? 'outline'}`;
   }
 
-  function toggleCheckbox(value: string | number, checked: boolean) {
+  function toggleCheckbox(value: string, checked: boolean) {
     if (control.type !== 'checkbox') {
       return;
     }
@@ -131,7 +131,7 @@
     width={control.width}
     minWidth={control.minWidth}
     maxWidth={control.maxWidth}
-    getItemValue={control.getItemValue ?? ((item) => item.title)}
+    getItemLabel={control.getItemLabel}
     loadOptions={control.loadOptions}
     onChange={(detail) => control.type === 'dropdownSearch' && void control.onChange(detail)}
   />
@@ -214,8 +214,8 @@
     ariaLabel={control.ariaLabel}
     fitContent
     onChange={(value) => {
-      if (control.type === 'select') {
-        void control.onChange(String(value));
+      if (control.type === 'select' && !Array.isArray(value)) {
+        void control.onChange(value);
       }
     }}
   />

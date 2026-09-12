@@ -12,7 +12,7 @@
     DropdownSearchChangeDetail,
     DropdownSearchEnterDetail,
     DropdownSearchItem,
-    DropdownSearchItemValueGetter,
+    DropdownSearchItemLabelGetter,
     DropdownSearchLoadOptions,
     DropdownSearchSelectedItemLabelGetter,
     DropdownSearchSelectedItemsChangeHandler,
@@ -51,7 +51,9 @@
   export let removeSelectedItemLabel:
     | DropdownSearchSelectedItemLabelGetter
     | undefined = undefined;
-  export let getItemValue: DropdownSearchItemValueGetter = (item) => item.title;
+  // The input text for a selected item defaults to its display label, never to
+  // the submitted `value`.
+  export let getItemLabel: DropdownSearchItemLabelGetter = (item) => item.label;
   export let onChange:
     | ((detail: DropdownSearchChangeDetail) => void)
     | undefined = undefined;
@@ -377,7 +379,7 @@
     showingFocusOptions = false;
     selectedItem = item;
     exactMatch = validate ? item : null;
-    value = getItemValue(item);
+    value = getItemLabel(item);
     inputValue = value;
     lastHandledValue = value;
     setStatus(validate ? 'valid' : 'empty');
@@ -387,7 +389,7 @@
   }
 
   function selectedItemKey(item: DropdownSearchItem): string {
-    return String(item.id);
+    return item.value;
   }
 
   function isSelectedItem(item: DropdownSearchItem): boolean {
@@ -396,7 +398,7 @@
   }
 
   function resolveRemoveSelectedItemLabel(item: DropdownSearchItem): string {
-    return removeSelectedItemLabel?.(item) ?? `Remove ${item.title}`;
+    return removeSelectedItemLabel?.(item) ?? `Remove ${item.label}`;
   }
 
   function setSelectedItems(nextItems: DropdownSearchItem[]) {
@@ -597,9 +599,9 @@
       class="suu-dropdown-search__selected-items"
       aria-label={selectedItemsLabel}
     >
-      {#each selectedItems as item (item.id)}
+      {#each selectedItems as item (item.value)}
         <span class="suu-dropdown-search__selected-item">
-          <span class="suu-dropdown-search__selected-title">{item.title}</span>
+          <span class="suu-dropdown-search__selected-title">{item.label}</span>
           {#if !disabled}
             <button
               type="button"
@@ -682,7 +684,7 @@
             <span>{resolvedLoadingText}</span>
           </div>
         {:else if options.length > 0}
-          {#each options as option (option.id)}
+          {#each options as option (option.value)}
             <button
               type="button"
               class="suu-dropdown-search__option"
@@ -692,7 +694,7 @@
               role="option"
               aria-selected={multiselect
                 ? isSelectedItem(option)
-                : selectedItem?.id === option.id}
+                : selectedItem?.value === option.value}
               disabled={option.disabled}
               on:mousedown|preventDefault={() => selectItem(option)}
             >
@@ -703,7 +705,7 @@
                   </svg>
                 </span>
               {/if}
-              <span class="suu-dropdown-search__title">{option.title}</span>
+              <span class="suu-dropdown-search__title">{option.label}</span>
               {#if formatParamDict(option.param_dict).length > 0}
                 <span class="suu-dropdown-search__meta"
                   >{formatParamDict(option.param_dict).join(' · ')}</span
