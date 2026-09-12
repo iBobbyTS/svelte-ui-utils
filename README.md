@@ -511,7 +511,12 @@ relational pseudo-class.
 The original flat `options` API remains available. New callers may opt into
 grouped options with `optionGroups`; each group can have an
 optional accessible label and its options keep the same keyboard and disabled
-semantics. `width`, `minWidth`, `maxWidth`, and `className` are optional styling
+semantics. Set `groupsCollapsedByDefault` to `"true"` to initially collapse
+all groups, or to `"auto"` to initially expand only groups containing a
+selected option; `"false"` is the default. The initial state is evaluated each
+time the menu opens, and selecting options while it remains open does not
+change the current collapsed state. Group headings can always be toggled
+manually. `width`, `minWidth`, `maxWidth`, and `className` are optional styling
 hooks. `onTriggerClick` runs before the dropdown toggles, so a nested control
 can stop event propagation without preventing the dropdown from opening.
 

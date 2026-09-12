@@ -21,6 +21,7 @@
   export let multiselect = false;
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
+  export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
@@ -56,11 +57,15 @@
   let typeaheadBuffer = '';
   let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
   let typeaheadGeneration = 0;
+  let collapsedGroupIndexes = new Set<number>();
   // Keep the buffer long enough for users to type multi-character aliases
   // while the menu is rendering a large option list.
   const typeaheadTimeoutMs = 1000;
 
   $: resolvedOptions = optionGroups === undefined ? options : optionGroups.flatMap((group) => group.options);
+  $: visibleOptions = optionGroups === undefined
+    ? options
+    : optionGroups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
   $: selectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
   $: selectedOption = Array.isArray(value) ? undefined : resolvedOptions.find((option) => option.value === value);
   $: selectedText = multiselect
@@ -89,7 +94,7 @@
   }
 
   function firstEnabledOption(): DropdownOption | undefined {
-    return resolvedOptions.find((option) => !option.disabled);
+    return visibleOptions.find((option) => !option.disabled);
   }
 
   function normalizeSelectedValues(nextValues: DropdownMultiValue): DropdownMultiValue {
@@ -104,7 +109,7 @@
   }
 
   function initialActiveValue(): DropdownValue {
-    const firstSelectedEnabled = resolvedOptions.find(
+    const firstSelectedEnabled = visibleOptions.find(
       (option) => selectedValues.includes(option.value) && !option.disabled
     );
     return firstSelectedEnabled?.value ?? selectedOption?.value ?? firstEnabledOption()?.value ?? '';
@@ -115,21 +120,21 @@
   }
 
   function activeOptionIndex(nextActiveValue: DropdownValue): number {
-    const index = resolvedOptions.findIndex((option) => option.value === nextActiveValue && !option.disabled);
+    const index = visibleOptions.findIndex((option) => option.value === nextActiveValue && !option.disabled);
     if (index >= 0) {
       return index;
     }
-    const fallbackIndex = resolvedOptions.findIndex(
+    const fallbackIndex = visibleOptions.findIndex(
       (option) => isOptionSelected(option) && !option.disabled
     );
     if (fallbackIndex >= 0) {
       return fallbackIndex;
     }
-    return resolvedOptions.findIndex((option) => !option.disabled);
+    return visibleOptions.findIndex((option) => !option.disabled);
   }
 
   function moveActiveOption(offset: number) {
-    const enabledOptions = resolvedOptions.filter((option) => !option.disabled);
+    const enabledOptions = visibleOptions.filter((option) => !option.disabled);
     if (enabledOptions.length === 0) {
       return;
     }
@@ -180,7 +185,7 @@
       : key.toLocaleLowerCase();
     const nextBuffer = `${typeaheadBuffer}${normalizedKey}`;
     const findMatch = (prefix: string) =>
-      resolvedOptions.find(
+      visibleOptions.find(
         (option) =>
           !option.disabled &&
           [option.searchText, option.label]
@@ -233,10 +238,40 @@
     }
     if (!open) {
       updateResolvedPlacement();
+      initializeCollapsedGroups();
     }
     clearTypeaheadBuffer();
     open = !open;
     activeValue = initialActiveValue();
+  }
+
+  function isGroupCollapsed(groupIndex: number): boolean {
+    return collapsedGroupIndexes.has(groupIndex);
+  }
+
+  function initializeCollapsedGroups() {
+    if (optionGroups === undefined || groupsCollapsedByDefault === 'false') {
+      collapsedGroupIndexes = new Set();
+      return;
+    }
+    if (groupsCollapsedByDefault === 'true') {
+      collapsedGroupIndexes = new Set(
+        optionGroups.flatMap((group, index) => group.label ? [index] : [])
+      );
+      return;
+    }
+    collapsedGroupIndexes = new Set(
+      optionGroups.flatMap((group, index) =>
+        group.label && group.options.some((option) => isOptionSelected(option)) ? [] : group.label ? [index] : []
+      )
+    );
+  }
+
+  function toggleGroup(groupIndex: number) {
+    const next = new Set(collapsedGroupIndexes);
+    if (next.has(groupIndex)) next.delete(groupIndex);
+    else next.add(groupIndex);
+    collapsedGroupIndexes = next;
   }
 
   function handleTriggerClick(event: MouseEvent) {
@@ -284,7 +319,7 @@
     if ((event.key === 'Enter' || event.key === ' ') && open) {
       event.preventDefault();
       const index = activeOptionIndex(activeValue);
-      const option = index >= 0 ? resolvedOptions[index] : undefined;
+      const option = index >= 0 ? visibleOptions[index] : undefined;
       if (option) {
         selectOption(option);
       }
@@ -558,12 +593,21 @@
             </button>
           {/each}
         {:else}
-          {#each optionGroups as group}
+          {#each optionGroups as group, groupIndex}
             <div class="suu-dropdown__group" role="group" aria-label={group.label}>
               {#if group.label}
-                <div class="suu-dropdown__group-label">{group.label}</div>
+                <button
+                  type="button"
+                  class="suu-dropdown__group-label"
+                  aria-expanded={!collapsedGroupIndexes.has(groupIndex)}
+                  on:click|stopPropagation={() => toggleGroup(groupIndex)}
+                >
+                  <span>{group.label}</span>
+                  <span class="suu-dropdown__group-chevron" aria-hidden="true"></span>
+                </button>
               {/if}
-              {#each group.options as option, optionIndex}
+              {#if !group.label || !collapsedGroupIndexes.has(groupIndex)}
+                {#each group.options as option, optionIndex}
                 <button
                   type="button"
                   class="suu-dropdown__option"
@@ -592,7 +636,8 @@
                   {/if}
                   <span class="suu-dropdown__label">{option.label}</span>
                 </button>
-              {/each}
+                {/each}
+              {/if}
             </div>
           {/each}
         {/if}

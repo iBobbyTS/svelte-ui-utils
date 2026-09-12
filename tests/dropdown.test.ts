@@ -793,6 +793,41 @@ describe('dropdown', () => {
     expect(firstOption).toHaveClass('suu-dropdown__option--group-first');
   });
 
+  it('supports collapsed groups and auto-expands selected groups once per open', async () => {
+    const groups = [
+      { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+      { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+    ];
+    const { rerender } = render(DropdownMultiSelect, {
+      props: { value: ['chat'], ariaLabel: 'Grouped choices', optionGroups: groups, groupsCollapsedByDefault: 'auto' }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Grouped choices' }));
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await rerender({ value: [] });
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Grouped choices' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Grouped choices' }));
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+  });
+
+  it('allows manually expanding a group configured as collapsed by default', async () => {
+    render(Dropdown, {
+      props: {
+        value: 'chat', ariaLabel: 'Grouped choice', groupsCollapsedByDefault: 'true',
+        optionGroups: [{ label: 'Core', options: [{ label: 'Chat', value: 'chat' }] }]
+      }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Grouped choice' }));
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'Core' }));
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+  });
+
   it('supports opt-in sizing, classes, and trigger event handling', async () => {
     const onTriggerClick = vi.fn((event: MouseEvent) => event.stopPropagation());
     const parentClick = vi.fn();

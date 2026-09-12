@@ -16,6 +16,7 @@
   export let value: DropdownMultiValue = [];
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
+  export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
@@ -37,6 +38,7 @@
   multiselect={true}
   {options}
   {optionGroups}
+  {groupsCollapsedByDefault}
   {ariaLabel}
   {placement}
   {menuAlign}
