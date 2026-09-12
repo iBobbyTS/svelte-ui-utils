@@ -76,6 +76,9 @@
   let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
   let typeaheadGeneration = 0;
   let collapsedGroupIndexes = new Set<number>();
+  // Whether the current open session has already seeded auto group collapse
+  // from a search response; once true, the user's manual toggles own the set.
+  let searchGroupsInitialized = false;
   let searchQuery = '';
   let searchStatus: DropdownLoadStatus = 'idle';
   let searchOptions: DropdownOption[] = [];
@@ -403,7 +406,13 @@
       : undefined;
     searchOptionGroups = groups;
     searchOptions = groups === undefined && Array.isArray(result.options) ? result.options : [];
-    initializeCollapsedGroups(groups);
+    // Only the first valid grouped response of an open session seeds the auto
+    // collapse state; later responses just swap groups so manual collapse and
+    // expand choices survive query refreshes within the same session.
+    if (!searchGroupsInitialized && groups !== undefined && groups.length > 0) {
+      searchGroupsInitialized = true;
+      initializeCollapsedGroups(groups);
+    }
     const nextResolvedOptions = groups === undefined ? searchOptions : groups.flatMap((group) => group.options);
     const nextVisibleOptions = groups === undefined
       ? searchOptions
@@ -426,6 +435,7 @@
     searchOptions = [];
     searchOptionGroups = undefined;
     collapsedGroupIndexes = new Set();
+    searchGroupsInitialized = false;
     clearSearchTimer();
     abortSearchController();
     if (loadOptions === undefined) {

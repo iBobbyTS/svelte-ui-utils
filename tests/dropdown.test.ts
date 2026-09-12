@@ -1261,6 +1261,124 @@ describe('dropdown search', () => {
     expect(screen.getByRole('listbox', { name: 'Protocols' })).toBeInTheDocument();
   });
 
+  it('preserves manual group collapse toggles across query refreshes within one open session', async () => {
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValueOnce({
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+        ]
+      })
+      .mockResolvedValueOnce({
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }, { label: 'Mail Pro', value: 'mailPro' }] }
+        ]
+      });
+
+    render(Dropdown, {
+      props: {
+        value: ['chat'],
+        multiselect: true,
+        ariaLabel: 'Protocols',
+        search: true,
+        groupsCollapsedByDefault: 'auto' as const,
+        searchDebounceMs: 0,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Core' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Extra' }));
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ma' } });
+
+    expect(await screen.findByRole('option', { name: 'Mail Pro' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+  });
+
+  it('re-evaluates auto group collapse after closing and reopening the menu', async () => {
+    const loadOptions = vi.fn().mockResolvedValue({
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+      ]
+    });
+    const props = {
+      value: ['chat'] as string[],
+      multiselect: true,
+      ariaLabel: 'Protocols',
+      search: true,
+      groupsCollapsedByDefault: 'auto' as const,
+      searchDebounceMs: 0,
+      loadOptions
+    };
+    const { rerender } = render(Dropdown, { props });
+
+    const trigger = screen.getByRole('button', { name: 'Protocols' });
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Extra' }));
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    await fireEvent.click(trigger);
+    expect(screen.queryByRole('listbox', { name: 'Protocols' })).toBeNull();
+
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('group', { name: 'Extra' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(trigger);
+    await rerender({ ...props, value: ['chat', 'mail'] });
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('option', { name: 'Mail' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+  });
+
+  it('seeds auto collapse at the first valid grouped response of an open session', async () => {
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValueOnce({ options: [], optionGroups: [] })
+      .mockResolvedValueOnce({
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+        ]
+      });
+
+    render(Dropdown, {
+      props: {
+        value: ['chat'],
+        multiselect: true,
+        ariaLabel: 'Protocols',
+        search: true,
+        groupsCollapsedByDefault: 'auto' as const,
+        searchDebounceMs: 0,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+    expect(await screen.findByText('Empty')).toBeInTheDocument();
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ch' } });
+
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+  });
+
   it('supports keyboard selection and escape dismissal from the search input', async () => {
     const onChange = vi.fn();
     const loadOptions = vi
