@@ -87,6 +87,12 @@ chosen side.
 
 ## DropdownSearch
 
+`DropdownSearch` is the free-text input entry with server-driven validation
+(`exactMatch`), input statuses, focus options, footer text, a clear button, and
+multiselect chips. For a trigger-style dropdown that combines single or multi
+select with async search and dynamic result groups, use the unified `Dropdown`
+search mode instead.
+
 ```svelte
 <script lang="ts">
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
@@ -520,6 +526,58 @@ manually. `width`, `minWidth`, `maxWidth`, and `className` are optional styling
 hooks. `onTriggerClick` runs before the dropdown toggles, so a nested control
 can stop event propagation without preventing the dropdown from opening.
 
+### Async search mode
+
+Set `search={true}` and pass `loadOptions` to turn the menu into an async
+search dropdown. The trigger stays a dropdown button; expanding it opens a menu
+with an always-visible search input:
+
+```svelte
+<script lang="ts">
+  import { Dropdown, type DropdownLoadOptions } from '@ibobbyts/svelte-ui-utils';
+
+  let country = '';
+
+  const loadOptions: DropdownLoadOptions = async (query, { limit, signal }) => {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const response = await fetch(`/api/countries?${params}`, { signal });
+    return response.json();
+  };
+</script>
+
+<Dropdown
+  value={country}
+  search
+  searchPlaceholder="Search countries"
+  {loadOptions}
+  ariaLabel="Country"
+  onChange={(next) => {
+    country = next;
+  }}
+/>
+```
+
+`loadOptions(query, { limit, signal })` returns `{ options?, optionGroups? }`
+whose options use `label`/`value` only. The empty query fires immediately on
+every expand; typed queries are debounced with `searchDebounceMs` (default
+`300`) and receive `searchLimit` (default `10`, clamped to `1..50`). When a
+response contains `optionGroups`, the groups are the sole render source and any
+flat `options` on the same response are ignored; empty groups stay hidden, and
+an empty result renders the no-results row. Stale responses are discarded by
+request order, closing the menu aborts the in-flight request, and a rejected
+load shows the error row (override the text with `errorText`). Search-result
+groups follow the same `groupsCollapsedByDefault` states as static groups; with
+`"auto"` the collapse state is seeded once per open session, and manual toggles
+survive later query refreshes within that session.
+
+A single-select pick closes the menu; a multiselect pick keeps it open and
+emits the complete selected array. Values picked during earlier queries stay
+selected across new results. Search mode never falls back to the static
+`options`/`optionGroups` props; without `search`, those props remain the only
+render source and `loadOptions` is never called. Type the loader with
+`DropdownLoadOptions`/`DropdownLoadOptionsResult`, exported from the package
+root.
+
 ## DataTable
 
 ```svelte
@@ -705,6 +763,28 @@ and `var(--suu-radius)` corner radius as a bordered `DataTable`. Set
 
 `filter.select` uses the shared `Dropdown` component, so select filters keep the
 same menu, keyboard, and visual behavior as standalone dropdowns.
+
+`filter.dropdown` maps a filter row onto the unified `Dropdown` API with
+`label`/`value` options: pass static `options` or `optionGroups` (with
+`groupsCollapsedByDefault`), set `multiselect` to collect an array, or set
+`search` with `loadOptions` to run the async search flow inside the filter row:
+
+```svelte
+{
+  key: 'assignee',
+  title: 'Assignee',
+  filter: filter.dropdown({
+    value: assignee,
+    search: true,
+    loadOptions: searchUsers,
+    ariaLabel: 'Assignee',
+    width: '18rem',
+    onChange: (next) => {
+      assignee = next;
+    }
+  })
+}
+```
 
 If a dropdown-style filter appears clipped, check the parent containers first.
 `DropdownSearch` renders its result list as an absolutely positioned child, so

@@ -219,6 +219,32 @@
       }
     }}
   />
+{:else if control.type === 'dropdown'}
+  <Dropdown
+    value={control.value}
+    multiselect={control.multiselect}
+    options={control.options ?? []}
+    optionGroups={control.optionGroups}
+    groupsCollapsedByDefault={control.groupsCollapsedByDefault}
+    search={control.search}
+    loadOptions={control.loadOptions}
+    searchDebounceMs={control.searchDebounceMs}
+    searchLimit={control.searchLimit}
+    searchPlaceholder={control.searchPlaceholder}
+    errorText={control.errorText}
+    ariaLabel={control.ariaLabel}
+    placement={control.placement}
+    menuAlign={control.menuAlign}
+    fitViewport={control.fitViewport}
+    fitContent={control.fitContent ?? true}
+    disabled={control.disabled}
+    width={control.width}
+    minWidth={control.minWidth}
+    maxWidth={control.maxWidth}
+    portal={control.portal}
+    onChange={control.onChange}
+    onTriggerClick={control.onTriggerClick}
+  />
 {:else if control.type === 'dropdownMultiSelect'}
   <DropdownMultiSelect
     value={control.value}

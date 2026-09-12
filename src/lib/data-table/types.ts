@@ -6,12 +6,15 @@ import type {
   DropdownSearchStatus
 } from '../dropdown-search/types.js';
 import type {
+  DropdownLoadOptions,
   DropdownMenuAlign,
   DropdownMultiChangeHandler,
   DropdownMultiValue,
   DropdownOption,
   DropdownOptionGroup,
   DropdownPlacement,
+  DropdownSelection,
+  DropdownSelectionChangeHandler,
   DropdownTriggerClickHandler
 } from '../dropdown/types.js';
 
@@ -139,6 +142,33 @@ export interface FilterSelectControl {
   onChange: (value: string) => void | Promise<void>;
 }
 
+export interface DropdownFilterControl {
+  type: 'dropdown';
+  value: DropdownSelection;
+  options?: DropdownOption[];
+  optionGroups?: DropdownOptionGroup[];
+  groupsCollapsedByDefault?: 'true' | 'false' | 'auto';
+  multiselect?: boolean;
+  search?: boolean;
+  loadOptions?: DropdownLoadOptions;
+  searchDebounceMs?: number;
+  searchLimit?: number;
+  searchPlaceholder?: string;
+  errorText?: string;
+  ariaLabel?: string;
+  placement?: DropdownPlacement;
+  menuAlign?: DropdownMenuAlign;
+  fitViewport?: boolean;
+  fitContent?: boolean;
+  disabled?: boolean;
+  width?: string;
+  minWidth?: string;
+  maxWidth?: string;
+  portal?: boolean;
+  onChange: DropdownSelectionChangeHandler;
+  onTriggerClick?: DropdownTriggerClickHandler;
+}
+
 export interface DropdownMultiSelectFilterControl {
   type: 'dropdownMultiSelect';
   value: DropdownMultiValue;
@@ -261,6 +291,7 @@ export type FilterControl =
   | FilterButtonControl
   | FilterLinkControl
   | FilterSelectControl
+  | DropdownFilterControl
   | DropdownMultiSelectFilterControl
   | FilterContainerControl;
 
@@ -273,6 +304,7 @@ export interface FilterTableRow {
 export type CheckboxFilterDefinition = CheckboxFilterControl & { key: string; label: string };
 export type RadioFilterDefinition = RadioFilterControl & { key: string; label: string };
 export type DropdownSearchFilterDefinition = DropdownSearchFilterControl & { key: string; label: string };
+export type DropdownFilterDefinition = DropdownFilterControl & { key: string; label: string };
 export type DropdownMultiSelectFilterDefinition = DropdownMultiSelectFilterControl & { key: string; label: string };
 export type DateRangeFilterDefinition = DateRangeFilterControl & { key: string; label: string };
 export type NumberRangeFilterDefinition = NumberRangeFilterControl & { key: string; label: string };
@@ -280,6 +312,7 @@ export type FilterDefinition =
   | CheckboxFilterDefinition
   | RadioFilterDefinition
   | DropdownSearchFilterDefinition
+  | DropdownFilterDefinition
   | DropdownMultiSelectFilterDefinition
   | DateRangeFilterDefinition
   | NumberRangeFilterDefinition;

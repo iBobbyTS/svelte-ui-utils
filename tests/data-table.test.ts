@@ -874,6 +874,105 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-dropdown__menu')).toBeTruthy();
   });
 
+  it('renders a unified dropdown filter with static grouped options', async () => {
+    const onChange = vi.fn();
+    render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'protocol',
+            title: 'Protocol',
+            filter: filter.dropdown({
+              value: 'chat',
+              optionGroups: [
+                { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+                { label: 'Other', options: [{ label: 'Mail', value: 'mail' }] }
+              ],
+              groupsCollapsedByDefault: 'true',
+              ariaLabel: 'Protocol',
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocol' }));
+    expect(screen.getByRole('group', { name: 'Core' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Core' }));
+    await fireEvent.click(screen.getByRole('option', { name: 'Chat' }));
+
+    expect(onChange).toHaveBeenCalledWith('chat');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps a multiselect dropdown filter open across picks', async () => {
+    const onChange = vi.fn();
+    render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'roles',
+            title: 'Roles',
+            filter: filter.dropdown({
+              value: ['editor'],
+              multiselect: true,
+              options: [
+                { label: 'Editor', value: 'editor' },
+                { label: 'Reviewer', value: 'reviewer' }
+              ],
+              ariaLabel: 'Roles',
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Roles' }));
+    await fireEvent.click(screen.getByRole('option', { name: 'Reviewer' }));
+
+    expect(onChange).toHaveBeenLastCalledWith(['editor', 'reviewer']);
+    expect(screen.getByRole('listbox', { name: 'Roles' })).toBeInTheDocument();
+  });
+
+  it('runs async search from a unified dropdown filter', async () => {
+    const onChange = vi.fn();
+    const loadOptions = vi.fn().mockResolvedValue({
+      optionGroups: [{ label: 'People', options: [{ label: 'Jane Doe', value: 'jane' }] }]
+    });
+
+    render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'member',
+            title: 'Member',
+            filter: filter.dropdown({
+              value: '',
+              search: true,
+              searchDebounceMs: 0,
+              loadOptions,
+              ariaLabel: 'Member',
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Member' }));
+    expect(loadOptions).toHaveBeenCalledWith('', expect.objectContaining({ limit: 10 }));
+
+    expect(await screen.findByRole('option', { name: 'Jane Doe' })).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('option', { name: 'Jane Doe' }));
+
+    expect(onChange).toHaveBeenCalledWith('jane');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
   it('uses an explicit plain background and supports disabling row hover changes', () => {
     const { container } = render(DataTable, {
       props: {
