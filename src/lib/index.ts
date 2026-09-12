@@ -9,3 +9,4 @@ export * from './ordered-list/index.js';
 export * from './sortable-table/index.js';
 export { getUiMessages, resolveUiLanguage, uiLanguages } from './i18n.js';
 export type { UiLanguage, UiMessages } from './i18n.js';
+export * from './segmented-date/index.js';

@@ -845,3 +845,23 @@ bun add @ibobbyts/svelte-ui-utils@0.3.1 svelte
 ```
 
 Use it after each release when a Bun-based project will consume the package.
+
+## 分段日期输入（本地新增，尚未发布）
+
+```svelte
+<script lang="ts">
+  import { SegmentedDateInput } from '@ibobbyts/svelte-ui-utils/segmented-date';
+  let dob = $state('');
+</script>
+
+<SegmentedDateInput name="dob" bind:value={dob} ariaLabel="生日"
+  yearLabel="年" monthLabel="月" dayLabel="日" autocomplete="bday" />
+```
+
+支持 `precision="year" | "month" | "day"`（默认 `day`）、数字输入、全角数字归一化、完整日期粘贴及月日失焦补零。`value` 可双向绑定；`onvalueinput` 接收用户输入后的组合值。日历有效性和业务范围由调用方校验。
+
+默认用隐藏字段提交组合值；`submitParts={true}` 改为提交 `${name}Year`、`${name}Month`、`${name}Day`（按精度决定字段）。支持 `required`、`readonly`、`disabled`、`id`（关联年输入框）和生日自动填充。`ariaLabel`、各段标签及占位符由调用方提供，以接入应用本地化。
+
+引入公共 `style.css` 后可独立使用，无需 Tailwind 或 DaisyUI。`class` 定制容器；`inputClass` 替换默认输入框装饰样式，布局仍由组件负责。MMS 通过该参数保留 DaisyUI 外观。
+
+纯函数和类型可从 `@ibobbyts/svelte-ui-utils/segmented-date/state` 引入：`splitSegmentedDate`、`composeSegmentedDate`、`parsePastedSegmentedDate`、`SegmentedDateParts`、`SegmentedDatePrecision`；此入口不加载 Svelte，适用于服务端和 Node。

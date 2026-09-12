@@ -777,6 +777,22 @@ describe('dropdown', () => {
     expect(onChange).toHaveBeenCalledWith('responses');
   });
 
+  it('keeps a divider between a group heading and its first option on hover', async () => {
+    render(DropdownMultiSelect, {
+      props: {
+        value: [],
+        ariaLabel: 'Grouped choices',
+        optionGroups: [{ label: 'Core', options: [{ label: 'Chat', value: 'chat' }] }]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Grouped choices' }));
+    const firstOption = screen.getByRole('option', { name: 'Chat' });
+    await fireEvent.mouseEnter(firstOption);
+
+    expect(firstOption).toHaveClass('suu-dropdown__option--group-first');
+  });
+
   it('supports opt-in sizing, classes, and trigger event handling', async () => {
     const onTriggerClick = vi.fn((event: MouseEvent) => event.stopPropagation());
     const parentClick = vi.fn();

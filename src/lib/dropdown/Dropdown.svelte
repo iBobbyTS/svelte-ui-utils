@@ -563,10 +563,11 @@
               {#if group.label}
                 <div class="suu-dropdown__group-label">{group.label}</div>
               {/if}
-              {#each group.options as option}
+              {#each group.options as option, optionIndex}
                 <button
                   type="button"
                   class="suu-dropdown__option"
+                  class:suu-dropdown__option--group-first={Boolean(group.label) && optionIndex === 0}
                   class:suu-dropdown__option--active={option.value === activeValue}
                   class:suu-dropdown__option--disabled={option.disabled}
                   role="option"

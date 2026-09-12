@@ -1283,6 +1283,7 @@
 .suu-dropdown__panel {
   max-height: var(--suu-dropdown-panel-max-height, 100vh);
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--suu-color-bg);
   overscroll-behavior: contain;
 }
@@ -1311,6 +1312,10 @@
   cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+.suu-dropdown__option--group-first {
+  border-top: 1px solid var(--suu-color-border);
 }
 
 .suu-dropdown--multiselect .suu-dropdown__option {
