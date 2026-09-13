@@ -416,6 +416,14 @@ use `menuAlign="right"` to align their right edges instead. `fitContent` sizes
 the menu to its longest option while keeping the selected edge aligned.
 `DataTable` uses this same component for its page-size picker.
 
+Set `search={true}` with `loadOptions` to load remote options as the user
+types. The default `input_style="dropdown"` keeps the search field inside the
+expanded menu. Set `input_style="input"` to render a directly editable input;
+results appear while it is focused and hide on blur. In input style, the
+optional `getItemLabel` callback controls the displayed label while `value`
+and `onChange` continue to represent submitted option values. The input style
+is ignored when `search` is disabled.
+
 For keyboard typeahead, an option may provide `searchText` separately from its
 display `label`. Typeahead matches the beginning of `searchText` or `label`,
 while the label remains the only text shown in the trigger and menu:

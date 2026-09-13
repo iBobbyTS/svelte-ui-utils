@@ -12,6 +12,81 @@ describe('dropdown', () => {
     vi.unstubAllGlobals();
   });
 
+  it('renders input style only when search is enabled and loads on focus', async () => {
+    const loadOptions = vi.fn(async (query: string) => ({
+      options: [{ label: query ? `Result ${query}` : 'Default result', value: 'result' }]
+    }));
+    const { container } = render(Dropdown, {
+      props: {
+        input_style: 'input',
+        search: true,
+        searchDebounceMs: 0,
+        loadOptions,
+        placeholder: 'Search'
+      }
+    });
+
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    await fireEvent.focus(input);
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', expect.anything()));
+    expect(screen.getByRole('option', { name: 'Default result' })).toBeInTheDocument();
+
+    await fireEvent.input(input, { target: { value: 'alice' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('alice', expect.anything()));
+  });
+
+  it('keeps input style gated off when search is disabled', () => {
+    const { container } = render(Dropdown, {
+      props: { input_style: 'input', options: [{ label: 'One', value: 'one' }] }
+    });
+    expect(container.querySelector('input.suu-dropdown__input')).not.toBeInTheDocument();
+    expect(screen.getByRole('button')).toBeInTheDocument();
+  });
+
+  it('uses getItemLabel for input selections and supports multiselect chips', async () => {
+    const onChange = vi.fn();
+    const option = { label: 'Jane Doe', value: 'jane' };
+    const { container } = render(Dropdown, {
+      props: {
+        input_style: 'input',
+        search: true,
+        multiselect: true,
+        value: ['jane'],
+        selectedOptions: [option],
+        getItemLabel: (item: typeof option) => `@${item.value}`,
+        loadOptions: async () => ({ options: [option] }),
+        onChange
+      }
+    });
+    expect(container.querySelector('.suu-dropdown__selected-item')).toHaveTextContent('@jane');
+    await fireEvent.click(container.querySelector('.suu-dropdown__selected-remove') as HTMLElement);
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it('keeps a newly typed query while a controlled single value is pending', async () => {
+    const onChange = vi.fn();
+    const { container } = render(Dropdown, {
+      props: {
+        input_style: 'input',
+        search: true,
+        value: 'alice',
+        options: [{ label: 'Alice', value: 'alice' }],
+        selectedOptions: [{ label: 'Alice', value: 'alice' }],
+        onChange,
+        loadOptions: async () => ({ options: [] })
+      }
+    });
+
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    expect(input.value).toBe('Alice');
+    await fireEvent.input(input, { target: { value: 'ali' } });
+    await tick();
+
+    expect(onChange).toHaveBeenCalledWith('');
+    expect(input.value).toBe('ali');
+  });
+
   it('passes through the optional button id', () => {
     render(Dropdown, {
       props: {

@@ -9,6 +9,8 @@
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import type {
     DropdownChangeHandler,
+    DropdownInputStyle,
+    DropdownItemLabelGetter,
     DropdownLoadOptions,
     DropdownLoadOptionsResult,
     DropdownLoadStatus,
@@ -34,6 +36,8 @@
   export let selectedOptions: DropdownOption[] = [];
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let search = false;
+  export let input_style: DropdownInputStyle = 'dropdown';
+  export let getItemLabel: DropdownItemLabelGetter = (option) => option.label;
   export let loadOptions: DropdownLoadOptions | undefined = undefined;
   export let searchDebounceMs = 300;
   export let searchLimit = 10;
@@ -85,6 +89,9 @@
   // from a search response; once true, the user's manual toggles own the set.
   let searchGroupsInitialized = false;
   let searchQuery = '';
+  // 在受控 value 尚未响应 onChange 时保留用户当前输入，避免
+  // selectedText 的旧值在同一轮更新中覆盖输入框内容。
+  let inputDraft: string | undefined;
   let searchStatus: DropdownLoadStatus = 'idle';
   let searchOptions: DropdownOption[] = [];
   let searchOptionGroups: DropdownOptionGroup[] | undefined = undefined;
@@ -118,7 +125,11 @@
   $: selectedOption = Array.isArray(value) ? undefined : resolvedOptions.find((option) => option.value === value);
   $: selectedText = multiselect
     ? selectedLabelTexts(selectedValues).join(', ')
-    : labelForValue(Array.isArray(value) ? '' : value);
+    : displayLabelForValue(Array.isArray(value) ? '' : value);
+  $: inputMode = search && input_style === 'input';
+  $: inputDisplayValue = inputMode
+    ? (inputDraft ?? (searchQuery || (multiselect ? '' : selectedText)))
+    : '';
   $: if (!open) {
     activeValue = initialActiveValue();
   }
@@ -188,6 +199,12 @@
     return option?.label ?? knownLabels.get(nextValue) ?? String(nextValue);
   }
 
+  function displayLabelForValue(nextValue: DropdownValue): string {
+    const option = resolvedOptions.find((candidate) => candidate.value === nextValue) ??
+      selectedOptions.find((candidate) => candidate.value === nextValue);
+    return option ? getItemLabel(option) : labelForValue(nextValue);
+  }
+
   // Multiselect trigger text only lists values whose label is known; values
   // without one never render a raw fallback string into the trigger.
   function selectedLabelTexts(nextValues: DropdownMultiValue): string[] {
@@ -197,7 +214,9 @@
         resolvedOptions.find((candidate) => candidate.value === nextValue)?.label ??
         knownLabels.get(nextValue);
       if (label !== undefined) {
-        texts.push(label);
+        const option = resolvedOptions.find((candidate) => candidate.value === nextValue) ??
+          selectedOptions.find((candidate) => candidate.value === nextValue);
+        texts.push(option ? getItemLabel(option) : label);
       }
     }
     return texts;
@@ -455,6 +474,7 @@
     clearSearchTimer();
     abortSearchController();
     searchQuery = '';
+    inputDraft = undefined;
     searchOptions = [];
     searchOptionGroups = undefined;
     searchStatus = 'idle';
@@ -462,6 +482,7 @@
 
   function beginSearchOnOpen() {
     searchQuery = '';
+    inputDraft = undefined;
     searchOptions = [];
     searchOptionGroups = undefined;
     collapsedGroupIndexes = new Set();
@@ -485,7 +506,7 @@
     }
     open = true;
     activeValue = initialActiveValue();
-    if (search) {
+    if (search && !inputMode) {
       void tick().then(() => {
         searchInputElement?.focus();
       });
@@ -595,9 +616,21 @@
   }
 
   function handleSearchInput(event: Event) {
-    searchQuery = (event.currentTarget as HTMLInputElement).value;
+    const nextQuery = (event.currentTarget as HTMLInputElement).value;
+    inputDraft = nextQuery;
+    if (inputMode && !multiselect && value !== '' && nextQuery !== selectedText) {
+      void (onChange as DropdownChangeHandler | undefined)?.('');
+    }
+    searchQuery = nextQuery;
     void onSearchChange?.(searchQuery);
     scheduleSearch(searchQuery);
+  }
+
+  function handleInputFocus() {
+    if (!open) {
+      openMenu();
+      open = true;
+    }
   }
 
   function handleSearchKeydown(event: KeyboardEvent) {
@@ -811,6 +844,47 @@
   style:max-width={maxWidth}
   on:focusout={handleFocusout}
 >
+  {#if inputMode}
+    {#if multiselect && selectedValues.length > 0}
+      <div class="suu-dropdown__selected-items">
+        {#each selectedValues as selectedValue}
+          {@const selectedOption = resolvedOptions.find((option) => option.value === selectedValue) ?? selectedOptions.find((option) => option.value === selectedValue)}
+          {#if selectedOption}
+            <span class="suu-dropdown__selected-item">
+              <span>{getItemLabel(selectedOption)}</span>
+              <button
+                type="button"
+                class="suu-dropdown__selected-remove"
+                aria-label={`Remove ${getItemLabel(selectedOption)}`}
+                on:mousedown|preventDefault
+                on:click={() => selectOption(selectedOption)}
+              >×</button>
+            </span>
+          {/if}
+        {/each}
+      </div>
+    {/if}
+    <div class="suu-dropdown__input-field">
+      <input
+        bind:this={searchInputElement}
+        {id}
+        class="suu-dropdown__input"
+        type="text"
+        value={inputDisplayValue}
+        placeholder={searchPlaceholder ?? placeholder ?? ''}
+        aria-label={ariaLabel}
+        autocomplete="off"
+        role="combobox"
+        aria-expanded={open}
+        aria-autocomplete="list"
+        aria-controls={resolvedListboxId}
+        {disabled}
+        on:focus={handleInputFocus}
+        on:input={handleSearchInput}
+        on:keydown={handleSearchKeydown}
+      />
+    </div>
+  {:else}
   <button
     bind:this={buttonElement}
     {id}
@@ -827,6 +901,7 @@
     <span class="suu-dropdown__label">{selectedText || placeholder || ''}</span>
     <span class="suu-dropdown__chevron" aria-hidden="true"></span>
   </button>
+  {/if}
 
   {#if name !== undefined && !multiselect}
     <input
@@ -858,7 +933,7 @@
       style:--suu-dropdown-menu-width={portalMenuWidth}
       style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
     >
-      {#if search}
+      {#if search && !inputMode}
         <div class="suu-dropdown__search">
           <svg class="suu-dropdown__search-icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="7"></circle>

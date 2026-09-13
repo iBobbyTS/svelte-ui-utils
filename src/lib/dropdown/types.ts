@@ -38,6 +38,9 @@ export type DropdownTriggerClickHandler = (event: MouseEvent) => void;
 
 export type DropdownSearchChangeHandler = (query: string) => void | Promise<void>;
 
+export type DropdownInputStyle = 'dropdown' | 'input';
+export type DropdownItemLabelGetter = (option: DropdownOption) => string;
+
 export type DropdownLoadStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface DropdownLoadContext {
