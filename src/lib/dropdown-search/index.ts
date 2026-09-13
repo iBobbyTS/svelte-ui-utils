@@ -13,7 +13,7 @@ export type {
   DropdownSearchChangeDetail,
   DropdownSearchEnterDetail,
   DropdownSearchItem,
-  DropdownSearchItemValueGetter,
+  DropdownSearchItemLabelGetter,
   DropdownSearchLoadContext,
   DropdownSearchLoadOptions,
   DropdownSearchSelectedItemLabelGetter,

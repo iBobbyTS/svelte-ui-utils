@@ -1,8 +1,13 @@
 export type DropdownSearchStatus = 'empty' | 'loading' | 'valid' | 'invalid' | 'error';
 
+/**
+ * Search options and selected chips use the unified label/value contract:
+ * `label` is the display text, `value` is the submitted string identifier.
+ * Extra business fields (e.g. `param_dict`) are preserved as metadata.
+ */
 export interface DropdownSearchItem {
-  id: string | number;
-  title: string;
+  label: string;
+  value: string;
   param_dict?: Record<string, string | number | null>;
   disabled?: boolean;
   [key: string]: unknown;
@@ -24,6 +29,7 @@ export type DropdownSearchLoadOptions = (
 ) => Promise<DropdownSearchResult> | DropdownSearchResult;
 
 export interface DropdownSearchChangeDetail {
+  /** Free-text input content; distinct from the submitted `DropdownSearchItem.value`. */
   value: string;
   selectedItem: DropdownSearchItem | null;
   selectedItems: DropdownSearchItem[];
@@ -36,6 +42,7 @@ export interface DropdownSearchEnterDetail extends DropdownSearchChangeDetail {
   options: DropdownSearchItem[];
 }
 
-export type DropdownSearchItemValueGetter = (item: DropdownSearchItem) => string;
+/** Returns the input text shown for a selected item; defaults to the item label. */
+export type DropdownSearchItemLabelGetter = (item: DropdownSearchItem) => string;
 export type DropdownSearchSelectedItemsChangeHandler = (items: DropdownSearchItem[]) => void | Promise<void>;
 export type DropdownSearchSelectedItemLabelGetter = (item: DropdownSearchItem) => string;

@@ -24,7 +24,7 @@
   $: normalized = normalizePagination(pagination, totalRows);
   $: pageCount = getPageCount(totalRows, normalized.pageSize);
   $: pageItems = buildPaginationItems(normalized.page, pageCount, maxPageButtons);
-  $: pageSizeDropdownOptions = pageSizeOptions.map((option) => ({ label: String(option), value: option }));
+  $: pageSizeDropdownOptions = pageSizeOptions.map((option) => ({ label: String(option), value: String(option) }));
 
   function buildPaginationItems(currentPage: number, totalPages: number, maxButtons: number): PaginationItem[] {
     if (totalPages < 1) {
@@ -81,12 +81,13 @@
     void onPaginationChange?.(normalizePagination({ ...normalized, page }, totalRows));
   }
 
+  // The dropdown submits string page sizes; the pagination state itself keeps numbers.
   function setPageSize(nextValue: DropdownValue) {
     if (disabled) {
       return;
     }
-    const pageSize = typeof nextValue === 'number' ? nextValue : Number(nextValue);
-    if (!Number.isFinite(pageSize)) {
+    const pageSize = Number(nextValue);
+    if (!Number.isInteger(pageSize) || pageSize <= 0) {
       return;
     }
     void onPaginationChange?.(normalizePagination({ page: 1, pageSize }, totalRows));
@@ -115,7 +116,7 @@
   <div class="suu-pagination__size">
     <span>{resolvedPageSizeLabel}</span>
     <Dropdown
-      value={normalized.pageSize}
+      value={String(normalized.pageSize)}
       options={pageSizeDropdownOptions}
       ariaLabel={resolvedPageSizeLabel}
       placement={pageSizeDropdownPlacement}

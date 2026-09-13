@@ -2,6 +2,54 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## Unreleased (after 0.4.3): dropdown string/label-value field contract
+
+All dropdown-family components now speak one field contract: options are
+`{ label, value }` and every submitted value is a string. This is a breaking
+field migration; the package is not fully backward compatible with 0.4.x
+callers that pass numeric values or `id`/`title` items.
+
+- `DropdownValue` is now `string` (arrays are `string[]`). `Dropdown`,
+  `DropdownMultiSelect`, and every handler that receives selected values emit
+  strings only. Callers that keep numeric domain state must convert at the
+  boundary: pass `String(id)` in option `value`, and `Number(value)` when the
+  business layer needs the number back. The submitted business value is
+  unchanged; only its transport type at the component boundary changed. The
+  bundled `Pagination` already adapts internally: its page-size options and
+  trigger are stringified while `PaginationState.pageSize` stays a number.
+- `DropdownSearchItem` (and therefore `loadOptions` results, `selectedItem`,
+  `selectedItems`, `focusOptions`, and `exactMatch`) now uses
+  `{ label, value }` instead of `{ id, title }`. `label` is the display text,
+  `value` is the submitted string identifier, and extra fields such as
+  `param_dict` are preserved as business metadata. There is no `title`/`id`
+  fallback.
+- The `DropdownSearch`/`DropdownSearchMultiSelect` free-text `value` prop and
+  `onChange` detail remain the raw input text. They are distinct from the
+  submitted `item.value`; selecting an item fills the input with the item
+  label.
+- The `getItemValue` prop is renamed to `getItemLabel`
+  (`DropdownSearchItemValueGetter` is now `DropdownSearchItemLabelGetter`).
+  It returns the input text shown for a selected item and defaults to
+  `item.label`. Rename any override; returning the submitted `item.value`
+  from it is a mistake.
+- Data-table filter options follow the same contract: `FilterOption.value`
+  is `string`, and the checkbox, radio, and select filter controls take and
+  emit `string`/`string[]` values. Convert numeric filter keys (for example
+  category bits) with `String(...)` when building options and `Number(...)`
+  inside `onChange`. `FilterValue`/`FilterState` remain the storage union.
+
+Migration sketch:
+
+```ts
+// before
+const options = users.map((u) => ({ id: u.id, title: u.displayName }));
+onSelect: (item) => save(item.id)
+
+// after
+const options = users.map((u) => ({ value: String(u.id), label: u.displayName }));
+onSelect: (item) => save(Number(item.value)) // or keep the string protocol
+```
+
 ## Unreleased / 0.4.0
 
 `DataTable` now has one explicit server-pagination contract. It owns the page,

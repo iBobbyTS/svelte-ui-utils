@@ -6,7 +6,7 @@
   import type {
     DropdownSearchChangeDetail,
     DropdownSearchItem,
-    DropdownSearchItemValueGetter,
+    DropdownSearchItemLabelGetter,
     DropdownSearchLoadOptions,
     DropdownSearchSelectedItemLabelGetter,
     DropdownSearchSelectedItemsChangeHandler,
@@ -40,7 +40,7 @@
   export let removeSelectedItemLabel:
     | DropdownSearchSelectedItemLabelGetter
     | undefined = undefined;
-  export let getItemValue: DropdownSearchItemValueGetter = (item) => item.title;
+  export let getItemLabel: DropdownSearchItemLabelGetter = (item) => item.label;
   export let onChange:
     | ((detail: DropdownSearchChangeDetail) => void)
     | undefined = undefined;
@@ -84,7 +84,7 @@
   {maxWidth}
   {selectedItemsLabel}
   {removeSelectedItemLabel}
-  {getItemValue}
+  {getItemLabel}
   {onChange}
   {onSelect}
   {onDeselect}

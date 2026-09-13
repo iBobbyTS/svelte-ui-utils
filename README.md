@@ -87,6 +87,12 @@ chosen side.
 
 ## DropdownSearch
 
+`DropdownSearch` is the free-text input entry with server-driven validation
+(`exactMatch`), input statuses, focus options, footer text, a clear button, and
+multiselect chips. For a trigger-style dropdown that combines single or multi
+select with async search and dynamic result groups, use the unified `Dropdown`
+search mode instead.
+
 ```svelte
 <script lang="ts">
   import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
@@ -114,11 +120,16 @@ chosen side.
 
 ```ts
 {
-  id: '123',
-  title: 'Jane Doe',
+  value: '123',
+  label: 'Jane Doe',
   param_dict: { ID: 'M-123' }
 }
 ```
+
+`label` is the display text and `value` is the submitted string identifier;
+extra fields such as `param_dict` are preserved as business metadata. The
+free-text `value` prop and `onChange` detail stay the raw input text, so they
+never collide with the submitted `item.value`.
 
 The input is valid when the server returns one unique `exactMatch`, or when the
 user selects an item. Non-empty text without a unique match is invalid.
@@ -159,7 +170,7 @@ same controlled contract:
   placeholder="Search members"
   selectedItems={selectedMembers}
   selectedItemsLabel="Selected members"
-  removeSelectedItemLabel={(item) => `Remove ${item.title}`}
+  removeSelectedItemLabel={(item) => `Remove ${item.label}`}
   {loadOptions}
   onSelectedItemsChange={(items) => {
     selectedMembers = items;
@@ -367,12 +378,12 @@ prop is available on all dialog wrapper components.
   } from '@ibobbyts/svelte-ui-utils/dropdown';
 
   const pageSizeOptions: DropdownOption[] = [
-    { label: '10', value: 10 },
-    { label: '20', value: 20 },
-    { label: '50', value: 50 }
+    { label: '10', value: '10' },
+    { label: '20', value: '20' },
+    { label: '50', value: '50' }
   ];
 
-  let pageSize: DropdownValue = 20;
+  let pageSize: DropdownValue = '20';
 </script>
 
 <Dropdown
@@ -386,7 +397,10 @@ prop is available on all dialog wrapper components.
 />
 ```
 
-`Dropdown` is a controlled select-like component for simple option lists. Use
+`Dropdown` is a controlled select-like component for simple option lists.
+Every option submits a string `value` while `label` stays the display text;
+callers with numeric domain state convert with `String`/`Number` at the
+boundary (the bundled `Pagination` does this for its numeric page size). Use
 `placement="up"` when the menu should open above the trigger, such as bottom
 pagination bars. The expanded menu shares the trigger's left edge by default;
 use `menuAlign="right"` to align their right edges instead. `fitContent` sizes
@@ -519,6 +533,58 @@ change the current collapsed state. Group headings can always be toggled
 manually. `width`, `minWidth`, `maxWidth`, and `className` are optional styling
 hooks. `onTriggerClick` runs before the dropdown toggles, so a nested control
 can stop event propagation without preventing the dropdown from opening.
+
+### Async search mode
+
+Set `search={true}` and pass `loadOptions` to turn the menu into an async
+search dropdown. The trigger stays a dropdown button; expanding it opens a menu
+with an always-visible search input:
+
+```svelte
+<script lang="ts">
+  import { Dropdown, type DropdownLoadOptions } from '@ibobbyts/svelte-ui-utils';
+
+  let country = '';
+
+  const loadOptions: DropdownLoadOptions = async (query, { limit, signal }) => {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const response = await fetch(`/api/countries?${params}`, { signal });
+    return response.json();
+  };
+</script>
+
+<Dropdown
+  value={country}
+  search
+  searchPlaceholder="Search countries"
+  {loadOptions}
+  ariaLabel="Country"
+  onChange={(next) => {
+    country = next;
+  }}
+/>
+```
+
+`loadOptions(query, { limit, signal })` returns `{ options?, optionGroups? }`
+whose options use `label`/`value` only. The empty query fires immediately on
+every expand; typed queries are debounced with `searchDebounceMs` (default
+`300`) and receive `searchLimit` (default `10`, clamped to `1..50`). When a
+response contains `optionGroups`, the groups are the sole render source and any
+flat `options` on the same response are ignored; empty groups stay hidden, and
+an empty result renders the no-results row. Stale responses are discarded by
+request order, closing the menu aborts the in-flight request, and a rejected
+load shows the error row (override the text with `errorText`). Search-result
+groups follow the same `groupsCollapsedByDefault` states as static groups; with
+`"auto"` the collapse state is seeded once per open session, and manual toggles
+survive later query refreshes within that session.
+
+A single-select pick closes the menu; a multiselect pick keeps it open and
+emits the complete selected array. Values picked during earlier queries stay
+selected across new results. Search mode never falls back to the static
+`options`/`optionGroups` props; without `search`, those props remain the only
+render source and `loadOptions` is never called. Type the loader with
+`DropdownLoadOptions`/`DropdownLoadOptionsResult`, exported from the package
+root.
 
 ## DataTable
 
@@ -705,6 +771,28 @@ and `var(--suu-radius)` corner radius as a bordered `DataTable`. Set
 
 `filter.select` uses the shared `Dropdown` component, so select filters keep the
 same menu, keyboard, and visual behavior as standalone dropdowns.
+
+`filter.dropdown` maps a filter row onto the unified `Dropdown` API with
+`label`/`value` options: pass static `options` or `optionGroups` (with
+`groupsCollapsedByDefault`), set `multiselect` to collect an array, or set
+`search` with `loadOptions` to run the async search flow inside the filter row:
+
+```svelte
+{
+  key: 'assignee',
+  title: 'Assignee',
+  filter: filter.dropdown({
+    value: assignee,
+    search: true,
+    loadOptions: searchUsers,
+    ariaLabel: 'Assignee',
+    width: '18rem',
+    onChange: (next) => {
+      assignee = next;
+    }
+  })
+}
+```
 
 If a dropdown-style filter appears clipped, check the parent containers first.
 `DropdownSearch` renders its result list as an absolutely positioned child, so

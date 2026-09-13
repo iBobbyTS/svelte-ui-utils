@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dropdown, DropdownMultiSelect } from '../src/lib/dropdown/index.js';
+import type { DropdownLoadOptionsResult } from '../src/lib/dropdown/types.js';
 import ControlledDropdownMultiSelectHarness from './fixtures/ControlledDropdownMultiSelectHarness.svelte';
 
 describe('dropdown', () => {
@@ -24,16 +25,16 @@ describe('dropdown', () => {
     expect(screen.getByRole('button', { name: 'Status' })).toHaveAttribute('id', 'status-dropdown');
   });
 
-  it('emits selected option changes', async () => {
+  it('emits selected option changes as strings even when labels look numeric', async () => {
     const onChange = vi.fn();
 
     render(Dropdown, {
       props: {
-        value: 10,
+        value: '10',
         ariaLabel: 'Rows',
         options: [
-          { label: '10', value: 10 },
-          { label: '20', value: 20 }
+          { label: '10', value: '10' },
+          { label: '20', value: '20' }
         ],
         onChange
       }
@@ -42,7 +43,61 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Rows' }));
     await fireEvent.click(screen.getByRole('option', { name: '20' }));
 
-    expect(onChange).toHaveBeenCalledWith(20);
+    expect(onChange).toHaveBeenCalledWith('20');
+  });
+
+  it('keeps the displayed label distinct from the submitted value', async () => {
+    const onChange = vi.fn();
+
+    render(Dropdown, {
+      props: {
+        value: 'M-123',
+        ariaLabel: 'Member',
+        options: [{ label: 'Jane Doe', value: 'M-123' }],
+        onChange
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'Member' }).textContent).toContain('Jane Doe');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Member' }));
+    await fireEvent.click(screen.getByRole('option', { name: 'Jane Doe' }));
+
+    expect(onChange).toHaveBeenCalledWith('M-123');
+    expect(screen.getByRole('button', { name: 'Member' }).textContent).toContain('Jane Doe');
+  });
+
+  it('displays labels for selected values before a search menu is opened', () => {
+    render(Dropdown, {
+      props: {
+        value: ['member-1'],
+        multiselect: true,
+        search: true,
+        ariaLabel: 'Members',
+        selectedOptions: [{ label: 'Jane Doe', value: 'member-1' }],
+        loadOptions: async () => ({ options: [] })
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'Members' })).toHaveTextContent('Jane Doe');
+  });
+
+  it('includes selected options in the first empty search result', async () => {
+    render(Dropdown, {
+      props: {
+        value: ['member-1'],
+        multiselect: true,
+        search: true,
+        ariaLabel: 'Members',
+        selectedOptions: [{ label: 'Jane Doe', value: 'member-1' }],
+        loadOptions: async () => ({ options: [] })
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Members' }));
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Jane Doe' })).toBeInTheDocument());
+    expect(screen.getByRole('option', { name: 'Jane Doe' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'Jane Doe' }).querySelector('.suu-dropdown__checkbox')).toHaveAttribute('data-checked', 'true');
   });
 
   it('supports upward placement', async () => {
@@ -897,7 +952,7 @@ describe('dropdown', () => {
     expect(screen.getByRole('option', { name: 'Alpha' })).toHaveAttribute('aria-selected', 'true');
 
     await fireEvent.click(screen.getByRole('option', { name: 'Beta' }));
-    expect(onChange).toHaveBeenLastCalledWith(['alpha']);
+    expect(onChange).toHaveBeenLastCalledWith(['alpha', 'missing']);
     expect(screen.getByRole('listbox', { name: 'Members' })).toBeInTheDocument();
   });
 
@@ -989,5 +1044,457 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Single choice' }));
     expect(screen.getByRole('listbox', { name: 'Single choice' })).not.toHaveAttribute('aria-multiselectable');
     expect(document.querySelector('.suu-dropdown__checkbox')).toBeNull();
+  });
+});
+
+describe('dropdown search', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('fires the empty query immediately on open with a limited abortable context', async () => {
+    const loadOptions = vi.fn(
+      (_query: string, context: { limit: number; signal: AbortSignal }) =>
+        new Promise<{ options: { label: string; value: string }[] }>(() => undefined)
+    );
+
+    render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'Country',
+        search: true,
+        searchLimit: 25,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+
+    expect(loadOptions).toHaveBeenCalledTimes(1);
+    const [query, context] = loadOptions.mock.calls[0];
+    expect(query).toBe('');
+    expect(context.limit).toBe(25);
+    expect(context.signal).toBeInstanceOf(AbortSignal);
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByRole('option')).toBeNull();
+  });
+
+  it('debounces typed queries and renders flat results', async () => {
+    vi.useFakeTimers();
+    const loadOptions = vi.fn().mockResolvedValue({ options: [{ label: 'Beta', value: 'beta' }] });
+
+    render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'Country',
+        search: true,
+        searchDebounceMs: 300,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+    loadOptions.mockClear();
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'be' } });
+    expect(loadOptions).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(loadOptions).toHaveBeenCalledTimes(1);
+    expect(loadOptions).toHaveBeenCalledWith('be', expect.objectContaining({ limit: 10 }));
+    expect(await screen.findByRole('option', { name: 'Beta' })).toBeInTheDocument();
+  });
+
+  it('renders async option groups as the sole source and hides empty groups', async () => {
+    const loadOptions = vi.fn().mockResolvedValue({
+      options: [{ label: 'Ignored', value: 'ignored' }],
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Empty', options: [] },
+        { options: [{ label: 'Ungrouped', value: 'ungrouped' }] }
+      ]
+    });
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Protocols', search: true, searchDebounceMs: 0, loadOptions }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+
+    expect(await screen.findByRole('group', { name: 'Core' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Ungrouped' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Ignored' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Empty' })).toBeNull();
+  });
+
+  it('shows the no-results state when the async result is empty', async () => {
+    const loadOptions = vi.fn().mockResolvedValue({ options: [], optionGroups: [] });
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Country', search: true, searchDebounceMs: 0, loadOptions }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+
+    expect(await screen.findByText('Empty')).toBeInTheDocument();
+    expect(screen.queryByRole('option')).toBeNull();
+    expect(loadOptions).toHaveBeenCalledWith('', expect.objectContaining({ limit: 10 }));
+  });
+
+  it('shows an error state when loading fails and recovers on the next query', async () => {
+    const loadOptions = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({ options: [{ label: 'Beta', value: 'beta' }] });
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Country', search: true, searchDebounceMs: 0, loadOptions }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load options');
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'be' } });
+    expect(await screen.findByRole('option', { name: 'Beta' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('discards stale responses and renders only the latest result', async () => {
+    let resolveFirst: ((result: { options: { label: string; value: string }[] }) => void) | undefined;
+    const loadOptions = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<{ options: { label: string; value: string }[] }>((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve({ options: [{ label: 'Latest', value: 'latest' }] })
+      );
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Country', search: true, searchDebounceMs: 0, loadOptions }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'la' } });
+
+    expect(await screen.findByRole('option', { name: 'Latest' })).toBeInTheDocument();
+
+    resolveFirst?.({ options: [{ label: 'Stale', value: 'stale' }] });
+    await waitFor(() => {
+      expect(screen.queryByRole('option', { name: 'Stale' })).toBeNull();
+      expect(screen.getByRole('option', { name: 'Latest' })).toBeInTheDocument();
+    });
+  });
+
+  it('aborts the in-flight request when superseded and when the menu closes', async () => {
+    const signals: AbortSignal[] = [];
+    const loadOptions = vi.fn((_query: string, context: { signal: AbortSignal }) => {
+      signals.push(context.signal);
+      return new Promise<DropdownLoadOptionsResult>(() => undefined);
+    });
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Country', search: true, searchDebounceMs: 0, loadOptions }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'x' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+    expect(signals[0].aborted).toBe(true);
+    expect(signals[1].aborted).toBe(false);
+
+    await fireEvent.keyDown(screen.getByRole('button', { name: 'Country' }), { key: 'Escape' });
+    expect(signals[1].aborted).toBe(true);
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('closes after a single-select search pick and keeps the selected label across queries', async () => {
+    const onChange = vi.fn();
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValueOnce({ options: [{ label: 'Alpha', value: 'alpha' }, { label: 'Beta', value: 'beta' }] })
+      .mockResolvedValue({ options: [{ label: 'Beta', value: 'beta' }] });
+    const props = {
+      value: '',
+      ariaLabel: 'Country',
+      search: true,
+      searchDebounceMs: 0,
+      loadOptions,
+      onChange
+    };
+    const { rerender } = render(Dropdown, { props });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alpha' }));
+
+    expect(onChange).toHaveBeenCalledWith('alpha');
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    await rerender({ ...props, value: 'alpha' });
+    const trigger = screen.getByRole('button', { name: 'Country' });
+    expect(trigger).toHaveTextContent('Alpha');
+
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('option', { name: 'Beta' })).toBeInTheDocument();
+    expect(trigger).toHaveTextContent('Alpha');
+  });
+
+  it('keeps multiselect search open and preserves earlier picks across queries', async () => {
+    const onChange = vi.fn();
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValueOnce({ options: [{ label: 'Apple', value: 'apple' }] })
+      .mockResolvedValue({ options: [{ label: 'Banana', value: 'banana' }] });
+    const props = {
+      value: [] as string[],
+      multiselect: true,
+      ariaLabel: 'Fruit',
+      search: true,
+      searchDebounceMs: 0,
+      loadOptions,
+      onChange
+    };
+    const { rerender } = render(Dropdown, { props });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Fruit' }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'Apple' }));
+
+    expect(onChange).toHaveBeenLastCalledWith(['apple']);
+    expect(screen.getByRole('listbox', { name: 'Fruit' })).toBeInTheDocument();
+
+    await rerender({ ...props, value: ['apple'] });
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ban' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Banana' }));
+
+    expect(onChange).toHaveBeenLastCalledWith(['banana', 'apple']);
+    expect(screen.getByRole('listbox', { name: 'Fruit' })).toBeInTheDocument();
+
+    await rerender({ ...props, value: ['banana', 'apple'] });
+    expect(screen.getByRole('button', { name: 'Fruit' })).toHaveTextContent('Banana, Apple');
+  });
+
+  it('applies auto group collapse to async groups based on the current selection', async () => {
+    const onChange = vi.fn();
+    const loadOptions = vi.fn().mockResolvedValue({
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+      ]
+    });
+
+    render(Dropdown, {
+      props: {
+        value: ['chat'],
+        multiselect: true,
+        ariaLabel: 'Protocols',
+        search: true,
+        groupsCollapsedByDefault: 'auto' as const,
+        searchDebounceMs: 0,
+        loadOptions,
+        onChange
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+
+    expect(await screen.findByRole('group', { name: 'Core' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Extra' }));
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('option', { name: 'Mail' }));
+    expect(onChange).toHaveBeenLastCalledWith(['chat', 'mail']);
+    expect(screen.getByRole('listbox', { name: 'Protocols' })).toBeInTheDocument();
+  });
+
+  it('preserves manual group collapse toggles across query refreshes within one open session', async () => {
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValueOnce({
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+        ]
+      })
+      .mockResolvedValueOnce({
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }, { label: 'Mail Pro', value: 'mailPro' }] }
+        ]
+      });
+
+    render(Dropdown, {
+      props: {
+        value: ['chat'],
+        multiselect: true,
+        ariaLabel: 'Protocols',
+        search: true,
+        groupsCollapsedByDefault: 'auto' as const,
+        searchDebounceMs: 0,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Core' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Extra' }));
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ma' } });
+
+    expect(await screen.findByRole('option', { name: 'Mail Pro' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+  });
+
+  it('re-evaluates auto group collapse after closing and reopening the menu', async () => {
+    const loadOptions = vi.fn().mockResolvedValue({
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+      ]
+    });
+    const props = {
+      value: ['chat'] as string[],
+      multiselect: true,
+      ariaLabel: 'Protocols',
+      search: true,
+      groupsCollapsedByDefault: 'auto' as const,
+      searchDebounceMs: 0,
+      loadOptions
+    };
+    const { rerender } = render(Dropdown, { props });
+
+    const trigger = screen.getByRole('button', { name: 'Protocols' });
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Extra' }));
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    await fireEvent.click(trigger);
+    expect(screen.queryByRole('listbox', { name: 'Protocols' })).toBeNull();
+
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('group', { name: 'Extra' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+
+    await fireEvent.click(trigger);
+    await rerender({ ...props, value: ['chat', 'mail'] });
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole('option', { name: 'Mail' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+  });
+
+  it('seeds auto collapse at the first valid grouped response of an open session', async () => {
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValueOnce({ options: [], optionGroups: [] })
+      .mockResolvedValueOnce({
+        optionGroups: [
+          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+        ]
+      });
+
+    render(Dropdown, {
+      props: {
+        value: ['chat'],
+        multiselect: true,
+        ariaLabel: 'Protocols',
+        search: true,
+        groupsCollapsedByDefault: 'auto' as const,
+        searchDebounceMs: 0,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+    expect(await screen.findByText('Empty')).toBeInTheDocument();
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ch' } });
+
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+  });
+
+  it('supports keyboard selection and escape dismissal from the search input', async () => {
+    const onChange = vi.fn();
+    const loadOptions = vi
+      .fn()
+      .mockResolvedValue({ options: [{ label: 'Alpha', value: 'alpha' }, { label: 'Beta', value: 'beta' }] });
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Country', search: true, searchDebounceMs: 0, loadOptions, onChange }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Country' });
+    await fireEvent.click(trigger);
+    const input = screen.getByRole('combobox');
+    expect(await screen.findByRole('option', { name: 'Alpha' })).toBeInTheDocument();
+
+    await fireEvent.keyDown(input, { key: 'ArrowDown' });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('beta');
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    await fireEvent.click(trigger);
+    const reopenedInput = screen.getByRole('combobox');
+    await screen.findByRole('option', { name: 'Alpha' });
+    await fireEvent.keyDown(reopenedInput, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('closes an open search menu on outside pointerdown', async () => {
+    const loadOptions = vi.fn().mockResolvedValue({ options: [{ label: 'Alpha', value: 'alpha' }] });
+
+    render(Dropdown, {
+      props: { value: '', ariaLabel: 'Country', search: true, searchDebounceMs: 0, loadOptions }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Country' }));
+    expect(await screen.findByRole('option', { name: 'Alpha' })).toBeInTheDocument();
+
+    await fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('never calls loadOptions and keeps instantiated options when search is disabled', async () => {
+    const loadOptions = vi.fn();
+    const optionGroups = [{ label: 'Core', options: [{ label: 'Chat', value: 'chat' }] }];
+
+    render(Dropdown, {
+      props: {
+        value: 'chat',
+        ariaLabel: 'Protocols',
+        options: [{ label: 'Ignored flat', value: 'flat' }],
+        optionGroups,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Ignored flat' })).toBeNull();
+    expect(loadOptions).not.toHaveBeenCalled();
   });
 });
