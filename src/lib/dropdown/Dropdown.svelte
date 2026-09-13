@@ -29,6 +29,8 @@
   export let multiselect = false;
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
+  /** Labels for controlled values that are not present in the current search result. */
+  export let selectedOptions: DropdownOption[] = [];
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let search = false;
   export let loadOptions: DropdownLoadOptions | undefined = undefined;
@@ -106,6 +108,7 @@
     ? renderOptions
     : renderOptionGroups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
   $: trackOptionLabels(resolvedOptions);
+  $: trackOptionLabels(selectedOptions);
   $: rawSelectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
   $: selectedValues = orderSelectedValues(resolvedOptions, rawSelectedValues);
   $: selectedValueSet = new Set(rawSelectedValues);

@@ -67,6 +67,21 @@ describe('dropdown', () => {
     expect(screen.getByRole('button', { name: 'Member' }).textContent).toContain('Jane Doe');
   });
 
+  it('displays labels for selected values before a search menu is opened', () => {
+    render(Dropdown, {
+      props: {
+        value: ['member-1'],
+        multiselect: true,
+        search: true,
+        ariaLabel: 'Members',
+        selectedOptions: [{ label: 'Jane Doe', value: 'member-1' }],
+        loadOptions: async () => ({ options: [] })
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'Members' })).toHaveTextContent('Jane Doe');
+  });
+
   it('supports upward placement', async () => {
     const { container } = render(Dropdown, {
       props: {
