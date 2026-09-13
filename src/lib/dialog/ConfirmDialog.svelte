@@ -25,6 +25,7 @@
   export let showCountdown = false;
   export let countdownDurationMs = 0;
   export let countdownLabel = 'Dialog countdown';
+  export let restoreFocusSelector: string | undefined = undefined;
   export let onConfirm: (() => void | Promise<void>) | undefined = undefined;
   export let onCancel: (() => void) | undefined = undefined;
   export let onClose: (() => void) | undefined = undefined;
@@ -59,6 +60,7 @@
   {showCountdown}
   {countdownDurationMs}
   {countdownLabel}
+  {restoreFocusSelector}
   onClose={handleClose}
 >
   <slot>

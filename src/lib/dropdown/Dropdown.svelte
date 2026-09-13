@@ -19,6 +19,7 @@
     DropdownOptionGroup,
     DropdownPlacement,
     DropdownSelectionChangeHandler,
+    DropdownSearchChangeHandler,
     DropdownSelection,
     DropdownTriggerClickHandler,
     DropdownValue
@@ -37,6 +38,7 @@
   export let searchDebounceMs = 300;
   export let searchLimit = 10;
   export let searchPlaceholder: string | undefined = undefined;
+  export let placeholder: string | undefined = undefined;
   export let language: UiLanguage = 'en_us';
   export let loadingText: string | undefined = undefined;
   export let noResultsText: string | undefined = undefined;
@@ -55,6 +57,7 @@
   export let className: string | undefined = undefined;
   export let portal = false;
   export let onChange: DropdownSelectionChangeHandler | undefined = undefined;
+  export let onSearchChange: DropdownSearchChangeHandler | undefined = undefined;
   export let onTriggerClick: DropdownTriggerClickHandler | undefined = undefined;
 
   const viewportMargin = 20;
@@ -573,6 +576,7 @@
           openMenu();
         }
         searchQuery = wasOpen ? `${searchQuery}${normalizeTypeaheadKey(event.key)}` : normalizeTypeaheadKey(event.key);
+        void onSearchChange?.(searchQuery);
         scheduleSearch(searchQuery);
         return;
       }
@@ -592,6 +596,7 @@
 
   function handleSearchInput(event: Event) {
     searchQuery = (event.currentTarget as HTMLInputElement).value;
+    void onSearchChange?.(searchQuery);
     scheduleSearch(searchQuery);
   }
 
@@ -819,7 +824,7 @@
     on:click={handleTriggerClick}
     on:keydown={handleKeydown}
   >
-    <span class="suu-dropdown__label">{selectedText}</span>
+    <span class="suu-dropdown__label">{selectedText || placeholder || ''}</span>
     <span class="suu-dropdown__chevron" aria-hidden="true"></span>
   </button>
 

@@ -309,6 +309,7 @@ light and dark defaults and expose `--suu-sortable-table-row-*-light` and
   blurBackdrop={true}
   showCountdown={true}
   countdownDurationMs={30000}
+  restoreFocusSelector="#edit-record-trigger"
   onClose={() => (dialogOpen = false)}
 >
   <p>Dialog body content goes here.</p>
@@ -356,15 +357,23 @@ light and dark defaults and expose `--suu-sortable-table-row-*-light` and
 />
 ```
 
-Dialog components are controlled by the consuming app. `Dialog` calls `onClose`
-from the close button, backdrop, or Escape key when dismissible; it does not
-mutate `open` internally. Set `dimBackdrop={false}` to disable background
-darkening, `blurBackdrop={true}` to blur content behind the dialog, and
-`showCountdown={true}` with `countdownDurationMs` to show a toast-style top
+Dialog components are controlled by the consuming app. `Dialog` renders a
+native `<dialog>` element and opens it with the browser top layer, so dialogs
+nest: with several dialogs open at once, Escape, Tab, and backdrop clicks only
+affect the topmost dialog and parent dialogs stay open. `Dialog` calls
+`onClose` from the close button, backdrop, or Escape key when dismissible; it
+does not mutate `open` internally. Set `dimBackdrop={false}` to disable
+background darkening, `blurBackdrop={true}` to blur content behind the dialog,
+and `showCountdown={true}` with `countdownDurationMs` to show a toast-style top
 countdown bar. The optional `padding` prop accepts a CSS padding shorthand and
 applies it consistently to the dialog header, body, and footer. The default
 section-specific spacing is preserved when `padding` is omitted, and the same
-prop is available on all dialog wrapper components.
+prop is available on all dialog wrapper components. Set `restoreFocusSelector`
+when the opening control may be replaced while the dialog is open; after
+closing, `Dialog` focuses the latest matching element and otherwise falls back
+to the original connected element. `ConfirmDialog` renders its `message` once
+in the dialog body and forwards this prop, along with the dismiss, backdrop,
+countdown, and focus-restore lifecycle props, to `Dialog`.
 
 ## Dropdown
 

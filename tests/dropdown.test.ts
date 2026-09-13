@@ -1106,6 +1106,34 @@ describe('dropdown search', () => {
     expect(await screen.findByRole('option', { name: 'Beta' })).toBeInTheDocument();
   });
 
+  it('reports each search query immediately without waiting for the remote loader', async () => {
+    vi.useFakeTimers();
+    const onSearchChange = vi.fn();
+    const loadOptions = vi.fn().mockResolvedValue({ options: [] });
+
+    render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'User',
+        placeholder: 'Search users',
+        search: true,
+        searchDebounceMs: 300,
+        loadOptions,
+        onSearchChange
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'User' })).toHaveTextContent('Search users');
+    await fireEvent.click(screen.getByRole('button', { name: 'User' }));
+    loadOptions.mockClear();
+
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'alice' } });
+
+    expect(onSearchChange).toHaveBeenCalledOnce();
+    expect(onSearchChange).toHaveBeenCalledWith('alice');
+    expect(loadOptions).not.toHaveBeenCalled();
+  });
+
   it('renders async option groups as the sole source and hides empty groups', async () => {
     const loadOptions = vi.fn().mockResolvedValue({
       options: [{ label: 'Ignored', value: 'ignored' }],

@@ -13,6 +13,7 @@ export type {
   DropdownOptionGroup,
   DropdownPlacement,
   DropdownSelectionChangeHandler,
+  DropdownSearchChangeHandler,
   DropdownSelection,
   DropdownTriggerClickHandler,
   DropdownValue
