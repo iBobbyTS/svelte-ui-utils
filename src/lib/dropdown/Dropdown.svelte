@@ -92,6 +92,7 @@
   // 在受控 value 尚未响应 onChange 时保留用户当前输入，避免
   // selectedText 的旧值在同一轮更新中覆盖输入框内容。
   let inputDraft: string | undefined;
+  let preserveInputDraftOnClose = false;
   let searchStatus: DropdownLoadStatus = 'idle';
   let searchOptions: DropdownOption[] = [];
   let searchOptionGroups: DropdownOptionGroup[] | undefined = undefined;
@@ -354,6 +355,10 @@
       return;
     }
 
+    if (inputMode) {
+      inputDraft = getItemLabel(option);
+      preserveInputDraftOnClose = true;
+    }
     open = false;
     clearTypeaheadBuffer();
     void (onChange as DropdownChangeHandler | undefined)?.(option.value);
@@ -474,7 +479,11 @@
     clearSearchTimer();
     abortSearchController();
     searchQuery = '';
-    inputDraft = undefined;
+    if (preserveInputDraftOnClose) {
+      preserveInputDraftOnClose = false;
+    } else {
+      inputDraft = undefined;
+    }
     searchOptions = [];
     searchOptionGroups = undefined;
     searchStatus = 'idle';
@@ -622,15 +631,23 @@
       void (onChange as DropdownChangeHandler | undefined)?.('');
     }
     searchQuery = nextQuery;
+    if (inputMode) {
+      if (nextQuery.trim()) {
+        if (!open) {
+          updateResolvedPlacement();
+          open = true;
+          activeValue = initialActiveValue();
+        }
+      } else {
+        open = false;
+      }
+    }
     void onSearchChange?.(searchQuery);
     scheduleSearch(searchQuery);
   }
 
   function handleInputFocus() {
-    if (!open) {
-      openMenu();
-      open = true;
-    }
+    // 输入模式下聚焦只准备输入；用户输入有效搜索词后才展开结果。
   }
 
   function handleSearchKeydown(event: KeyboardEvent) {

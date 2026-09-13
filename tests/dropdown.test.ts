@@ -12,7 +12,7 @@ describe('dropdown', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders input style only when search is enabled and loads on focus', async () => {
+  it('renders input style only when search is enabled and loads after typing', async () => {
     const loadOptions = vi.fn(async (query: string) => ({
       options: [{ label: query ? `Result ${query}` : 'Default result', value: 'result' }]
     }));
@@ -29,11 +29,39 @@ describe('dropdown', () => {
     const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
     expect(input).toBeInTheDocument();
     await fireEvent.focus(input);
-    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', expect.anything()));
-    expect(screen.getByRole('option', { name: 'Default result' })).toBeInTheDocument();
+    await tick();
+    expect(loadOptions).not.toHaveBeenCalled();
+    expect(screen.queryByRole('option', { name: 'Default result' })).not.toBeInTheDocument();
 
     await fireEvent.input(input, { target: { value: 'alice' } });
     await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('alice', expect.anything()));
+    expect(screen.getByRole('option', { name: 'Result alice' })).toBeInTheDocument();
+
+    await fireEvent.input(input, { target: { value: '' } });
+    expect(screen.queryByRole('option', { name: 'Result alice' })).not.toBeInTheDocument();
+  });
+
+  it('fills the input with the selected label while emitting its distinct value', async () => {
+    const onChange = vi.fn();
+    const { container } = render(Dropdown, {
+      props: {
+        input_style: 'input',
+        search: true,
+        searchDebounceMs: 0,
+        loadOptions: async () => ({
+          options: [{ label: 'Alice Chen', value: 'user-42' }]
+        }),
+        onChange
+      }
+    });
+
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+
+    expect(onChange).toHaveBeenCalledWith('user-42');
+    expect(input.value).toBe('Alice Chen');
+    expect(screen.queryByRole('option', { name: 'Alice Chen' })).not.toBeInTheDocument();
   });
 
   it('keeps input style gated off when search is disabled', () => {
