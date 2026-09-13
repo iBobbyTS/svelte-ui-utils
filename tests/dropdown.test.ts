@@ -82,6 +82,24 @@ describe('dropdown', () => {
     expect(screen.getByRole('button', { name: 'Members' })).toHaveTextContent('Jane Doe');
   });
 
+  it('includes selected options in the first empty search result', async () => {
+    render(Dropdown, {
+      props: {
+        value: ['member-1'],
+        multiselect: true,
+        search: true,
+        ariaLabel: 'Members',
+        selectedOptions: [{ label: 'Jane Doe', value: 'member-1' }],
+        loadOptions: async () => ({ options: [] })
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Members' }));
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Jane Doe' })).toBeInTheDocument());
+    expect(screen.getByRole('option', { name: 'Jane Doe' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'Jane Doe' }).querySelector('.suu-dropdown__checkbox')).toHaveAttribute('data-checked', 'true');
+  });
+
   it('supports upward placement', async () => {
     const { container } = render(Dropdown, {
       props: {

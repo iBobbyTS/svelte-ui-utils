@@ -387,7 +387,7 @@
         return;
       }
       searchStatus = 'success';
-      applySearchResult(result ?? {});
+      applySearchResult(result ?? {}, query);
     } catch {
       if (controller.signal.aborted || currentRequestId !== searchRequestId) {
         return;
@@ -402,13 +402,37 @@
     }
   }
 
-  function applySearchResult(result: DropdownLoadOptionsResult) {
+  function mergeSelectedOptions(options: DropdownOption[]): DropdownOption[] {
+    const merged = [...options];
+    const seen = new Set(options.map((option) => option.value));
+    for (const option of selectedOptions) {
+      if (!seen.has(option.value)) {
+        merged.push(option);
+        seen.add(option.value);
+      }
+    }
+    return merged;
+  }
+
+  function applySearchResult(result: DropdownLoadOptionsResult, query = '') {
     // optionGroups is the sole render source when present; empty groups stay hidden.
     const groups = Array.isArray(result.optionGroups)
       ? result.optionGroups.filter((group) => Array.isArray(group.options) && group.options.length > 0)
       : undefined;
-    searchOptionGroups = groups;
-    searchOptions = groups === undefined && Array.isArray(result.options) ? result.options : [];
+    if (groups !== undefined) {
+      if (query.trim()) {
+        searchOptionGroups = groups;
+      } else {
+        const groupedOptions = groups.flatMap((group) => group.options);
+        const groupedValues = new Set(groupedOptions.map((option) => option.value));
+        const missingSelected = selectedOptions.filter((option) => !groupedValues.has(option.value));
+        searchOptionGroups = missingSelected.length ? [...groups, { options: missingSelected }] : groups;
+      }
+      searchOptions = [];
+    } else {
+      searchOptionGroups = undefined;
+      searchOptions = query.trim() ? (Array.isArray(result.options) ? result.options : []) : mergeSelectedOptions(Array.isArray(result.options) ? result.options : []);
+    }
     // Only the first valid grouped response of an open session seeds the auto
     // collapse state; later responses just swap groups so manual collapse and
     // expand choices survive query refreshes within the same session.
