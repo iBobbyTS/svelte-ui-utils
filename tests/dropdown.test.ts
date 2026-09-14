@@ -455,6 +455,70 @@ describe('dropdown', () => {
     expect(menuMeasurements).toBe(1);
   });
 
+  it('repositions an upward portal menu when async results change its height', async () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    class ResizeObserverMock implements ResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback;
+      }
+      observe(_target: Element, _options?: ResizeObserverOptions) {}
+      unobserve(_target: Element) {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+
+    let resolveSearch: ((result: { options: Array<{ label: string; value: string }> }) => void) | undefined;
+    const { container } = render(Dropdown, {
+      props: {
+        input_style: 'input',
+        search: true,
+        searchDebounceMs: 0,
+        loadOptions: () => new Promise((resolve) => { resolveSearch = resolve; }),
+        portal: true,
+        placement: 'up',
+        fitViewport: true,
+        ariaLabel: 'User'
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 240,
+      bottom: 342,
+      left: 120,
+      width: 120,
+      height: 42,
+      x: 120,
+      y: 300,
+      toJSON: () => ({})
+    });
+    let menuHeight = 46;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('suu-dropdown__menu')) {
+        return { top: 0, right: 0, bottom: menuHeight, left: 0, width: 120, height: menuHeight, x: 0, y: 0, toJSON: () => ({}) };
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
+    });
+
+    await fireEvent.input(container.querySelector('.suu-dropdown__input') as HTMLInputElement, { target: { value: 'ali' } });
+    await waitFor(() => expect(resolveSearch).toBeTypeOf('function'));
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('248px');
+
+    resolveSearch?.({ options: [
+      { label: 'Alice', value: 'alice' },
+      { label: 'Alicia', value: 'alicia' },
+      { label: 'Alina', value: 'alina' }
+    ] });
+    await tick();
+    menuHeight = 116;
+    resizeCallback?.([] as unknown as ResizeObserverEntry[], {} as ResizeObserver);
+    await tick();
+    await tick();
+
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('178px');
+  });
+
   it('aligns the menu left edge with the trigger by default', async () => {
     const { container } = render(Dropdown, {
       props: {

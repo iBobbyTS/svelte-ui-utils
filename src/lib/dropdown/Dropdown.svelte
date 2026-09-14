@@ -771,11 +771,19 @@
   }
 
   function portalMenu(node: HTMLDivElement, enabled: boolean) {
+    let resizeObserver: ResizeObserver | undefined;
     if (enabled && typeof document !== 'undefined') {
       document.body.appendChild(node);
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          if (open) void updateViewportPanelMaxHeight();
+        });
+        resizeObserver.observe(node);
+      }
     }
     return {
       destroy() {
+        resizeObserver?.disconnect();
         if (node.parentNode) {
           node.parentNode.removeChild(node);
         }
