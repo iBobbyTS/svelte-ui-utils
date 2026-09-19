@@ -928,21 +928,18 @@ calculations.
 ## Release
 
 Do not publish this package as part of consumer-app local integration work.
-Publish only when a release is explicitly requested. Releases are published
-directly from the maintainer's machine to npm; do not create a GitHub Actions
-secret or a GitHub Release for package publishing.
+Publish only when a release is explicitly requested.
 
-The npm token is exported as `NPM_TOKEN` from `~/.zshrc`. After updating the
-package version, run the validation and publish commands locally:
-
-```bash
-npm run check
-npm test
-npm run package
-npm publish --access public
-```
-
-Never commit the npm token or copy it into repository settings.
+Releases publish from CI via npm Trusted Publishing (OIDC): bump the version
+in `package.json`, commit, then push a `vX.Y.Z` tag. That runs
+[.github/workflows/npm-publish.yml](.github/workflows/npm-publish.yml), which
+installs from the committed lockfile, runs `svelte-check` and `vitest`, and
+publishes with no npm token in the environment — the runner's OIDC identity is
+the credential (`id-token: write`). The tag must match `package.json`'s
+version. The trusted publisher is linked on npmjs.com (user `iBobbyTS`, repo
+`svelte-ui-utils`, workflow `npm-publish.yml`); the workflow filename is part
+of that link and must not be renamed. `prepublishOnly` builds `dist/` before
+the tarball is packed, so no publish path can ship stale output.
 
 ## Bun install verification
 

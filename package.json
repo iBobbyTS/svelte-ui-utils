@@ -96,7 +96,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package": "svelte-package"
+    "package": "svelte-package",
+    "prepublishOnly": "npm run package"
   },
   "peerDependencies": {
     "svelte": ">=5"
