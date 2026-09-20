@@ -4,8 +4,14 @@
   import { onMount } from 'svelte';
   import Dropdown from '../dropdown/Dropdown.svelte';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
-  import { endOfMonth, formatDate, resolveDateRangePreset, startOfDay } from './date-range.js';
-  import type { DateRangeFilterValue, DateRangePreset } from './types.js';
+  import { endOfMonth, formatDate, isDateRangePreset, resolveDateRangePreset, startOfDay } from './date-range.js';
+  import type {
+    CustomDateRangePreset,
+    DateRangeFilterValue,
+    DateRangePreset,
+    DateRangePresetEntry,
+    DateRangePresetSelect
+  } from './types.js';
 
   export let value: DateRangeFilterValue = {
     startDate: '',
@@ -15,23 +21,29 @@
   export let language: UiLanguage = 'en_us';
   export let startLabel: string | undefined = undefined;
   export let endLabel: string | undefined = undefined;
-  export let presetLabels: Partial<Record<DateRangePreset, string>> = {};
-  export let defaultPreset: DateRangePreset | undefined = undefined;
+  export let presets: DateRangePresetEntry[] | undefined = undefined;
+  export let presetLabels: Partial<Record<string, string>> = {};
+  export let defaultPreset: string | undefined = undefined;
   export let quickYears: number[] | undefined = undefined;
   export let now: () => Date = () => new Date();
   export let weekStartsOn: 0 | 1 = 1;
   export let onChange: ((value: DateRangeFilterValue) => void) | undefined = undefined;
 
-  const presets: DateRangePreset[] = [
+  const defaultPresetEntries: DateRangePresetEntry[] = [
     'last24Hours',
     'last7Days',
     'last30Days',
+    'divider',
     'today',
     'thisWeek',
     'thisMonth',
-    'thisYear'
+    'thisYear',
+    'divider',
+    'quickMonth',
+    'quickYear'
   ];
   const monthNumbers = Array.from({ length: 12 }, (_, index) => index + 1);
+  const structuralEntryKeys = new Set(['quickMonth', 'quickYear', 'divider']);
 
   let quickYear = '';
   let quickMonth = '';
@@ -39,6 +51,7 @@
   $: messages = getUiMessages(language);
   $: resolvedStartLabel = startLabel ?? messages.dateRange.startLabel;
   $: resolvedEndLabel = endLabel ?? messages.dateRange.endLabel;
+  $: presetEntries = presets ?? defaultPresetEntries;
   $: currentYear = startOfDay(now()).getFullYear();
   $: quickYearOptions = quickYears ?? [currentYear - 1, currentYear, currentYear + 1];
   $: quickMonthOptions = [
@@ -71,8 +84,38 @@
     quickMonth = '';
   }
 
-  function resolvePreset(preset: DateRangePreset): DateRangeFilterValue {
-    return resolveDateRangePreset(preset, now(), weekStartsOn);
+  function isSelectEntry(entry: DateRangePresetEntry): entry is DateRangePresetSelect {
+    return typeof entry === 'object' && 'type' in entry && entry.type === 'select';
+  }
+
+  function isPresetButtonEntry(entry: DateRangePresetEntry): entry is DateRangePreset | CustomDateRangePreset {
+    if (typeof entry === 'string') {
+      return !structuralEntryKeys.has(entry);
+    }
+    return !isSelectEntry(entry);
+  }
+
+  function presetKeyOf(entry: DateRangePreset | CustomDateRangePreset): string {
+    return typeof entry === 'string' ? entry : entry.key;
+  }
+
+  function resolvePresetEntry(entry: DateRangePreset | CustomDateRangePreset): DateRangeFilterValue {
+    if (typeof entry === 'string') {
+      return resolveDateRangePreset(entry, now(), weekStartsOn);
+    }
+
+    const range = entry.resolve({ now: now(), weekStartsOn });
+    return {
+      startDate: formatDate(range.startDate),
+      endDate: formatDate(range.endDate),
+      preset: entry.key
+    };
+  }
+
+  function findPresetEntryByKey(key: string): DateRangePreset | CustomDateRangePreset | undefined {
+    return presetEntries
+      .filter(isPresetButtonEntry)
+      .find((entry) => presetKeyOf(entry) === key);
   }
 
   function emit(next: DateRangeFilterValue) {
@@ -132,18 +175,22 @@
     emit(resolveQuickRange(Number(quickYear), Number(nextValue)));
   }
 
-  function applyPreset(preset: DateRangePreset) {
+  function applyPresetEntry(entry: DateRangePreset | CustomDateRangePreset) {
     clearQuickSelection();
-    if (value.preset === preset) {
+    if (value.preset === presetKeyOf(entry)) {
       emit(emptyRange());
       return;
     }
 
-    emit(resolvePreset(preset));
+    emit(resolvePresetEntry(entry));
   }
 
-  function labelFor(preset: DateRangePreset) {
-    return presetLabels[preset] ?? messages.dateRange.presetLabels[preset];
+  function labelFor(entry: DateRangePreset | CustomDateRangePreset) {
+    if (typeof entry === 'string') {
+      return presetLabels[entry] ?? messages.dateRange.presetLabels[entry] ?? entry;
+    }
+
+    return entry.label ?? presetLabels[entry.key] ?? entry.key;
   }
 
   function monthLabel(month: number) {
@@ -151,8 +198,14 @@
   }
 
   onMount(() => {
-    if (defaultPreset && isEmptyRange(value)) {
-      emit(resolvePreset(defaultPreset));
+    if (!defaultPreset || !isEmptyRange(value)) {
+      return;
+    }
+
+    const entry = findPresetEntryByKey(defaultPreset) ??
+      (isDateRangePreset(defaultPreset) ? defaultPreset : undefined);
+    if (entry) {
+      emit(resolvePresetEntry(entry));
     }
   });
 </script>
@@ -175,40 +228,59 @@
     />
   </label>
   <div class="suu-filter-preset-row">
-    {#each presets as preset}
-      <button
-        type="button"
-        class="suu-filter-preset"
-        class:suu-filter-preset--active={value.preset === preset}
-        on:click={() => applyPreset(preset)}
-      >
-        {labelFor(preset)}
-      </button>
-      {#if preset === 'last30Days' || preset === 'thisYear'}
+    {#each presetEntries as entry}
+      {#if entry === 'divider'}
         <span class="suu-filter-preset-divider" aria-hidden="true"></span>
+      {:else if entry === 'quickMonth'}
+        <label class="suu-filter-preset-select">
+          <span class="suu-visually-hidden">{messages.dateRange.quickMonthLabel}</span>
+          <Dropdown
+            ariaLabel={messages.dateRange.quickMonthLabel}
+            value={quickMonth}
+            options={quickMonthOptions}
+            fitViewport={true}
+            fitContent={true}
+            onChange={(nextValue) => updateQuickMonth(String(nextValue))}
+          />
+        </label>
+      {:else if entry === 'quickYear'}
+        <label class="suu-filter-preset-select">
+          <span class="suu-visually-hidden">{messages.dateRange.quickYearLabel}</span>
+          <Dropdown
+            ariaLabel={messages.dateRange.quickYearLabel}
+            value={quickYear}
+            options={quickYearDropdownOptions}
+            fitViewport={true}
+            fitContent={true}
+            onChange={(nextValue) => updateQuickYear(String(nextValue))}
+          />
+        </label>
+      {:else if isSelectEntry(entry)}
+        <label class="suu-filter-preset-select">
+          <span class="suu-visually-hidden">{entry.ariaLabel ?? entry.key}</span>
+          <Dropdown
+            ariaLabel={entry.ariaLabel ?? entry.key}
+            value={entry.value}
+            options={entry.options}
+            fitViewport={true}
+            fitContent={true}
+            onChange={(nextValue) => {
+              if (isSelectEntry(entry)) {
+                void entry.onChange(String(nextValue));
+              }
+            }}
+          />
+        </label>
+      {:else}
+        <button
+          type="button"
+          class="suu-filter-preset"
+          class:suu-filter-preset--active={value.preset === presetKeyOf(entry)}
+          on:click={() => applyPresetEntry(entry)}
+        >
+          {labelFor(entry)}
+        </button>
       {/if}
     {/each}
-    <label class="suu-filter-preset-select">
-      <span class="suu-visually-hidden">{messages.dateRange.quickMonthLabel}</span>
-      <Dropdown
-        ariaLabel={messages.dateRange.quickMonthLabel}
-        value={quickMonth}
-        options={quickMonthOptions}
-        fitViewport={true}
-        fitContent={true}
-        onChange={(nextValue) => updateQuickMonth(String(nextValue))}
-      />
-    </label>
-    <label class="suu-filter-preset-select">
-      <span class="suu-visually-hidden">{messages.dateRange.quickYearLabel}</span>
-      <Dropdown
-        ariaLabel={messages.dateRange.quickYearLabel}
-        value={quickYear}
-        options={quickYearDropdownOptions}
-        fitViewport={true}
-        fitContent={true}
-        onChange={(nextValue) => updateQuickYear(String(nextValue))}
-      />
-    </label>
   </div>
 </div>

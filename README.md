@@ -832,6 +832,28 @@ period, including days after today. The `last24Hours` preset also emits
 a consuming app can run an exact timestamp query while still showing the covered
 dates in the inputs.
 
+Pass `presets` to fully control the preset row. Each entry is one of:
+
+- a built-in preset key: `'last24Hours'`, `'last7Days'`, `'last30Days'`,
+  `'today'`, `'thisWeek'`, `'thisMonth'`, `'thisYear'`;
+- a custom preset object `{ key, label?, resolve }`, where `resolve` receives
+  `{ now, weekStartsOn }` and returns `{ startDate, endDate }` dates that the
+  component formats into the value;
+- a consumer-controlled select object `{ type: 'select', key, value, options,
+  ariaLabel?, onChange }`, rendered as a dropdown inside the preset row (for
+  example a year picker whose selection feeds custom preset resolvers); the
+  component only reports selection changes, the consumer owns the value;
+- `'quickMonth'` or `'quickYear'` for the quick month/year selects;
+- `'divider'` for a visual separator between entries.
+
+When `presets` is omitted the default row is used: the seven built-in buttons
+with dividers after `last 30 days` and `this year`, then both quick selects.
+Custom preset keys are stored in `value.preset` as plain strings, so
+`defaultPreset` and the active-button highlight work with them too. Custom
+labels resolve from `label`, then `presetLabels[key]`, then the key itself.
+Preset and select `key`s must be unique within one `presets` list; duplicate
+keys make the active-state highlight and the `defaultPreset` lookup ambiguous.
+
 `numberRange` renders min/max number inputs and supports `prefixLabel`, for
 example `$` for currency filters.
 

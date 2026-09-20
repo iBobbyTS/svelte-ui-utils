@@ -33,6 +33,20 @@ export function endOfMonth(year: number, month: number) {
   return new Date(year, month, 0);
 }
 
+const dateRangePresetKeys = [
+  'last24Hours',
+  'last7Days',
+  'last30Days',
+  'today',
+  'thisWeek',
+  'thisMonth',
+  'thisYear'
+] as const satisfies readonly DateRangePreset[];
+
+export function isDateRangePreset(key: string): key is DateRangePreset {
+  return (dateRangePresetKeys as readonly string[]).includes(key);
+}
+
 export function resolveDateRangePreset(
   preset: DateRangePreset,
   current: Date,

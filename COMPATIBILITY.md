@@ -2,6 +2,21 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## 0.4.7: configurable date range presets
+
+Not breaking: omitting the new `presets` prop keeps the previous preset row
+exactly (built-in buttons, two dividers, quick month/year selects), and
+`defaultPreset`/`presetLabels` keep working for built-in keys. One type-level
+change to review: `DateRangeFilterValue.preset` widens from
+`DateRangePreset | null` to `string | null` so custom preset keys can round-trip.
+Consumers that assign `value.preset` to a `DateRangePreset`-typed variable now
+need a guard such as the exported `isDateRangePreset(key)`.
+
+The `presets` prop accepts built-in preset keys, custom preset objects
+(`{ key, label?, resolve }`), consumer-controlled select entries
+(`{ type: 'select', key, value, options, ariaLabel?, onChange }`), and the
+structural entries `'quickMonth'`, `'quickYear'`, and `'divider'`.
+
 ## Unreleased (after 0.4.3): dropdown string/label-value field contract
 
 All dropdown-family components now speak one field contract: options are

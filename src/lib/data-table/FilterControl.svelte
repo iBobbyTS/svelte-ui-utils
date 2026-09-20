@@ -141,6 +141,7 @@
     {language}
     startLabel={control.startLabel}
     endLabel={control.endLabel}
+    presets={control.presets}
     presetLabels={control.presetLabels ?? {}}
     defaultPreset={control.defaultPreset}
     quickYears={control.quickYears}

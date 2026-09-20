@@ -9,6 +9,7 @@ import {
   filter,
   getAriaSort,
   getPageCount,
+  isDateRangePreset,
   normalizePagination,
   resolveDateRangePreset,
   setDataTableFilters,
@@ -198,6 +199,13 @@ describe('date range preset helpers', () => {
       endDate: '2024-02-29',
       preset: 'thisMonth'
     });
+  });
+
+  it('recognizes built-in preset keys only', () => {
+    expect(isDateRangePreset('thisYear')).toBe(true);
+    expect(isDateRangePreset('last24Hours')).toBe(true);
+    expect(isDateRangePreset('firstHalfYear')).toBe(false);
+    expect(isDateRangePreset('divider')).toBe(false);
   });
 });
 
@@ -1274,6 +1282,232 @@ describe('data table components', () => {
       endDate: '2024-12-31',
       preset: null
     });
+  });
+
+  it('renders only the configured preset entries', () => {
+    const { container } = render(DateRangeFilter, {
+      props: {
+        presets: [
+          'last7Days',
+          'last30Days',
+          'divider',
+          {
+            key: 'firstHalfYear',
+            label: 'First Half',
+            resolve: ({ now }) => ({
+              startDate: new Date(now.getFullYear(), 0, 1),
+              endDate: new Date(now.getFullYear(), 5, 30)
+            })
+          },
+          {
+            key: 'secondHalfYear',
+            label: 'Second Half',
+            resolve: ({ now }) => ({
+              startDate: new Date(now.getFullYear(), 6, 1),
+              endDate: new Date(now.getFullYear(), 11, 31)
+            })
+          }
+        ],
+        now: () => new Date(2026, 8, 20, 12)
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'Last 7 Days' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Last 30 Days' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'First Half' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Second Half' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Last 24 Hours' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'This Year' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Month' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Year' })).toBeNull();
+    expect(container.querySelectorAll('.suu-filter-preset-divider')).toHaveLength(1);
+  });
+
+  it('resolves custom presets, marks them active, and clears on the second click', async () => {
+    const onChange = vi.fn();
+    render(DateRangeFilter, {
+      props: {
+        presets: [
+          {
+            key: 'firstHalfYear',
+            label: 'First Half',
+            resolve: ({ now }) => ({
+              startDate: new Date(now.getFullYear(), 0, 1),
+              endDate: new Date(now.getFullYear(), 5, 30)
+            })
+          }
+        ],
+        now: () => new Date(2026, 8, 20, 12),
+        onChange
+      }
+    });
+
+    const button = screen.getByRole('button', { name: 'First Half' });
+    await fireEvent.click(button);
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      preset: 'firstHalfYear'
+    });
+    expect(screen.getByLabelText('Start date')).toHaveValue('2026-01-01');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-06-30');
+    expect(button).toHaveClass('suu-filter-preset--active');
+
+    await fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-02-01' } });
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-02-01',
+      endDate: '2026-06-30',
+      preset: null
+    });
+    expect(button).not.toHaveClass('suu-filter-preset--active');
+
+    await fireEvent.click(button);
+    await fireEvent.click(button);
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '',
+      endDate: '',
+      preset: null
+    });
+  });
+
+  it('falls back to presetLabels for custom preset keys', () => {
+    render(DateRangeFilter, {
+      props: {
+        presets: [
+          {
+            key: 'firstHalfYear',
+            resolve: ({ now }) => ({
+              startDate: new Date(now.getFullYear(), 0, 1),
+              endDate: new Date(now.getFullYear(), 5, 30)
+            })
+          },
+          'thisYear'
+        ],
+        presetLabels: { firstHalfYear: 'H1', thisYear: 'Current year' },
+        now: () => new Date(2026, 8, 20, 12)
+      }
+    });
+
+    expect(screen.getByRole('button', { name: 'H1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Current year' })).toBeInTheDocument();
+  });
+
+  it('applies a custom default preset by key on mount', async () => {
+    const onChange = vi.fn();
+    render(DateRangeFilter, {
+      props: {
+        presets: [
+          {
+            key: 'secondHalfYear',
+            label: 'Second Half',
+            resolve: ({ now }) => ({
+              startDate: new Date(now.getFullYear(), 6, 1),
+              endDate: new Date(now.getFullYear(), 11, 31)
+            })
+          }
+        ],
+        defaultPreset: 'secondHalfYear',
+        now: () => new Date(2026, 8, 20, 12),
+        onChange
+      }
+    });
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenLastCalledWith({
+        startDate: '2026-07-01',
+        endDate: '2026-12-31',
+        preset: 'secondHalfYear'
+      });
+    });
+    expect(screen.getByLabelText('Start date')).toHaveValue('2026-07-01');
+    expect(screen.getByLabelText('End date')).toHaveValue('2026-12-31');
+  });
+
+  it('renders a consumer-controlled select entry and reports its changes', async () => {
+    const onSelectChange = vi.fn();
+    const onChange = vi.fn();
+    render(DateRangeFilter, {
+      props: {
+        presets: [
+          'last7Days',
+          {
+            type: 'select',
+            key: 'halfYearPicker',
+            value: '2026',
+            options: [
+              { label: '2025', value: '2025' },
+              { label: '2026', value: '2026' }
+            ],
+            ariaLabel: 'Survey year',
+            onChange: onSelectChange
+          },
+          {
+            key: 'firstHalfYear',
+            label: 'First Half',
+            resolve: ({ now }) => ({
+              startDate: new Date(now.getFullYear(), 0, 1),
+              endDate: new Date(now.getFullYear(), 5, 30)
+            })
+          }
+        ],
+        now: () => new Date(2026, 8, 20, 12),
+        onChange
+      }
+    });
+
+    const select = screen.getByRole('button', { name: 'Survey year' });
+    expect(select).toHaveAttribute('data-value', '2026');
+
+    await fireEvent.click(select);
+    await fireEvent.click(screen.getByRole('option', { name: '2025' }));
+    expect(onSelectChange).toHaveBeenLastCalledWith('2025');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'First Half' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      preset: 'firstHalfYear'
+    });
+  });
+
+  it('passes custom presets through a FilterTable date range row', async () => {
+    const onChange = vi.fn();
+    render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'dateRange',
+            title: 'Date range',
+            filter: filter.dateRange({
+              value: { startDate: '', endDate: '', preset: null },
+              presets: [
+                'last7Days',
+                {
+                  key: 'firstHalfYear',
+                  label: 'First Half',
+                  resolve: ({ now }) => ({
+                    startDate: new Date(now.getFullYear(), 0, 1),
+                    endDate: new Date(now.getFullYear(), 5, 30)
+                  })
+                }
+              ],
+              now: () => new Date(2026, 8, 20, 12),
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'First Half' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      preset: 'firstHalfYear'
+    });
+    expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
   });
 
   it('emits number range changes with prefix labels', async () => {

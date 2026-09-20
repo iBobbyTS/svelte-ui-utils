@@ -197,10 +197,53 @@ export type DateRangePreset =
   | 'thisMonth'
   | 'thisYear';
 
+export interface DateRangePresetContext {
+  now: Date;
+  weekStartsOn: 0 | 1;
+}
+
+export interface CustomDateRangePreset {
+  /**
+   * Stable key stored in `DateRangeFilterValue.preset` and matched against
+   * `presetLabels`. Must be unique across all preset and select entries in one
+   * `presets` list; duplicate keys make the active-state highlight and
+   * `defaultPreset` lookup ambiguous.
+   */
+  key: string;
+  /** Falls back to `presetLabels[key]`, then `key`. */
+  label?: string;
+  /** Returns the covered dates; the component formats them into the value. */
+  resolve: (context: DateRangePresetContext) => { startDate: Date; endDate: Date };
+}
+
+/**
+ * Consumer-controlled dropdown rendered inside the preset row, for example a
+ * year picker that feeds custom preset resolvers. The component only renders
+ * it and reports selection changes; the consumer owns the value and wiring.
+ * `key` must be unique across all preset and select entries in one `presets`
+ * list.
+ */
+export interface DateRangePresetSelect {
+  type: 'select';
+  key: string;
+  value: string;
+  options: FilterOption[];
+  ariaLabel?: string;
+  onChange: (value: string) => void | Promise<void>;
+}
+
+export type DateRangePresetEntry =
+  | DateRangePreset
+  | CustomDateRangePreset
+  | DateRangePresetSelect
+  | 'quickMonth'
+  | 'quickYear'
+  | 'divider';
+
 export interface DateRangeFilterValue {
   startDate: string;
   endDate: string;
-  preset: DateRangePreset | null;
+  preset: string | null;
   startDateTime?: string;
   endDateTime?: string;
 }
@@ -256,8 +299,9 @@ export interface DateRangeFilterControl {
   value: DateRangeFilterValue;
   startLabel?: string;
   endLabel?: string;
-  presetLabels?: Partial<Record<DateRangePreset, string>>;
-  defaultPreset?: DateRangePreset;
+  presets?: DateRangePresetEntry[];
+  presetLabels?: Partial<Record<string, string>>;
+  defaultPreset?: string;
   quickYears?: number[];
   now?: () => Date;
   weekStartsOn?: 0 | 1;
