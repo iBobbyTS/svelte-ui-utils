@@ -84,6 +84,10 @@
     }
 
     const result = await control.loadOptions(query, context);
+    // Stale responses must not seed the identifier cache either.
+    if (context.signal.aborted) {
+      return { options: [] };
+    }
     const items = result?.options ?? [];
     for (const item of items) {
       dropdownSearchItems.set(item.value, item);
@@ -102,7 +106,14 @@
     }
 
     const identifier = Array.isArray(selection) ? (selection[0] ?? '') : selection;
-    const item = identifier ? findDropdownSearchItem(identifier) : undefined;
+    // The root Dropdown reports an empty identifier when the user types over a
+    // controlled selection (input/value divergence). That divergent-clear is
+    // dropped so `onChange` stays a selection-change (submit) event; a real
+    // selection always carries a non-empty identifier.
+    if (!identifier) {
+      return;
+    }
+    const item = findDropdownSearchItem(identifier);
     const detail: DropdownSearchChangeDetail = {
       value: item ? resolveDropdownSearchItemLabel(item) : identifier,
       selectedItem: item ?? null,
@@ -125,8 +136,10 @@
       ? control.selectedItem.value
       : control.value
     : '';
+  // The raw item is handed to the Dropdown untouched so its `getItemLabel` prop
+  // is the single label conversion on the display path.
   $: dropdownSearchSelectedOptions = control.type === 'dropdownSearch' && control.selectedItem
-    ? [{ ...control.selectedItem, label: resolveDropdownSearchItemLabel(control.selectedItem) }]
+    ? [control.selectedItem]
     : [];
 
 </script>

@@ -1228,6 +1228,78 @@ describe('data table components', () => {
     await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('abc', expect.anything()));
   });
 
+  it('does not emit a dropdown search change when typing over a controlled selection', async () => {
+    const onChange = vi.fn();
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: 'user-42',
+          selectedItem: item,
+          status: 'valid',
+          debounceMs: 0,
+          loadOptions: () => ({ options: [item] }),
+          onChange
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input.value).toBe('Alice Chen');
+
+    await fireEvent.input(input, { target: { value: 'Ali' } });
+    await tick();
+
+    expect(onChange).not.toHaveBeenCalled();
+
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      value: 'Alice Chen',
+      selectedItem: item,
+      selectedItems: [],
+      status: 'valid'
+    });
+  });
+
+  it('applies a non-idempotent getItemLabel exactly once to the selected label', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const getItemLabel = (option: { label: string }) => `${option.label}!`;
+    const { rerender } = render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          getItemLabel,
+          loadOptions: () => ({ options: [item] }),
+          onChange: vi.fn()
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+    expect(input.value).toBe('Alice Chen!');
+
+    await rerender({
+      rows: dropdownSearchRows({
+        value: 'user-42',
+        selectedItem: item,
+        status: 'valid',
+        debounceMs: 0,
+        getItemLabel,
+        loadOptions: () => ({ options: [item] }),
+        onChange: vi.fn()
+      })
+    });
+
+    const rebuiltInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(rebuiltInput.value).toBe('Alice Chen!');
+  });
+
   it('emits date range changes and exact last 24 hour values', async () => {
     const onChange = vi.fn();
 

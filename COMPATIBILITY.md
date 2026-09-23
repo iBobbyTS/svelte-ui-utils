@@ -77,6 +77,12 @@ the root `Dropdown` in `inputStyle="input"` mode, which narrows the interactions
   the live query is kept internal. Migration: if you need the live query, render
   the root `Dropdown` directly and use its `onSearchChange`; the filter control
   has no query callback.
+- Clearing the input no longer emits `onChange`. Typing over an existing
+  selection makes the root `Dropdown` report an empty identifier; the adapter
+  drops that divergent-clear event, so `onChange` now fires only for a selection
+  change (submit semantics). Migration: for clear awareness, render the root
+  `Dropdown` directly and use its `onSearchChange`, or treat your own
+  `value`/`selectedItem` reset as the clear signal.
 - `status` is no longer resolved from `exactMatch`/`minLength`/`validate`, and
   the control's `status` input is ignored for rendering. `detail.status` is
   `'valid'` when a known item was selected in the current instance, otherwise an
