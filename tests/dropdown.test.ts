@@ -18,7 +18,7 @@ describe('dropdown', () => {
     }));
     const { container } = render(Dropdown, {
       props: {
-        input_style: 'input',
+        inputStyle: 'input',
         search: true,
         searchDebounceMs: 0,
         loadOptions,
@@ -45,7 +45,7 @@ describe('dropdown', () => {
     const onChange = vi.fn();
     const { container } = render(Dropdown, {
       props: {
-        input_style: 'input',
+        inputStyle: 'input',
         search: true,
         searchDebounceMs: 0,
         loadOptions: async () => ({
@@ -66,7 +66,7 @@ describe('dropdown', () => {
 
   it('keeps input style gated off when search is disabled', () => {
     const { container } = render(Dropdown, {
-      props: { input_style: 'input', options: [{ label: 'One', value: 'one' }] }
+      props: { inputStyle: 'input', options: [{ label: 'One', value: 'one' }] }
     });
     expect(container.querySelector('input.suu-dropdown__input')).not.toBeInTheDocument();
     expect(screen.getByRole('button')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('dropdown', () => {
     const option = { label: 'Jane Doe', value: 'jane' };
     const { container } = render(Dropdown, {
       props: {
-        input_style: 'input',
+        inputStyle: 'input',
         search: true,
         multiselect: true,
         value: ['jane'],
@@ -96,7 +96,7 @@ describe('dropdown', () => {
     const onChange = vi.fn();
     const { container } = render(Dropdown, {
       props: {
-        input_style: 'input',
+        inputStyle: 'input',
         search: true,
         value: 'alice',
         options: [{ label: 'Alice', value: 'alice' }],
@@ -364,7 +364,7 @@ describe('dropdown', () => {
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-right')).toBe('500px');
   });
 
-  it('applies viewport height to the body-mounted portal menu', async () => {
+  it('applies viewport height to the in-tree portal menu', async () => {
     const { container } = render(Dropdown, {
       props: {
         value: 'active',
@@ -473,7 +473,7 @@ describe('dropdown', () => {
     let resolveSearch: ((result: { options: Array<{ label: string; value: string }> }) => void) | undefined;
     const { container } = render(Dropdown, {
       props: {
-        input_style: 'input',
+        inputStyle: 'input',
         search: true,
         searchDebounceMs: 0,
         loadOptions: () => new Promise((resolve) => { resolveSearch = resolve; }),

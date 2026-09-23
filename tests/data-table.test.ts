@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import DataTable from '../src/lib/data-table/DataTable.svelte';
 import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
@@ -122,6 +123,10 @@ function makeRect(overrides: Partial<DOMRect> = {}): DOMRect {
 
 async function flushAnimationFrame() {
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+function dropdownSearchRows(options: Parameters<typeof filter.dropdownSearch>[0]) {
+  return [{ key: 'search', title: 'Search', filter: filter.dropdownSearch(options) }];
 }
 
 describe('data table state helpers', () => {
@@ -1050,11 +1055,12 @@ describe('data table components', () => {
     });
 
     expect(container.querySelector('.suu-filter-table__control-row')).toBeTruthy();
-    const dropdown = container.querySelector('.suu-dropdown-search') as HTMLElement | null;
+    const dropdown = container.querySelector('.suu-dropdown--search') as HTMLElement | null;
     expect(dropdown?.style.width).toBe('24rem');
     expect(dropdown?.style.minWidth).toBe('16rem');
     expect(dropdown?.style.maxWidth).toBe('100%');
-    expect(screen.getByRole('button', { name: 'Clear search' })).toBeTruthy();
+    const dropdownInput = container.querySelector('input.suu-dropdown__input') as HTMLInputElement | null;
+    expect(dropdownInput?.placeholder).toBe('Search people');
     await fireEvent.click(screen.getByRole('button', { name: /Find/i }));
     expect(onSearchClick).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('link', { name: /Clear/i })).toHaveAttribute('href', '/clear');
@@ -1063,36 +1069,163 @@ describe('data table components', () => {
     expect(onSelectChange).toHaveBeenCalledWith('member');
   });
 
-  it('forwards focus options and footer text to dropdown search filters', async () => {
+  it('maps a dropdown search selection back to the legacy label-valued detail', async () => {
+    const onChange = vi.fn();
+    const item = { label: 'Alice Chen', value: 'user-42' };
     render(FilterTable, {
       props: {
-        rows: [
-          {
-            key: 'year',
-            title: 'Year',
-            filter: filter.dropdownSearch({
-              value: '',
-              selectedItem: null,
-              status: 'empty',
-              showOptionsOnFocus: true,
-              focusOptions: [
-                { value: '2025', label: '2025' },
-                { value: '2026', label: '2026' },
-                { value: '2027', label: '2027' },
-              ],
-              footerText: 'Other years must be entered manually',
-              loadOptions: () => ({ options: [], exactMatch: null }),
-              onChange: vi.fn(),
-            }),
-          },
-        ],
-      },
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          getItemLabel: (option: { label: string }) => option.label.toUpperCase(),
+          loadOptions: () => ({ options: [item] }),
+          onChange
+        })
+      }
     });
 
-    await fireEvent.focus(screen.getByRole('textbox'));
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
 
-    expect(screen.getByRole('option', { name: '2025' })).toBeInTheDocument();
-    expect(screen.getByRole('note')).toHaveTextContent('Other years must be entered manually');
+    expect(onChange).toHaveBeenCalledWith({
+      value: 'ALICE CHEN',
+      selectedItem: item,
+      selectedItems: [],
+      status: 'valid'
+    });
+  });
+
+  it('renders async dropdown search results from loadOptions', async () => {
+    const loadOptions = vi.fn(async (query: string) => ({
+      options: query === 'al' ? [{ label: 'Alice Chen', value: 'user-42' }] : []
+    }));
+    render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'al' } });
+
+    expect(await screen.findByRole('option', { name: 'Alice Chen' })).toBeInTheDocument();
+  });
+
+  it('rebuilds the dropdown search instance when the external value resets', async () => {
+    const loadOptions = vi.fn(() => ({ options: [{ label: 'Alice Chen', value: 'user-42' }] }));
+    const { rerender } = render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'Old draft' } });
+    expect(input.value).toBe('Old draft');
+
+    await rerender({
+      rows: dropdownSearchRows({
+        value: 'New value',
+        selectedItem: { label: 'New value', value: 'new-1' },
+        status: 'valid',
+        debounceMs: 0,
+        loadOptions,
+        onChange: vi.fn()
+      })
+    });
+
+    const rebuiltInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(rebuiltInput).not.toBe(input);
+    expect(rebuiltInput.value).toBe('New value');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps a rebuilt dropdown search instance free of a pending result from the previous value', async () => {
+    let resolveOld: ((result: { options: Array<{ label: string; value: string }> }) => void) | undefined;
+    const loadOptions = vi.fn(
+      () => new Promise<{ options: Array<{ label: string; value: string }> }>((resolve) => {
+        resolveOld = resolve;
+      })
+    );
+    const { rerender } = render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'old' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('old', expect.anything()));
+
+    await rerender({
+      rows: dropdownSearchRows({
+        value: 'Picked',
+        selectedItem: { label: 'Picked', value: 'picked' },
+        status: 'valid',
+        debounceMs: 0,
+        loadOptions,
+        onChange: vi.fn()
+      })
+    });
+
+    resolveOld?.({ options: [{ label: 'Stale result', value: 'stale' }] });
+    await tick();
+    await tick();
+
+    const rebuiltInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(rebuiltInput.value).toBe('Picked');
+    expect(screen.queryByRole('option', { name: 'Stale result' })).toBeNull();
+  });
+
+  it('returns no dropdown search options for queries below minLength', async () => {
+    const loadOptions = vi.fn(() => ({ options: [{ label: 'Alice Chen', value: 'user-42' }] }));
+    render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          minLength: 3,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: ' ab ' } });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(loadOptions).not.toHaveBeenCalled();
+    expect(screen.queryByRole('option', { name: 'Alice Chen' })).toBeNull();
+
+    await fireEvent.input(input, { target: { value: ' abc ' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('abc', expect.anything()));
   });
 
   it('emits date range changes and exact last 24 hour values', async () => {

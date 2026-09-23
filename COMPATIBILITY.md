@@ -2,6 +2,103 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## 0.5.0
+
+Four breaking changes ship together in 0.5.0.
+
+### 1. The `dropdown-search` component family is removed (0.5.0)
+
+Old behavior: `DropdownSearch`, `DropdownSearchMultiSelect`, the pure helpers
+(`clampDropdownSearchLimit`, `formatParamDict`, `isUsableExactMatch`,
+`normalizeDropdownSearchValue`, `resolveDropdownSearchStatus`), and the type
+names `DropdownSearchItem`, `DropdownSearchStatus`, `DropdownSearchChangeDetail`,
+`DropdownSearchEnterDetail`, `DropdownSearchLoadOptions`,
+`DropdownSearchItemLabelGetter`, and friends were exported from the package root
+and from the `@ibobbyts/svelte-ui-utils/dropdown-search` and
+`.../dropdown-search/state` entry points.
+
+New behavior: the `src/lib/dropdown-search/` module and both entry points are
+gone; the root export no longer contains the family or its types.
+
+Migration: use the unified `Dropdown` search mode
+(`<Dropdown search inputStyle="input" loadOptions={...} />`) and import nothing
+from `dropdown-search`. The data-table `filter.dropdownSearch(...)` control is
+unchanged and now renders that same root `Dropdown` internally.
+
+### 2. The `Dropdown` prop `input_style` is renamed `inputStyle` (0.5.0)
+
+Old behavior: `input_style` selected between the in-menu search field
+(`"dropdown"`, default) and a directly editable input (`"input"`).
+
+New behavior: the prop is `inputStyle` with the same two values. A stale
+`input_style` attribute is ignored, so the component silently falls back to the
+default `"dropdown"` mode.
+
+Migration: rename every `input_style` usage to `inputStyle` (including any test
+anchors).
+
+### 3. `Dropdown` `portal` menus move in-tree and are lifted to the top layer (0.5.0)
+
+Old behavior: `portal={true}` moved the open menu under `document.body` and the
+menu sized itself to its content (`max-content`) unless `fitContent={false}`;
+body-mounted nodes stay inert behind a modal `<dialog>`.
+
+New behavior: the menu stays in the component tree and is promoted to the top
+layer through the popover API when `showPopover` is available (otherwise it
+remains a plain in-tree absolutely positioned menu). Its width always matches the
+trigger, independent of `fitContent`.
+
+Migration: replace any `body > .suu-dropdown__menu` selector or body-mount
+assumption with the component's own `.suu-dropdown__menu` subtree; use
+`fitContent` only for non-portal menu widths. No opt-out restores the body mount.
+
+### 4. data-table `dropdownSearch` filter interaction differences (0.5.0)
+
+Old behavior: the (now removed) `DropdownSearch` component reported a per
+keystroke `onChange` with `detail.value` as the raw input text, resolved
+`detail.status`/auto-selection from `exactMatch` + `minLength` + `validate`,
+honored `searchOnExternalValueChange`, `closeOnValid={false}`,
+`showOptionsOnFocus`/`focusOptions`, `footerText`, `clearLabel`, and passed
+`limit` through verbatim.
+
+New behavior: the `dropdownSearch` control type, the `filter.dropdownSearch()`
+builder, and their public signatures are unchanged, but `FilterControl` renders
+the root `Dropdown` in `inputStyle="input"` mode, which narrows the interactions:
+
+- Real-time external value sync (`searchOnExternalValueChange: true`) is gone.
+  A controlled `value`/`selectedItem` change now remounts the `Dropdown` (keyed
+  rebuild): the input shows the new value, internal query/results/draft reset,
+  and any in-flight search is aborted. Migration: keep driving `value` and
+  `selectedItem` for resets; the display follows, but no search is re-run — let
+  the user type, or trigger the refresh from your own interaction layer.
+- `onChange` no longer fires per keystroke. `detail.value` is now the selected
+  item's `getItemLabel` label (falling back to the identifier when the item is
+  unknown), `selectedItem` is the loaded item, `selectedItems` stays `[]`, and
+  the live query is kept internal. Migration: if you need the live query, render
+  the root `Dropdown` directly and use its `onSearchChange`; the filter control
+  has no query callback.
+- `status` is no longer resolved from `exactMatch`/`minLength`/`validate`, and
+  the control's `status` input is ignored for rendering. `detail.status` is
+  `'valid'` when a known item was selected in the current instance, otherwise an
+  internal `'empty'`/`'invalid'` approximation. Migration: derive validation
+  from `selectedItem` in your own layer.
+- `exactMatch` returned by `loadOptions` is ignored; only `options` render and
+  drive selection. Migration: resolve the exact match yourself and select from
+  the rendered options.
+- `closeOnValid` is effectively always `true`: selecting an option closes the
+  menu. Migration: the previous `closeOnValid={false}` behavior (keep the list
+  open after validation) has no opt-in.
+- `showOptionsOnFocus`, `focusOptions`, `footerText`, and `clearLabel` are
+  omitted (the root `Dropdown` has no counterpart element). Migration: render
+  focus shortcuts, notes, or a clear affordance outside the control, or use the
+  root `Dropdown` API directly.
+- `minLength` is preserved by the adapter: the query is trimmed and, when
+  shorter than `minLength`, `loadOptions` is not called and no options render.
+- `limit` is clamped by the root `Dropdown` to an integer in `1..50` before it
+  reaches `loadOptions`. Migration: pre-clamp in your own `loadOptions` if you
+  depend on limits outside that range. Defaults (`debounceMs` 500 → 500,
+  `limit` 10 → 10) are unchanged.
+
 ## 0.4.7: configurable date range presets
 
 Not breaking: omitting the new `presets` prop keeps the previous preset row

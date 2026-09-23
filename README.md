@@ -40,7 +40,6 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 <script lang="ts">
   import { ToastManager, toast } from '@ibobbyts/svelte-ui-utils/toast';
   import { Dropdown } from '@ibobbyts/svelte-ui-utils/dropdown';
-  import { DropdownSearch, DropdownSearchMultiSelect } from '@ibobbyts/svelte-ui-utils/dropdown-search';
   import { Dialog, ConfirmDialog, InputDialog, CsvUploadDialog, ImagePreviewDialog, PasswordCopyDialog } from '@ibobbyts/svelte-ui-utils/dialog';
   import { DataTable, DateRangeFilter, FilterTable, NumberRangeFilter } from '@ibobbyts/svelte-ui-utils/table';
 </script>
@@ -49,7 +48,7 @@ import '@ibobbyts/svelte-ui-utils/style.css';
 The package root also re-exports the public modules:
 
 ```ts
-import { ToastManager, Dropdown, DropdownSearch, Dialog, DataTable } from '@ibobbyts/svelte-ui-utils';
+import { ToastManager, Dropdown, Dialog, DataTable } from '@ibobbyts/svelte-ui-utils';
 ```
 
 ## Toast
@@ -84,103 +83,6 @@ while the menu is open when the viewport is resized or a scroll container
 moves. Set `placement="up"` or `placement="down"` to force a direction. Use
 `fitViewport={false}` to disable the default panel-height constraint for the
 chosen side.
-
-## DropdownSearch
-
-`DropdownSearch` is the free-text input entry with server-driven validation
-(`exactMatch`), input statuses, focus options, footer text, a clear button, and
-multiselect chips. For a trigger-style dropdown that combines single or multi
-select with async search and dynamic result groups, use the unified `Dropdown`
-search mode instead.
-
-```svelte
-<script lang="ts">
-  import { DropdownSearch } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-
-  async function loadOptions(query, { limit, signal }) {
-    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=${limit}`, { signal });
-    return response.json();
-  }
-</script>
-
-<DropdownSearch
-  language="en_us"
-  placeholder="Search"
-  debounceMs={500}
-  clearLabel="Clear search"
-  width="24rem"
-  maxWidth="100%"
-  {loadOptions}
-  searchOnExternalValueChange={true}
-  closeOnValid={true}
-/>
-```
-
-`loadOptions` returns `{ options, exactMatch }`. An item uses this shape:
-
-```ts
-{
-  value: '123',
-  label: 'Jane Doe',
-  param_dict: { ID: 'M-123' }
-}
-```
-
-`label` is the display text and `value` is the submitted string identifier;
-extra fields such as `param_dict` are preserved as business metadata. The
-free-text `value` prop and `onChange` detail stay the raw input text, so they
-never collide with the submitted `item.value`.
-
-The input is valid when the server returns one unique `exactMatch`, or when the
-user selects an item. Non-empty text without a unique match is invalid.
-Set `validate={false}` when the field should only show selectable options and
-stay visually neutral instead of turning green or red. In that mode the
-component ignores `exactMatch` for status and auto-selection.
-Use `searchOnExternalValueChange` for scanner or programmatic input workflows.
-Set `closeOnValid={true}` to hide the result list after validation finds a
-usable exact match. The default is `false`, so existing validated searches keep
-showing their current result list until the field closes or the user selects an
-option.
-Use `showOptionsOnFocus={true}` with `focusOptions` to show a controlled set of
-options as soon as the field receives focus, including when the current value is
-empty or already valid. Pass `footerText` to render a non-selectable note below
-the options, separated by a divider.
-When the input has text, `DropdownSearch` shows an internal clear button on the
-right side of the field. Use `clearLabel` to localize that button's accessible
-label, or use `language` to select the package default.
-Use `width`, `minWidth`, and `maxWidth` to size the control directly when a
-wrapper is not convenient.
-Server-side code and Node tests that only need pure helpers should import from
-`@ibobbyts/svelte-ui-utils/dropdown-search/state` so they do not load Svelte
-component files.
-
-Set `multiselect={true}` when the search box should collect multiple selected
-items as chips. `DropdownSearchMultiSelect` is a convenience wrapper with the
-same controlled contract:
-
-```svelte
-<script lang="ts">
-  import { DropdownSearchMultiSelect, type DropdownSearchItem } from '@ibobbyts/svelte-ui-utils/dropdown-search';
-
-  let selectedMembers: DropdownSearchItem[] = [];
-</script>
-
-<DropdownSearchMultiSelect
-  language="en_us"
-  placeholder="Search members"
-  selectedItems={selectedMembers}
-  selectedItemsLabel="Selected members"
-  removeSelectedItemLabel={(item) => `Remove ${item.label}`}
-  {loadOptions}
-  onSelectedItemsChange={(items) => {
-    selectedMembers = items;
-  }}
-/>
-```
-
-In multiselect mode, the text input remains a search query. Selecting an item
-adds or removes it from `selectedItems`, clears the query, and emits both
-`onChange` and `onSelectedItemsChange`.
 
 ## SortableList
 
@@ -417,8 +319,8 @@ the menu to its longest option while keeping the selected edge aligned.
 `DataTable` uses this same component for its page-size picker.
 
 Set `search={true}` with `loadOptions` to load remote options as the user
-types. The default `input_style="dropdown"` keeps the search field inside the
-expanded menu. Set `input_style="input"` to render a directly editable input;
+types. The default `inputStyle="dropdown"` keeps the search field inside the
+expanded menu. Set `inputStyle="input"` to render a directly editable input;
 results appear while it is focused and hide on blur. In input style, the
 optional `getItemLabel` callback controls the displayed label while `value`
 and `onChange` continue to represent submitted option values. The input style
@@ -810,13 +712,6 @@ same menu, keyboard, and visual behavior as standalone dropdowns.
   })
 }
 ```
-
-If a dropdown-style filter appears clipped, check the parent containers first.
-`DropdownSearch` renders its result list as an absolutely positioned child, so
-any ancestor with `overflow: hidden`, `overflow: auto`, or `overflow: scroll`
-can clip the menu even when the menu has a high `z-index`. Keep the nearest
-filter container at `overflow: visible`, or move the clipping/scrolling behavior
-to a parent that does not wrap the dropdown menu directly.
 
 `dateRange` renders two browser date inputs, preset buttons, and quick month/year
 selects. The presets are `last 24 hours`, `last 7 days`, `last 30 days`,

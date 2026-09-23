@@ -36,7 +36,7 @@
   export let selectedOptions: DropdownOption[] = [];
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let search = false;
-  export let input_style: DropdownInputStyle = 'dropdown';
+  export let inputStyle: DropdownInputStyle = 'dropdown';
   export let getItemLabel: DropdownItemLabelGetter = (option) => option.label;
   export let loadOptions: DropdownLoadOptions | undefined = undefined;
   export let searchDebounceMs = 300;
@@ -127,7 +127,7 @@
   $: selectedText = multiselect
     ? selectedLabelTexts(selectedValues).join(', ')
     : displayLabelForValue(Array.isArray(value) ? '' : value);
-  $: inputMode = search && input_style === 'input';
+  $: inputMode = search && inputStyle === 'input';
   $: inputDisplayValue = inputMode
     ? (inputDraft ?? (searchQuery || (multiselect ? '' : selectedText)))
     : '';

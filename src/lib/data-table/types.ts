@@ -1,11 +1,4 @@
 import type {
-  DropdownSearchChangeDetail,
-  DropdownSearchItem,
-  DropdownSearchItemLabelGetter,
-  DropdownSearchLoadOptions,
-  DropdownSearchStatus
-} from '../dropdown-search/types.js';
-import type {
   DropdownLoadOptions,
   DropdownMenuAlign,
   DropdownMultiChangeHandler,
@@ -267,6 +260,52 @@ export interface RadioFilterControl {
   options: FilterOption[];
   onChange: (value: string) => void | Promise<void>;
 }
+
+/**
+ * Data-table-local copy of the structural types that the removed free-text
+ * search component family used to host. The `dropdownSearch` filter control
+ * contract is unchanged; only that module is gone.
+ */
+export type DropdownSearchStatus = 'empty' | 'loading' | 'valid' | 'invalid' | 'error';
+
+/**
+ * Search options and selected chips use the unified label/value contract:
+ * `label` is the display text, `value` is the submitted string identifier.
+ * Extra business fields (e.g. `param_dict`) are preserved as metadata.
+ */
+export interface DropdownSearchItem {
+  label: string;
+  value: string;
+  param_dict?: Record<string, string | number | null>;
+  disabled?: boolean;
+  [key: string]: unknown;
+}
+
+export interface DropdownSearchLoadContext {
+  limit: number;
+  signal: AbortSignal;
+}
+
+export interface DropdownSearchResult {
+  options: DropdownSearchItem[];
+  exactMatch?: DropdownSearchItem | null;
+}
+
+export type DropdownSearchLoadOptions = (
+  query: string,
+  context: DropdownSearchLoadContext
+) => Promise<DropdownSearchResult> | DropdownSearchResult;
+
+export interface DropdownSearchChangeDetail {
+  /** Free-text input content; distinct from the submitted `DropdownSearchItem.value`. */
+  value: string;
+  selectedItem: DropdownSearchItem | null;
+  selectedItems: DropdownSearchItem[];
+  status: DropdownSearchStatus;
+}
+
+/** Returns the input text shown for a selected item; defaults to the item label. */
+export type DropdownSearchItemLabelGetter = (item: DropdownSearchItem) => string;
 
 export interface DropdownSearchFilterControl {
   type: 'dropdownSearch';

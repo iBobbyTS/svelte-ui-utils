@@ -3,11 +3,16 @@
 <script lang="ts">
   import Dropdown from '../dropdown/Dropdown.svelte';
   import DropdownMultiSelect from '../dropdown/DropdownMultiSelect.svelte';
-  import DropdownSearch from '../dropdown-search/DropdownSearch.svelte';
+  import type {
+    DropdownLoadContext,
+    DropdownLoadOptionsResult,
+    DropdownOption,
+    DropdownSelection
+  } from '../dropdown/types.js';
   import type { UiLanguage } from '../i18n.js';
   import DateRangeFilter from './DateRangeFilter.svelte';
   import NumberRangeFilter from './NumberRangeFilter.svelte';
-  import type { FilterControl } from './types.js';
+  import type { DropdownSearchChangeDetail, DropdownSearchItem, FilterControl } from './types.js';
 
   export let control: FilterControl;
   export let language: UiLanguage = 'en_us';
@@ -31,6 +36,98 @@
       void control.onClick();
     }
   }
+
+  // The removed DropdownSearch spoke free text in `value` while the root
+  // Dropdown reports option identifiers. This adapter keeps the legacy
+  // `{ value: label, selectedItem, selectedItems, status }` detail by resolving
+  // each identifier back to the item that loadOptions returned.
+  let dropdownSearchQuery = '';
+  const dropdownSearchItems = new Map<string, DropdownSearchItem>();
+
+  function resolveDropdownSearchItemLabel(item: DropdownSearchItem): string {
+    return control.type === 'dropdownSearch' && control.getItemLabel
+      ? control.getItemLabel(item)
+      : item.label;
+  }
+
+  // The root Dropdown types labels against its own option shape; the options it
+  // hands back are the very `DropdownSearchItem` objects we returned, so the
+  // structural widening is lossless for consumers' getItemLabel callbacks.
+  function dropdownSearchOptionLabel(option: DropdownOption): string {
+    return resolveDropdownSearchItemLabel(option as DropdownSearchItem);
+  }
+
+  function findDropdownSearchItem(identifier: string): DropdownSearchItem | undefined {
+    const cached = dropdownSearchItems.get(identifier);
+    if (cached !== undefined) {
+      return cached;
+    }
+    if (control.type === 'dropdownSearch' && control.selectedItem?.value === identifier) {
+      return control.selectedItem;
+    }
+    return undefined;
+  }
+
+  async function loadDropdownSearchOptions(
+    rawQuery: string,
+    context: DropdownLoadContext
+  ): Promise<DropdownLoadOptionsResult> {
+    if (control.type !== 'dropdownSearch') {
+      return { options: [] };
+    }
+
+    const query = rawQuery.trim();
+    // minLength has no root Dropdown counterpart, so the wrapper keeps the old
+    // "below threshold returns no options" contract itself.
+    if (query.length < (control.minLength ?? 1)) {
+      return { options: [] };
+    }
+
+    const result = await control.loadOptions(query, context);
+    const items = result?.options ?? [];
+    for (const item of items) {
+      dropdownSearchItems.set(item.value, item);
+    }
+
+    return { options: items };
+  }
+
+  function handleDropdownSearchQueryChange(query: string) {
+    dropdownSearchQuery = query;
+  }
+
+  function handleDropdownSearchChange(selection: DropdownSelection) {
+    if (control.type !== 'dropdownSearch') {
+      return;
+    }
+
+    const identifier = Array.isArray(selection) ? (selection[0] ?? '') : selection;
+    const item = identifier ? findDropdownSearchItem(identifier) : undefined;
+    const detail: DropdownSearchChangeDetail = {
+      value: item ? resolveDropdownSearchItemLabel(item) : identifier,
+      selectedItem: item ?? null,
+      selectedItems: [],
+      status: item ? 'valid' : dropdownSearchQuery.trim() ? 'invalid' : 'empty'
+    };
+    void control.onChange(detail);
+  }
+
+  // External value/selected-item changes rebuild the root Dropdown instance:
+  // controlled `value` resets its internal query, results, and draft, and
+  // `selectedOptions` then displays the new selection.
+  $: dropdownSearchKey = control.type === 'dropdownSearch'
+    ? `${control.value}\u0000${control.selectedItem?.value ?? ''}`
+    : '';
+  // A selected item displays through `selectedOptions`; a free-text external
+  // value has no option to resolve and falls back to the Dropdown value itself.
+  $: dropdownSearchValue = control.type === 'dropdownSearch'
+    ? control.selectedItem
+      ? control.selectedItem.value
+      : control.value
+    : '';
+  $: dropdownSearchSelectedOptions = control.type === 'dropdownSearch' && control.selectedItem
+    ? [{ ...control.selectedItem, label: resolveDropdownSearchItemLabel(control.selectedItem) }]
+    : [];
 
 </script>
 
@@ -110,31 +207,29 @@
     {/each}
   </div>
 {:else if control.type === 'dropdownSearch'}
-  <DropdownSearch
-    value={control.value}
-    selectedItem={control.selectedItem}
-    status={control.status}
-    placeholder={control.placeholder ?? ''}
-    ariaLabel={control.ariaLabel}
-    debounceMs={control.debounceMs ?? 500}
-    limit={control.limit ?? 10}
-    minLength={control.minLength ?? 1}
-    closeOnValid={control.closeOnValid ?? false}
-    showOptionsOnFocus={control.showOptionsOnFocus ?? false}
-    focusOptions={control.focusOptions ?? []}
-    footerText={control.footerText}
-    {language}
-    noResultsText={control.noResultsText}
-    loadingText={control.loadingText}
-    clearLabel={control.clearLabel}
-    searchOnExternalValueChange={control.searchOnExternalValueChange ?? false}
-    width={control.width}
-    minWidth={control.minWidth}
-    maxWidth={control.maxWidth}
-    getItemLabel={control.getItemLabel}
-    loadOptions={control.loadOptions}
-    onChange={(detail) => control.type === 'dropdownSearch' && void control.onChange(detail)}
-  />
+  {#key dropdownSearchKey}
+    <Dropdown
+      value={dropdownSearchValue}
+      search
+      inputStyle="input"
+      portal
+      selectedOptions={dropdownSearchSelectedOptions}
+      loadOptions={loadDropdownSearchOptions}
+      searchDebounceMs={control.debounceMs ?? 500}
+      searchLimit={control.limit ?? 10}
+      placeholder={control.placeholder ?? ''}
+      ariaLabel={control.ariaLabel}
+      {language}
+      noResultsText={control.noResultsText}
+      loadingText={control.loadingText}
+      width={control.width}
+      minWidth={control.minWidth}
+      maxWidth={control.maxWidth}
+      getItemLabel={dropdownSearchOptionLabel}
+      onChange={handleDropdownSearchChange}
+      onSearchChange={handleDropdownSearchQueryChange}
+    />
+  {/key}
 {:else if control.type === 'dateRange'}
   <DateRangeFilter
     value={control.value}
