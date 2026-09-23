@@ -1287,10 +1287,20 @@
 
 .suu-dropdown__menu--portal {
   position: fixed;
+  /* Must stay ahead of the top/left/right longhands below: an `inset` shorthand
+     declared after them would reset the menu placement variables. Also resets
+     the native popover UA styles (`inset: 0; margin: auto`). */
+  inset: auto;
   top: var(--suu-dropdown-menu-top);
   right: var(--suu-dropdown-menu-right, auto);
   left: var(--suu-dropdown-menu-left, auto);
+  bottom: auto;
   width: var(--suu-dropdown-menu-width, max-content);
+  /* Fixed positioning makes the base `min-width: 100%` resolve against the
+     viewport, which would stretch the menu to full width. */
+  min-width: 0;
+  margin: 0;
+  padding: 0;
   z-index: 1200;
 }
 
@@ -1309,11 +1319,11 @@
   bottom: calc(100% + 6px);
 }
 
-.suu-dropdown__menu--fit-content {
+.suu-dropdown__menu--fit-content:not(.suu-dropdown__menu--portal) {
   width: max-content;
 }
 
-.suu-dropdown__menu--fit-content .suu-dropdown__panel {
+.suu-dropdown__menu--fit-content:not(.suu-dropdown__menu--portal) .suu-dropdown__panel {
   min-width: max-content;
 }
 

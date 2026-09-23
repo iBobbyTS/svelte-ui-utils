@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dropdown, DropdownMultiSelect } from '../src/lib/dropdown/index.js';
 import type { DropdownLoadOptionsResult } from '../src/lib/dropdown/types.js';
 import ControlledDropdownMultiSelectHarness from './fixtures/ControlledDropdownMultiSelectHarness.svelte';
@@ -320,7 +320,10 @@ describe('dropdown', () => {
 
     const menu = document.body.querySelector('.suu-dropdown__menu--portal');
     expect(menu).toBeTruthy();
-    expect(menu?.parentElement).toBe(document.body);
+    // The menu stays inside the component tree so a modal <dialog> cannot make
+    // it inert; the top layer (not a body mount) is what escapes overflow.
+    expect(menu?.parentElement).not.toBe(document.body);
+    expect(menu?.closest('.suu-dropdown')).toBeTruthy();
     unmount();
     expect(document.body.querySelector('.suu-dropdown__menu--portal')).toBeNull();
   });
@@ -517,6 +520,133 @@ describe('dropdown', () => {
     await tick();
 
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('178px');
+  });
+
+  it('keeps the portal menu in the component tree without popover markup when the popover API is unavailable', async () => {
+    const onChange = vi.fn();
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'one',
+        ariaLabel: 'Provider',
+        portal: true,
+        onChange,
+        options: [
+          { label: 'One', value: 'one' },
+          { label: 'Two', value: 'two' }
+        ]
+      }
+    });
+
+    // jsdom has no popover API; the fallback must not pretend otherwise.
+    expect(typeof HTMLElement.prototype.showPopover).toBe('undefined');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+
+    const menu = container.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    expect(menu).toBeTruthy();
+    expect(menu.hasAttribute('popover')).toBe(false);
+    expect(menu.parentElement).not.toBe(document.body);
+    expect(menu.closest('.suu-dropdown')).toBeTruthy();
+    expect(menu).toBeVisible();
+    expect(getComputedStyle(menu).display).not.toBe('none');
+
+    await fireEvent.click(screen.getByRole('option', { name: 'Two' }));
+
+    expect(onChange).toHaveBeenCalledWith('two');
+    expect(container.querySelector('.suu-dropdown__menu--portal')).toBeNull();
+  });
+
+  describe('portal menu top layer', () => {
+    const showPopover = vi.fn();
+    const hidePopover = vi.fn();
+    const shownNodes: HTMLElement[] = [];
+    const shownConnected: boolean[] = [];
+    const hiddenNodes: HTMLElement[] = [];
+
+    beforeEach(() => {
+      shownNodes.length = 0;
+      shownConnected.length = 0;
+      hiddenNodes.length = 0;
+      showPopover.mockImplementation(function (this: HTMLElement) {
+        shownNodes.push(this);
+        shownConnected.push(this.isConnected);
+      });
+      hidePopover.mockImplementation(function (this: HTMLElement) {
+        hiddenNodes.push(this);
+      });
+      HTMLElement.prototype.showPopover = showPopover;
+      HTMLElement.prototype.hidePopover = hidePopover;
+    });
+
+    afterEach(() => {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).showPopover;
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).hidePopover;
+      showPopover.mockReset();
+      hidePopover.mockReset();
+    });
+
+    function renderPortalDropdown() {
+      return render(Dropdown, {
+        props: {
+          value: 'one',
+          ariaLabel: 'Provider',
+          portal: true,
+          options: [
+            { label: 'One', value: 'one' },
+            { label: 'Two', value: 'two' }
+          ]
+        }
+      });
+    }
+
+    it('promotes the menu to a manual top layer popover and hides it on close', async () => {
+      const { container } = renderPortalDropdown();
+
+      await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+
+      const menu = container.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+      expect(menu.getAttribute('popover')).toBe('manual');
+      expect(showPopover).toHaveBeenCalledTimes(1);
+      // A real showPopover() throws unless the node is connected to the document.
+      expect(shownNodes).toEqual([menu]);
+      expect(shownConnected).toEqual([true]);
+      expect(hidePopover).not.toHaveBeenCalled();
+
+      // jsdom's UA stylesheet hides a closed `[popover]` (display: none), so the
+      // option is intentionally queried by DOM instead of by accessible role.
+      const option = menu.querySelector('.suu-dropdown__option[data-value="two"]') as HTMLElement;
+      await fireEvent.click(option);
+
+      expect(container.querySelector('.suu-dropdown__menu--portal')).toBeNull();
+      expect(hidePopover).toHaveBeenCalledTimes(1);
+      expect(hiddenNodes).toEqual([menu]);
+    });
+
+    it('hides the top layer popover when the menu is destroyed while open', async () => {
+      const { container, unmount } = renderPortalDropdown();
+
+      await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+      const menu = container.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+      expect(shownNodes).toEqual([menu]);
+      expect(hidePopover).not.toHaveBeenCalled();
+
+      unmount();
+
+      expect(hidePopover).toHaveBeenCalledTimes(1);
+      expect(hiddenNodes).toEqual([menu]);
+    });
+
+    it('keeps teardown idempotent when hidePopover reports nothing to hide', async () => {
+      hidePopover.mockImplementation(() => {
+        throw new Error('not in the top layer');
+      });
+      const { unmount } = renderPortalDropdown();
+
+      await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+
+      expect(() => unmount()).not.toThrow();
+      expect(hidePopover).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('aligns the menu left edge with the trigger by default', async () => {

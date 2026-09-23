@@ -743,10 +743,10 @@
         ? rect.top - viewportMargin - menuGap
         : window.innerHeight - rect.bottom - viewportMargin - menuGap;
     viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
-    // Portal menus are moved under document.body, so the reactive style
-    // binding on the original root cannot reach them before this measurement.
-    // Apply the value directly first; otherwise the first upward open can
-    // measure the fallback 100vh height and place the menu above the viewport.
+    // Apply the value directly before measuring: the reactive style binding on
+    // this node only lands in the next flush, so the first upward open would
+    // otherwise measure the fallback 100vh height and place the menu above the
+    // viewport.
     menuElement?.style.setProperty('--suu-dropdown-panel-max-height', viewportPanelMaxHeight);
     updatePortalPosition(rect);
   }
@@ -767,13 +767,31 @@
       portalMenuLeft = `${Math.round(rect.left)}px`;
       portalMenuRight = undefined;
     }
-    portalMenuWidth = fitContent ? undefined : `${Math.round(rect.width)}px`;
+    portalMenuWidth = `${Math.round(rect.width)}px`;
   }
 
   function portalMenu(node: HTMLDivElement, enabled: boolean) {
     let resizeObserver: ResizeObserver | undefined;
+
+    function hideMenuPopover() {
+      if (typeof node.hidePopover !== 'function') {
+        return;
+      }
+      try {
+        node.hidePopover();
+      } catch {
+        // The menu never entered the top layer; hiding is already done.
+      }
+    }
+
     if (enabled && typeof document !== 'undefined') {
-      document.body.appendChild(node);
+      // Keep the menu inside the component tree and lift it into the top layer
+      // instead of moving it under document.body: body-mounted nodes stay inert
+      // behind a modal <dialog>, even when they are promoted to a popover.
+      if (typeof node.showPopover === 'function') {
+        node.setAttribute('popover', 'manual');
+        node.showPopover();
+      }
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
           if (open) void updateViewportPanelMaxHeight();
@@ -784,9 +802,7 @@
     return {
       destroy() {
         resizeObserver?.disconnect();
-        if (node.parentNode) {
-          node.parentNode.removeChild(node);
-        }
+        hideMenuPopover();
       }
     };
   }
