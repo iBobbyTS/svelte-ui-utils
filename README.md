@@ -668,10 +668,8 @@ for the left column and a controlled filter created with the `filter` helper:
         filter.dropdownSearch({
           value: searchValue,
           selectedItem,
-          status: searchStatus,
           width: '24rem',
           maxWidth: '100%',
-          clearLabel: 'Clear search',
           loadOptions,
           onChange: (detail) => updateSearch(detail)
         }),
