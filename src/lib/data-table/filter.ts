@@ -10,7 +10,8 @@ import type {
   FilterLinkControl,
   FilterSelectControl,
   NumberRangeFilterControl,
-  RadioFilterControl
+  RadioFilterControl,
+  TextInputFilterControl
 } from './types.js';
 
 function checkbox(options: Omit<CheckboxFilterControl, 'type'>): CheckboxFilterControl {
@@ -59,6 +60,10 @@ function container(controls: FilterControl[]): FilterContainerControl {
   return { type: 'container', controls };
 }
 
+function text(options: Omit<TextInputFilterControl, 'type'>): TextInputFilterControl {
+  return { type: 'text', ...options };
+}
+
 export const filter = {
   checkbox,
   radio,
@@ -70,5 +75,6 @@ export const filter = {
   select,
   dropdown,
   dropdownMultiSelect,
-  container
+  container,
+  text
 };

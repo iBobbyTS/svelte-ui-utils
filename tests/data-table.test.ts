@@ -846,6 +846,89 @@ describe('data table components', () => {
     expect(onChange).toHaveBeenLastCalledWith(['musician']);
   });
 
+  it('renders a text filter input that reports every keystroke by default', async () => {
+    const onChange = vi.fn();
+    render(FilterTable, {
+      props: {
+        rows: [
+          {
+            key: 'location',
+            title: 'Location',
+            filter: filter.text({
+              value: '',
+              placeholder: 'Search location',
+              ariaLabel: 'Location filter',
+              onChange
+            })
+          }
+        ]
+      }
+    });
+
+    const input = screen.getByRole('searchbox');
+    expect(input).toHaveAttribute('placeholder', 'Search location');
+    expect(input).toHaveAttribute('aria-label', 'Location filter');
+    await fireEvent.input(input, { target: { value: '上海' } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith('上海');
+  });
+
+  it('debounces text filter changes and flushes the pending draft on Enter', async () => {
+    vi.useFakeTimers();
+    try {
+      const onChange = vi.fn();
+      render(FilterTable, {
+        props: {
+          rows: [
+            {
+              key: 'location',
+              title: 'Location',
+              filter: filter.text({ value: '', debounceMs: 300, onChange })
+            }
+          ]
+        }
+      });
+
+      const input = screen.getByRole('searchbox');
+      await fireEvent.input(input, { target: { value: '北' } });
+      await fireEvent.input(input, { target: { value: '北京' } });
+      expect(onChange).not.toHaveBeenCalled();
+
+      await fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenLastCalledWith('北京');
+
+      await fireEvent.input(input, { target: { value: '北京市' } });
+      vi.advanceTimersByTime(300);
+      expect(onChange).toHaveBeenCalledTimes(2);
+      expect(onChange).toHaveBeenLastCalledWith('北京市');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the text filter a controlled input across external resets', async () => {
+    const onChange = vi.fn();
+    const rowsFor = (value: string): FilterTableRow[] => [
+      {
+        key: 'location',
+        title: 'Location',
+        filter: filter.text({ value, onChange })
+      }
+    ];
+    const { rerender } = render(FilterTable, { props: { rows: rowsFor('广州') } });
+
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+    expect(input.value).toBe('广州');
+    // Typing is not clobbered while the controlled value lags behind the draft.
+    await fireEvent.input(input, { target: { value: '广州市' } });
+    expect(input.value).toBe('广州市');
+    expect(onChange).toHaveBeenLastCalledWith('广州市');
+
+    await rerender({ rows: rowsFor('') });
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('');
+  });
+
   it('can render FilterTable without its outer border', () => {
     const { container } = render(FilterTable, {
       props: {

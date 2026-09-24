@@ -505,6 +505,54 @@ render source and `loadOptions` is never called. Type the loader with
 `DropdownLoadOptions`/`DropdownLoadOptionsResult`, exported from the package
 root.
 
+### loadOptions factories
+
+Most `loadOptions` implementations only differ in the item source: filter a
+local array, or POST one JSON endpoint. The factories exported from
+`@ibobbyts/svelte-ui-utils/dropdown` (and the package root) build loaders that
+fit both the root `Dropdown` search mode and the data-table
+`filter.dropdownSearch` control:
+
+```ts
+import { createFetchLoadOptions, createLocalLoadOptions } from '@ibobbyts/svelte-ui-utils';
+
+// Local list: filter, map to options, slice to the limit.
+const loadFromRoster = createLocalLoadOptions(
+  () => rosterUsers,
+  {
+    toOption: (user) => ({ value: String(user.id), label: user.displayName }),
+    matches: (user, query) => matchesPinyin(user.displayName, query),
+    limit: 5
+  }
+);
+
+// JSON endpoint: URL, body builder, payload decoding, abort and error policy.
+const loadFromApi = createFetchLoadOptions({
+  url: '/api/members/search',
+  buildBody: (query, limit) => ({ groupId, query, limit }),
+  mapOptions: (payload) => (payload as { options: MemberOption[] }).options ?? [],
+  throwOnError: true
+});
+```
+
+`createLocalLoadOptions(source, config?)` accepts a static array or a getter
+re-evaluated on every search. `toOption` converts domain items (omit it when
+the items already satisfy the `{ label, value }` contract); `matches` receives
+the raw item and the trimmed query, and defaults to a case-insensitive
+substring match over the converted option's `label`/`searchText`, where an
+empty query matches everything. `limit` caps the context limit.
+
+`createFetchLoadOptions(config)` skips the request for a blank query, posts
+JSON (default body `{ query, limit }`), passes `context.signal` through, and
+decodes the payload with `mapOptions` before slicing to the limit. HTTP and
+network failures resolve with no options by default; `throwOnError: true`
+rethrows them (aborted requests always resolve with no options) so wrappers
+that surface errors keep working.
+
+Multiselect handlers can also stop repeating the `string | string[]` narrowing:
+`toMultiSelection(selection)` and `toSingleSelection(selection)` normalize a
+`Dropdown` `onChange` argument to the shape the handler needs.
+
 ## DataTable
 
 ```svelte
@@ -685,6 +733,29 @@ for the left column and a controlled filter created with the `filter` helper:
 `FilterTable` uses the same `1px solid var(--suu-color-border)` outer border
 and `var(--suu-radius)` corner radius as a bordered `DataTable`. Set
 `bordered={false}` to remove both the border and outer corner radius.
+
+`filter.text` renders a free-text search input for `keyword contains`-style
+filtering. Unlike `filter.dropdownSearch` it has no selection semantics: the
+value is the raw input text, and matching stays in the consuming app:
+
+```svelte
+{
+  key: 'location',
+  title: 'Location',
+  filter: filter.text({
+    value: locationQuery,
+    placeholder: 'Search location',
+    ariaLabel: 'Location filter',
+    onChange: (value) => (locationQuery = value)
+  })
+}
+```
+
+Every keystroke reports by default; pass `debounceMs` to batch changes (Enter
+flushes the pending draft immediately). The input stays a controlled input:
+applying the new value from `onChange` keeps typing intact, and resetting
+`value` clears the field. Width follows the `width`/`minWidth`/`maxWidth`
+props when the full-row default is not what you want.
 
 `filter.select` uses the shared `Dropdown` component, so select filters keep the
 same menu, keyboard, and visual behavior as standalone dropdowns.

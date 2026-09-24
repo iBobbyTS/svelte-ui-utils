@@ -619,6 +619,33 @@
   padding: 7px 34px 7px 10px;
 }
 
+.suu-filter-table__text-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--suu-color-border);
+  border-radius: var(--suu-radius);
+  background: var(--suu-color-bg);
+  color: var(--suu-color-text);
+  font: inherit;
+}
+
+.suu-filter-table__text-input:focus {
+  border-color: var(--suu-color-accent);
+  outline: 2px solid color-mix(in srgb, var(--suu-color-accent) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.suu-filter-table__text-input::placeholder {
+  color: var(--suu-color-muted);
+}
+
+.suu-filter-table__text-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .suu-table-wrap {
   overflow: auto;
   border: 1px solid var(--suu-color-border);

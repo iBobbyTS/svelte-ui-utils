@@ -2,6 +2,28 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## 0.5.1: additive filter/loadOptions helpers (nothing breaks, but review these when migrating)
+
+No existing API changes. The new exports exist to absorb the boilerplate that
+consumers otherwise hand-roll, and apps still on 0.4.x should plan to adopt
+them as part of their 0.5.x migration instead of porting that boilerplate
+forward:
+
+- `filter.text(...)` is a new `FilterTable` control type: a free-text search
+  input with no selection semantics. Replace hand-written `<input>` search
+  boxes (with their manual Enter handling and per-app debounce timers) next to
+  filter tables with this control; the debouncing and controlled-reset behavior
+  live in the package now.
+- `createLocalLoadOptions` / `createFetchLoadOptions` (from
+  `@ibobbyts/svelte-ui-utils/dropdown` and the package root) build
+  `loadOptions` implementations for local-array and JSON-endpoint sources.
+  They replace the per-call-site patterns of clamping the limit
+  (the removed `clampDropdownSearchLimit` helper), wiring `context.signal`,
+  checking `response.ok`, and mapping `{ label, value }` options by hand.
+- `toMultiSelection` / `toSingleSelection` replace the
+  `Array.isArray(selection) ? selection : [selection]` narrowing repeated in
+  `Dropdown` `onChange` handlers.
+
 ## 0.5.0
 
 Four breaking changes ship together in 0.5.0.

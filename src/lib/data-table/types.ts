@@ -365,6 +365,25 @@ export interface FilterContainerControl {
   controls: FilterControl[];
 }
 
+/**
+ * Free-text filter input for `keyword contains`-style filtering. Unlike
+ * `dropdownSearch` it has no selection semantics: every (debounced) change is
+ * the raw input text, so it pairs with consumer-side row matching.
+ */
+export interface TextInputFilterControl {
+  type: 'text';
+  value: string;
+  placeholder?: string;
+  ariaLabel?: string;
+  /** Milliseconds to batch changes before `onChange` fires; 0 (default) reports every keystroke. */
+  debounceMs?: number;
+  width?: string;
+  minWidth?: string;
+  maxWidth?: string;
+  disabled?: boolean;
+  onChange: (value: string) => void | Promise<void>;
+}
+
 export type FilterControl =
   | CheckboxFilterControl
   | RadioFilterControl
@@ -376,7 +395,8 @@ export type FilterControl =
   | FilterSelectControl
   | DropdownFilterControl
   | DropdownMultiSelectFilterControl
-  | FilterContainerControl;
+  | FilterContainerControl
+  | TextInputFilterControl;
 
 export interface FilterTableRow {
   key: string;
@@ -391,6 +411,7 @@ export type DropdownFilterDefinition = DropdownFilterControl & { key: string; la
 export type DropdownMultiSelectFilterDefinition = DropdownMultiSelectFilterControl & { key: string; label: string };
 export type DateRangeFilterDefinition = DateRangeFilterControl & { key: string; label: string };
 export type NumberRangeFilterDefinition = NumberRangeFilterControl & { key: string; label: string };
+export type TextInputFilterDefinition = TextInputFilterControl & { key: string; label: string };
 export type FilterDefinition =
   | CheckboxFilterDefinition
   | RadioFilterDefinition
@@ -398,4 +419,5 @@ export type FilterDefinition =
   | DropdownFilterDefinition
   | DropdownMultiSelectFilterDefinition
   | DateRangeFilterDefinition
-  | NumberRangeFilterDefinition;
+  | NumberRangeFilterDefinition
+  | TextInputFilterDefinition;

@@ -1,6 +1,7 @@
 <svelte:options runes={false} />
 
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import Dropdown from '../dropdown/Dropdown.svelte';
   import DropdownMultiSelect from '../dropdown/DropdownMultiSelect.svelte';
   import type {
@@ -141,6 +142,66 @@
   $: dropdownSearchSelectedOptions = control.type === 'dropdownSearch' && control.selectedItem
     ? [control.selectedItem]
     : [];
+
+  // Free-text filter input: with debounceMs > 0 the draft lives here until the
+  // timer fires or Enter flushes it; the controlled `value` only catches up
+  // once the parent applies onChange, and Svelte leaves the DOM value alone
+  // until then so typing is never clobbered mid-draft.
+  let textInputTimer: ReturnType<typeof setTimeout> | null = null;
+  let textInputPending: string | null = null;
+
+  function flushTextInput() {
+    if (textInputTimer !== null) {
+      clearTimeout(textInputTimer);
+      textInputTimer = null;
+    }
+    if (textInputPending !== null && control.type === 'text') {
+      const value = textInputPending;
+      textInputPending = null;
+      void control.onChange(value);
+    }
+  }
+
+  function handleTextInput(value: string) {
+    if (control.type !== 'text') {
+      return;
+    }
+    const debounceMs = control.debounceMs ?? 0;
+    if (debounceMs <= 0) {
+      void control.onChange(value);
+      return;
+    }
+    textInputPending = value;
+    if (textInputTimer !== null) {
+      clearTimeout(textInputTimer);
+    }
+    textInputTimer = setTimeout(flushTextInput, debounceMs);
+  }
+
+  function handleTextKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && control.type === 'text') {
+      event.preventDefault();
+      flushTextInput();
+    }
+  }
+
+  $: textInputStyle = control.type === 'text'
+    ? [
+        control.width ? `width: ${control.width}` : '',
+        control.minWidth ? `min-width: ${control.minWidth}` : '',
+        control.maxWidth ? `max-width: ${control.maxWidth}` : ''
+      ]
+      .filter(Boolean)
+      .join('; ')
+    : '';
+
+  onDestroy(() => {
+    if (textInputTimer !== null) {
+      clearTimeout(textInputTimer);
+      textInputTimer = null;
+    }
+    textInputPending = null;
+  });
 
 </script>
 
@@ -371,5 +432,17 @@
     portal={control.portal}
     onChange={control.onChange}
     onTriggerClick={control.onTriggerClick}
+  />
+{:else if control.type === 'text'}
+  <input
+    class="suu-filter-table__text-input"
+    type="search"
+    value={control.value}
+    placeholder={control.placeholder ?? ''}
+    aria-label={control.ariaLabel}
+    disabled={control.disabled}
+    style={textInputStyle}
+    on:input={(event) => handleTextInput((event.currentTarget as HTMLInputElement).value)}
+    on:keydown={handleTextKeydown}
   />
 {/if}

@@ -67,5 +67,7 @@ export type {
   RadioFilterDefinition,
   RadioFilterControl,
   SortDirection,
-  SortState
+  SortState,
+  TextInputFilterDefinition,
+  TextInputFilterControl
 } from './types.js';
