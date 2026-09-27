@@ -32,7 +32,8 @@
 ## 发布后验证（消费者侧）
 
 - npmjs 传播有数分钟延迟：`npm view @ibobbyts/svelte-ui-utils dist-tags` 出现新版本后才可安装。
-- **bun 的包 metadata 缓存不感知新版本**：安装新发布版本若报 `No version matching "<version>" found`，先清缓存再装（`bun pm cache rm` 后重试），与发布本身无关。
+- **bun 的包 metadata 缓存不感知新版本**（0.5.2 实测）：安装新发布版本若报 `No version matching "<version>" found`，与发布本身无关。`bun pm cache rm` 只清 bunx 缓存，对 registry metadata 无效，重启消费者容器同样无效；有效做法是 `bun add --no-cache <pkg>@<version>` 显式绕过缓存。
+- **正在运行的 dev server 不会自动换新模块**（0.5.2 实测）：消费者容器内装完新版本后，未重启的 SvelteKit/Vite dev server 内存里仍是旧模块，页面表现与升级前完全一致；装完依赖必须重启 dev 容器再验证。
 - 可选：手动触发 `.github/workflows/bun-consumer-check.yml`（输入刚发布的版本号），在全新 Bun 消费者项目里验证安装。
 
 ## 本地联调（未发布验证）
