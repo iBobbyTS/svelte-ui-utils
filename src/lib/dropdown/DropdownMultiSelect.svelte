@@ -9,7 +9,8 @@
     DropdownOption,
     DropdownOptionGroup,
     DropdownPlacement,
-    DropdownTriggerClickHandler
+    DropdownTriggerClickHandler,
+    DropdownVerticalAlign
   } from './types.js';
 
   export let id: string | undefined = undefined;
@@ -21,6 +22,7 @@
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
+  export let verticalAlign: DropdownVerticalAlign = 'center';
   export let fitViewport = true;
   export let fitContent = true;
   export let disabled = false;
@@ -44,6 +46,7 @@
   {ariaLabel}
   {placement}
   {menuAlign}
+  {verticalAlign}
   {fitViewport}
   {fitContent}
   {disabled}

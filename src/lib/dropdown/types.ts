@@ -13,6 +13,13 @@ export type DropdownPlacement = 'auto' | 'up' | 'down';
 
 export type DropdownMenuAlign = 'left' | 'right';
 
+/**
+ * Vertical alignment of the collapsed trigger's content (label and chevron).
+ * Only visible when the trigger is taller than its content, e.g. when the
+ * host layout stretches it to fill a table cell.
+ */
+export type DropdownVerticalAlign = 'start' | 'center' | 'end';
+
 export interface DropdownOption {
   label: string;
   /** Optional text used for keyboard typeahead matching instead of (or in addition to) the label. */

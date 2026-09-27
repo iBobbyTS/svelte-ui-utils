@@ -964,6 +964,31 @@
   width: 100%;
 }
 
+/* A trigger stretched taller than its content (e.g. filling a tall table
+   cell) would float its collapsed label mid-button; the valign modifiers pin
+   the label near an edge while keeping a minimal vertical padding so the
+   text never touches the button border, and the chevron keeps station
+   beside the first or last text line. The doubled class raises specificity
+   above host overrides of the base button padding, because the edge gap is
+   part of the alignment contract, not a restyle. */
+.suu-dropdown.suu-dropdown--valign-start .suu-dropdown__button {
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
+.suu-dropdown.suu-dropdown--valign-start .suu-dropdown__button .suu-dropdown__chevron {
+  margin-top: 0.3em;
+}
+
+.suu-dropdown.suu-dropdown--valign-end .suu-dropdown__button {
+  align-items: flex-end;
+  padding-bottom: 10px;
+}
+
+.suu-dropdown.suu-dropdown--valign-end .suu-dropdown__button .suu-dropdown__chevron {
+  margin-bottom: 0.3em;
+}
+
 .suu-dropdown__button:hover,
 .suu-dropdown__button:focus-visible {
   border-color: var(--suu-color-accent);

@@ -316,7 +316,11 @@ boundary (the bundled `Pagination` does this for its numeric page size). Use
 pagination bars. The expanded menu shares the trigger's left edge by default;
 use `menuAlign="right"` to align their right edges instead. `fitContent` sizes
 the menu to its longest option while keeping the selected edge aligned.
-`DataTable` uses this same component for its page-size picker.
+`DataTable` uses this same component for its page-size picker. A trigger
+stretched taller than its content (for example filling a tall table cell)
+centers its collapsed label by default; `verticalAlign="start"` or `"end"`
+pins the label and chevron to the top or bottom edge instead, keeping a
+minimal vertical padding so the content never touches the button border.
 
 Set `search={true}` with `loadOptions` to load remote options as the user
 types. The default `inputStyle="dropdown"` keeps the search field inside the

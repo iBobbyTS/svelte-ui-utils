@@ -1293,6 +1293,26 @@ describe('dropdown', () => {
     expect(screen.getByRole('listbox', { name: 'Choice' })).toBeInTheDocument();
   });
 
+  it('aligns collapsed trigger content to an edge only when opted in', async () => {
+    const props = { value: 'one', ariaLabel: 'Choice', options: [{ label: 'One', value: 'one' }] };
+    const { container, rerender } = render(Dropdown, { props });
+    const dropdown = container.querySelector('.suu-dropdown');
+    expect(dropdown?.className).not.toContain('suu-dropdown--valign-');
+
+    await rerender({ ...props, verticalAlign: 'start' });
+    expect(dropdown).toHaveClass('suu-dropdown--valign-start');
+    expect(dropdown?.className.match(/suu-dropdown--valign-\S+/g)).toEqual(['suu-dropdown--valign-start']);
+
+    await rerender({ ...props, verticalAlign: 'end' });
+    expect(dropdown).toHaveClass('suu-dropdown--valign-end');
+    expect(dropdown?.className.match(/suu-dropdown--valign-\S+/g)).toEqual(['suu-dropdown--valign-end']);
+
+    const multi = render(DropdownMultiSelect, {
+      props: { value: ['one'], ariaLabel: 'Choices', verticalAlign: 'start', options: props.options }
+    });
+    expect(multi.container.querySelector('.suu-dropdown')).toHaveClass('suu-dropdown--valign-start');
+  });
+
   it('toggles multiple values in option order without closing the menu', async () => {
     const onChange = vi.fn();
     const options = [

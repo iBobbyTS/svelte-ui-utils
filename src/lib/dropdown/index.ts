@@ -25,5 +25,6 @@ export type {
   DropdownSearchChangeHandler,
   DropdownSelection,
   DropdownTriggerClickHandler,
-  DropdownValue
+  DropdownValue,
+  DropdownVerticalAlign
 } from './types.js';

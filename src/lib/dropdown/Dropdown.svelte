@@ -24,7 +24,8 @@
     DropdownSearchChangeHandler,
     DropdownSelection,
     DropdownTriggerClickHandler,
-    DropdownValue
+    DropdownValue,
+    DropdownVerticalAlign
   } from './types.js';
 
   export let id: string | undefined = undefined;
@@ -50,6 +51,9 @@
   export let ariaLabel: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
+  // Center is the historical layout; the modifier classes only exist for the
+  // non-default values so existing consumers never see a class change.
+  export let verticalAlign: DropdownVerticalAlign = 'center';
   export let fitViewport = true;
   export let fitContent = true;
   export let disabled = false;
@@ -902,6 +906,7 @@
     width !== undefined || minWidth !== undefined || maxWidth !== undefined
       ? 'suu-dropdown--sized'
       : '',
+    verticalAlign !== 'center' ? `suu-dropdown--valign-${verticalAlign}` : '',
     className ?? ''
   ].filter(Boolean).join(' ')}
   style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
