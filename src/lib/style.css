@@ -12,6 +12,14 @@
   --suu-color-warning: #d97706;
   --suu-color-info: #2563eb;
   --suu-shadow: 0 12px 30px rgb(15 23 42 / 0.14);
+  /* Overlay surfaces (dropdown menus) float above the page: they step the page
+     background up toward the surface color instead of reusing it and get a
+     deep shadow plus a hairline ring so their outline stays readable even
+     where host grid lines (table borders, adjacent inputs) run under them.
+     The elevated token references the base palette lazily, so theme and
+     consumer-side remaps of surface/border apply automatically. */
+  --suu-color-elevated: color-mix(in srgb, var(--suu-color-surface) 45%, var(--suu-color-bg));
+  --suu-shadow-overlay: 0 12px 32px rgb(15 23 42 / 0.2), 0 0 0 1px rgb(15 23 42 / 0.06);
   --suu-radius-xs: 4px;
   --suu-radius-sm: 6px;
   --suu-radius-md: 8px;
@@ -37,6 +45,7 @@
   --suu-color-warning: #fbbf24;
   --suu-color-info: #60a5fa;
   --suu-shadow: 0 16px 34px rgb(0 0 0 / 0.32);
+  --suu-shadow-overlay: 0 12px 32px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.025);
 }
 
 .suu-visually-hidden {
@@ -895,6 +904,16 @@
 
 .suu-dropdown {
   --suu-dropdown-space: 14px;
+  /* Menu row semantics, all derived from the theme palette so light and dark
+     keep the same ladder: panel frame > group band boundary > option
+     separator, and selected > hover. */
+  --suu-dropdown-option-separator: color-mix(in srgb, var(--suu-color-border) 24%, transparent);
+  --suu-dropdown-group-border: color-mix(in srgb, var(--suu-color-border) 80%, transparent);
+  --suu-dropdown-group-bg: color-mix(in srgb, var(--suu-color-muted) 18%, var(--suu-color-elevated));
+  --suu-dropdown-group-text: var(--suu-color-text);
+  --suu-dropdown-option-hover-bg: color-mix(in srgb, var(--suu-color-muted) 7%, var(--suu-color-elevated));
+  --suu-dropdown-option-selected-bg: color-mix(in srgb, var(--suu-color-accent) 12%, var(--suu-color-elevated));
+  --suu-dropdown-option-selected-hover-bg: color-mix(in srgb, var(--suu-color-accent) 18%, var(--suu-color-elevated));
 
   position: relative;
   display: inline-flex;
@@ -1018,18 +1037,24 @@
   transform: translateY(-20%) rotate(45deg);
 }
 
+/* The menu is a floating overlay, not a table that grew downward: its
+   background steps above the page, the shadow ring keeps the outline readable
+   where host grid lines run under it, and it overhangs the trigger by 4px on
+   each side so its edges never sit on the same lines as the surrounding
+   layout. Internal lines follow the --suu-dropdown-* row tokens so the
+   ladder stays: panel frame > group band boundary > option separator. */
 .suu-dropdown__menu {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  top: calc(100% + 4px);
+  right: -4px;
   left: auto;
   z-index: 100;
-  min-width: 100%;
+  min-width: calc(100% + 8px);
   overflow: hidden;
   border: 1px solid var(--suu-color-border);
   border-radius: var(--suu-radius);
-  background: var(--suu-color-bg);
-  box-shadow: 0 18px 42px rgb(15 23 42 / 0.16);
+  background: var(--suu-color-elevated);
+  box-shadow: var(--suu-shadow-overlay);
   /* Reset inherited host whitespace (e.g. a nowrap table cell) so every menu
      text — group titles, status labels — wraps by default; the single-line
      fit-content rules set nowrap explicitly where needed. */
@@ -1057,17 +1082,17 @@
 
 .suu-dropdown__menu--left:not(.suu-dropdown__menu--portal) {
   right: auto;
-  left: 0;
+  left: -4px;
 }
 
 .suu-dropdown__menu--right:not(.suu-dropdown__menu--portal) {
-  right: 0;
+  right: -4px;
   left: auto;
 }
 
 .suu-dropdown__menu--up:not(.suu-dropdown__menu--portal) {
   top: auto;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 4px);
 }
 
 .suu-dropdown__menu--fit-content:not(.suu-dropdown__menu--portal) {
@@ -1102,26 +1127,31 @@
   max-height: var(--suu-dropdown-panel-max-height, 100vh);
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--suu-color-bg);
+  background: var(--suu-color-elevated);
   overscroll-behavior: contain;
 }
 
 .suu-dropdown__group + .suu-dropdown__group {
-  border-top: 1px solid var(--suu-color-border);
+  border-top: 1px solid var(--suu-dropdown-group-border);
 }
 
+/* 分组用中性底色和粗体形成标题带，避免与蓝色选中态混淆。
+   font 简写必须位于字号和字重之前，防止覆盖标题层级。 */
 .suu-dropdown__group-label {
   display: flex;
   width: 100%;
   border: 0;
-  padding: 8px 14px 6px;
-  background: var(--suu-color-surface);
-  color: var(--suu-color-muted);
+  border-bottom: 1px solid var(--suu-dropdown-group-border);
+  min-height: 32px;
+  padding: 6px 14px;
+  background: var(--suu-dropdown-group-bg);
+  color: var(--suu-dropdown-group-text);
   cursor: pointer;
-  font-size: 0.75em;
-  font-weight: 700;
-  letter-spacing: 0.02em;
   font: inherit;
+  font-size: 0.8125em;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
   text-align: left;
   align-items: center;
   justify-content: space-between;
@@ -1150,12 +1180,15 @@
   transform: rotate(45deg);
 }
 
+/* 收紧单行选项的留白，长名称仍由内容撑高；分隔线保持弱于分组边界。 */
 .suu-dropdown__option {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
-  padding: 9px 14px;
+  min-height: 36px;
+  padding: 6px 14px;
   border: 0;
-  border-bottom: 1px solid var(--suu-color-border);
+  border-bottom: 1px solid var(--suu-dropdown-option-separator);
   background: transparent;
   color: var(--suu-color-text);
   cursor: pointer;
@@ -1163,14 +1196,13 @@
   text-align: left;
 }
 
-.suu-dropdown__option--group-first {
-  border-top: 1px solid var(--suu-color-border);
+/* 仅有标题的组选项缩进，未分组的「未选择」等操作保持原始对齐。 */
+.suu-dropdown__group-label ~ .suu-dropdown__option {
+  padding-inline-start: 24px;
 }
 
 .suu-dropdown--multiselect .suu-dropdown__option {
-  display: flex;
   gap: 10px;
-  align-items: center;
 }
 
 .suu-dropdown__checkbox {
@@ -1207,13 +1239,22 @@
 .suu-dropdown__option:hover,
 .suu-dropdown__option:focus-visible,
 .suu-dropdown__option--active {
-  background: var(--suu-color-surface);
+  background: var(--suu-dropdown-option-hover-bg);
   outline: none;
 }
 
+/* The selected row is a clear area, not just colored text; hover on top of it
+   deepens the tint one step so the two states stay distinguishable. */
 .suu-dropdown__option[aria-selected='true'] {
+  background: var(--suu-dropdown-option-selected-bg);
   color: var(--suu-color-accent);
   font-weight: 700;
+}
+
+.suu-dropdown__option[aria-selected='true']:hover,
+.suu-dropdown__option[aria-selected='true']:focus-visible,
+.suu-dropdown__option[aria-selected='true'].suu-dropdown__option--active {
+  background: var(--suu-dropdown-option-selected-hover-bg);
 }
 
 .suu-dropdown__option--disabled,
@@ -1228,8 +1269,8 @@
   gap: 8px;
   align-items: center;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--suu-color-border);
-  background: var(--suu-color-bg);
+  border-bottom: 1px solid var(--suu-dropdown-group-border);
+  background: var(--suu-color-surface);
 }
 
 .suu-dropdown__search-icon {

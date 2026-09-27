@@ -890,6 +890,27 @@ inside a theme root:
 }
 ```
 
+### Overlay surface tokens
+
+Dropdown menus render as floating overlays: they step the page background up
+(`--suu-color-elevated`, derived from the surface/bg palette) and lift off the
+page with `--suu-shadow-overlay` (a deep shadow plus a hairline ring so the
+outline stays readable over host grid lines). Both resolve against the current
+theme palette automatically.
+
+Inside the menu, row semantics come from `--suu-dropdown-*` tokens declared on
+`.suu-dropdown`: `--suu-dropdown-option-separator` (faint line between
+options), `--suu-dropdown-group-border` / `--suu-dropdown-group-bg` /
+`--suu-dropdown-group-text` (the section header band), and
+`--suu-dropdown-option-hover-bg` / `--suu-dropdown-option-selected-bg` /
+`--suu-dropdown-option-selected-hover-bg`. They are palette-derived color
+mixes, so light and dark themes keep the same hierarchy: panel frame > group
+band boundary > option separator, and selected > hover. Only override them for
+a deliberately different overlay treatment.
+
+下拉选项默认最小行高为 36px，分组标题为 32px；长文本仍可撑高。
+分组通过中性底色、加粗标题和组内选项缩进区分，未分组的选项不缩进。
+
 ### Corner-radius tokens
 
 All non-zero component corner radii come from the token definitions in

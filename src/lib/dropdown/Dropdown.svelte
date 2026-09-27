@@ -65,7 +65,11 @@
   export let onTriggerClick: DropdownTriggerClickHandler | undefined = undefined;
 
   const viewportMargin = 20;
-  const menuGap = 6;
+  const menuGap = 4;
+  // The menu overhangs the trigger horizontally so its edges break from the
+  // host layout's lines (table column borders, adjacent inputs) and read as an
+  // independent floating layer instead of a continuation of the grid.
+  const menuOutset = 4;
   const instanceId = ++dropdownInstanceCount;
 
   let open = false;
@@ -783,12 +787,12 @@
     )}px`;
     if (menuAlign === 'right') {
       portalMenuLeft = undefined;
-      portalMenuRight = `${Math.round(window.innerWidth - rect.right)}px`;
+      portalMenuRight = `${Math.max(0, Math.round(window.innerWidth - rect.right - menuOutset))}px`;
     } else {
-      portalMenuLeft = `${Math.round(rect.left)}px`;
+      portalMenuLeft = `${Math.max(0, Math.round(rect.left - menuOutset))}px`;
       portalMenuRight = undefined;
     }
-    portalMenuWidth = `${Math.round(rect.width)}px`;
+    portalMenuWidth = `${Math.round(rect.width + menuOutset * 2)}px`;
   }
 
   function portalMenu(node: HTMLDivElement, enabled: boolean) {

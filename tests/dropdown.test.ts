@@ -360,8 +360,8 @@ describe('dropdown', () => {
 
     const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
     expect(menu).toHaveClass('suu-dropdown__menu--up', 'suu-dropdown__menu--right');
-    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('294px');
-    expect(menu.style.getPropertyValue('--suu-dropdown-menu-right')).toBe('500px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('296px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-right')).toBe('496px');
   });
 
   it('applies viewport height to the in-tree portal menu', async () => {
@@ -391,7 +391,7 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
 
     const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
-    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('474px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('476px');
   });
 
   it('positions an upward portal menu correctly on its first open', async () => {
@@ -469,11 +469,11 @@ describe('dropdown', () => {
     await tick();
 
     const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
-    // Available above the trigger is 300 - 20 - 6 = 274px; the 20px menu chrome
+    // Available above the trigger is 300 - 20 - 4 = 276px; the 20px menu chrome
     // comes off the panel budget, and the menu is then placed from its measured
     // 120px total height.
-    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('254px');
-    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('174px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('256px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('176px');
     expect(menuMeasurements).toBe(2);
   });
 
@@ -538,9 +538,9 @@ describe('dropdown', () => {
     await tick();
 
     const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
-    // 274px available above minus the 42px search box leaves 232px for the
-    // panel; the total 274px menu then starts exactly at the viewport margin.
-    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('232px');
+    // 276px available above minus the 42px search box leaves 234px for the
+    // panel; the total 276px menu then starts exactly at the viewport margin.
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('234px');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('20px');
   });
 
@@ -592,7 +592,7 @@ describe('dropdown', () => {
     await fireEvent.input(container.querySelector('.suu-dropdown__input') as HTMLInputElement, { target: { value: 'ali' } });
     await waitFor(() => expect(resolveSearch).toBeTypeOf('function'));
     const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
-    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('248px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('250px');
 
     resolveSearch?.({ options: [
       { label: 'Alice', value: 'alice' },
@@ -605,7 +605,7 @@ describe('dropdown', () => {
     await tick();
     await tick();
 
-    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('178px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('180px');
   });
 
   it('keeps the portal menu in the component tree without popover markup when the popover API is unavailable', async () => {
@@ -795,7 +795,7 @@ describe('dropdown', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
 
-    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('374px');
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('376px');
   });
 
   it('allows callers to disable viewport fitting', async () => {
@@ -854,7 +854,7 @@ describe('dropdown', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
 
-    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('274px');
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('276px');
   });
 
   it('automatically opens toward the side with more viewport space', async () => {
@@ -888,7 +888,7 @@ describe('dropdown', () => {
 
     const menu = container.querySelector('.suu-dropdown__menu');
     expect(menu).toHaveClass('suu-dropdown__menu--down');
-    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('474px');
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('476px');
 
     rectSpy.mockReturnValue({
       top: 560,
@@ -906,7 +906,7 @@ describe('dropdown', () => {
     await tick();
 
     expect(menu).toHaveClass('suu-dropdown__menu--up');
-    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('534px');
+    expect(dropdown.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('536px');
   });
 
   it('closes when the trigger leaves the viewport while open', async () => {
