@@ -436,6 +436,22 @@ describe('dropdown', () => {
           toJSON: () => ({})
         };
       }
+      if (this.classList.contains('suu-dropdown__panel')) {
+        // Non-panel menu chrome (borders) is 20px; without this the whole menu
+        // height would be booked as chrome and the panel budget would collapse.
+        const height = (this.closest('.suu-dropdown__menu') as HTMLElement | null)?.style.getPropertyValue('--suu-dropdown-panel-max-height') ? 100 : 620;
+        return {
+          top: 0,
+          right: 0,
+          bottom: height,
+          left: 0,
+          width: 120,
+          height,
+          x: 0,
+          y: 0,
+          toJSON: () => ({})
+        };
+      }
       return {
         top: 0,
         right: 0,
@@ -453,9 +469,79 @@ describe('dropdown', () => {
     await tick();
 
     const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
-    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('274px');
+    // Available above the trigger is 300 - 20 - 6 = 274px; the 20px menu chrome
+    // comes off the panel budget, and the menu is then placed from its measured
+    // 120px total height.
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('254px');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('174px');
-    expect(menuMeasurements).toBe(1);
+    expect(menuMeasurements).toBe(2);
+  });
+
+  it('keeps an upward search portal menu inside the viewport when the search box consumes budget', async () => {
+    // Regression: the search box is menu height outside the panel. A budget
+    // that ignores it makes the total menu taller than the space above the
+    // trigger, so the upward portal top goes negative and the menu escapes the
+    // viewport (or gets clamped down over the trigger by page CSS).
+    const { container } = render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'User',
+        portal: true,
+        search: true,
+        searchDebounceMs: 0,
+        loadOptions: () => ({ options: [{ label: 'Alice', value: 'alice' }] }),
+        placement: 'up',
+        fitViewport: true
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 240,
+      bottom: 342,
+      left: 120,
+      width: 120,
+      height: 42,
+      x: 120,
+      y: 300,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    const naturalPanelHeight = 600;
+    const searchBoxHeight = 42;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const max = (this.closest('.suu-dropdown__menu') as HTMLElement | null)?.style.getPropertyValue('--suu-dropdown-panel-max-height');
+      const cappedHeight = max ? Math.min(naturalPanelHeight, parseInt(max, 10)) : naturalPanelHeight;
+      let height: number;
+      if (this.classList.contains('suu-dropdown__menu')) {
+        height = cappedHeight + searchBoxHeight;
+      } else if (this.classList.contains('suu-dropdown__panel')) {
+        height = cappedHeight;
+      } else {
+        height = 0;
+      }
+      return {
+        top: 0,
+        right: 0,
+        bottom: height,
+        left: 0,
+        width: 120,
+        height,
+        x: 0,
+        y: 0,
+        toJSON: () => ({})
+      };
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'User' }));
+    await tick();
+
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    // 274px available above minus the 42px search box leaves 232px for the
+    // panel; the total 274px menu then starts exactly at the viewport margin.
+    expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('232px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('20px');
   });
 
   it('repositions an upward portal menu when async results change its height', async () => {

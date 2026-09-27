@@ -715,6 +715,26 @@
     resolvedPlacement = availableBelow >= availableAbove ? 'down' : 'up';
   }
 
+  // The panel is only part of the menu: the search box and the menu borders
+  // also consume viewport budget. When the whole budget goes to the panel, the
+  // total menu grows taller than the available space and an upward portal menu
+  // computes a negative top that escapes the viewport. The difference between
+  // the rendered menu and its panel is exactly that non-panel chrome, whatever
+  // the current max-height is.
+  function measureMenuChromeHeight(): number {
+    if (!menuElement || typeof window === 'undefined') {
+      return 0;
+    }
+    const panelElement = menuElement.querySelector<HTMLElement>('.suu-dropdown__panel');
+    if (!panelElement) {
+      return 0;
+    }
+    return Math.max(
+      0,
+      menuElement.getBoundingClientRect().height - panelElement.getBoundingClientRect().height
+    );
+  }
+
   async function updateViewportPanelMaxHeight() {
     await tick();
 
@@ -742,7 +762,8 @@
       resolvedPlacement === 'up'
         ? rect.top - viewportMargin - menuGap
         : window.innerHeight - rect.bottom - viewportMargin - menuGap;
-    viewportPanelMaxHeight = `${Math.max(0, Math.floor(available))}px`;
+    const availablePanelHeight = available - measureMenuChromeHeight();
+    viewportPanelMaxHeight = `${Math.max(0, Math.floor(availablePanelHeight))}px`;
     // Apply the value directly before measuring: the reactive style binding on
     // this node only lands in the next flush, so the first upward open would
     // otherwise measure the fallback 100vh height and place the menu above the
