@@ -1030,6 +1030,10 @@
   border-radius: var(--suu-radius);
   background: var(--suu-color-bg);
   box-shadow: 0 18px 42px rgb(15 23 42 / 0.16);
+  /* Reset inherited host whitespace (e.g. a nowrap table cell) so every menu
+     text — group titles, status labels — wraps by default; the single-line
+     fit-content rules set nowrap explicitly where needed. */
+  white-space: normal;
 }
 
 .suu-dropdown__menu--portal {
@@ -1074,13 +1078,17 @@
   min-width: max-content;
 }
 
-.suu-dropdown__menu--fit-content .suu-dropdown__option {
+/* The single-line rules assume the menu stretches to its longest option, which
+   only a non-portal menu does; a portal menu keeps the trigger's fixed width,
+   so its options fall back to the base two-line wrapping label instead of
+   being clipped at the menu edge. */
+.suu-dropdown__menu--fit-content:not(.suu-dropdown__menu--portal) .suu-dropdown__option {
   width: auto;
   min-width: 100%;
   white-space: nowrap;
 }
 
-.suu-dropdown__menu--fit-content .suu-dropdown__option .suu-dropdown__label {
+.suu-dropdown__menu--fit-content:not(.suu-dropdown__menu--portal) .suu-dropdown__option .suu-dropdown__label {
   overflow: visible;
   text-overflow: clip;
   display: block;
@@ -1119,7 +1127,17 @@
   justify-content: space-between;
 }
 
+/* A long group title must wrap inside a narrow menu: a flex item keeps its
+   min-content width by default, which pushes unbroken names (IDs, hashes)
+   past the menu edge instead of folding them. */
+.suu-dropdown__group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 .suu-dropdown__group-chevron {
+  flex-shrink: 0;
   width: 7px;
   height: 7px;
   border-right: 2px solid currentColor;

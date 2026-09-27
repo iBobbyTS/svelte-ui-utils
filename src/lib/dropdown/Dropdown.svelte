@@ -1074,7 +1074,7 @@
                   aria-expanded={!collapsedGroupIndexes.has(groupIndex)}
                   on:click|stopPropagation={() => toggleGroup(groupIndex)}
                 >
-                  <span>{group.label}</span>
+                  <span class="suu-dropdown__group-title">{group.label}</span>
                   <span class="suu-dropdown__group-chevron" aria-hidden="true"></span>
                 </button>
               {/if}
