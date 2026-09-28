@@ -11,7 +11,13 @@
 
   $: messages = getUiMessages(language);
   $: resolvedCloseLabel = closeLabel ?? messages.toast.closeLabel;
-  $: countdownStyle = `--suu-toast-duration: ${toast.duration}ms`;
+  $: countdownElapsed = (() => {
+    // 重挂后按 expiresAt 锚点恢复剩余进度；锚点缺失（外部手工构造的 item）时回退从头播放。
+    if (!Number.isFinite(toast.expiresAt)) return 0;
+    const startedAt = toast.expiresAt - toast.duration;
+    return Math.min(Math.max(Date.now() - startedAt, 0), toast.duration);
+  })();
+  $: countdownStyle = `--suu-toast-duration: ${toast.duration}ms; animation-delay: -${countdownElapsed}ms`;
 </script>
 
 <article

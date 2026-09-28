@@ -8,6 +8,7 @@ import {
   groupToastsByPosition,
   TOAST_POSITIONS
 } from '../src/lib/toast/index.js';
+import type { ToastItem } from '../src/lib/toast/index.js';
 
 describe('toast store', () => {
   afterEach(() => {
@@ -72,9 +73,28 @@ describe('toast store', () => {
     vi.advanceTimersByTime(1000);
     expect(get(store)).toHaveLength(0);
   });
+
+  it('anchors expiry at creation and refreshes the anchor when the timer resets', () => {
+    vi.useFakeTimers();
+    const store = createToastStore();
+    const handle = store.info({ message: 'Anchored', duration: 1000 });
+
+    const created = get(store)[0];
+    expect(created?.createdAt).toBe(Date.now());
+    expect(created?.expiresAt).toBe(Date.now() + 1000);
+
+    vi.advanceTimersByTime(400);
+    handle.update({ message: 'Refreshed', duration: 2000 });
+    const updated = get(store)[0];
+    expect(updated?.expiresAt).toBe(Date.now() + 2000);
+  });
 });
 
 describe('toast component', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('uses localized close labels when no override is passed', () => {
     render(Toast, {
       props: {
@@ -89,11 +109,89 @@ describe('toast component', () => {
           showCountdown: false,
           dismissible: true,
           ariaLive: 'polite',
-          createdAt: Date.now()
+          createdAt: Date.now(),
+          expiresAt: Date.now()
         }
       }
     });
 
     expect(screen.getByRole('button', { name: '关闭通知' })).toBeTruthy();
+  });
+
+  it('resumes the countdown from the expiry anchor when remounted', () => {
+    vi.useFakeTimers();
+    const now = Date.now();
+
+    render(Toast, {
+      props: {
+        toast: {
+          id: 'toast-1',
+          title: '',
+          message: 'Temporary',
+          variant: 'info',
+          position: 'top-right',
+          duration: 5000,
+          showCountdown: true,
+          dismissible: true,
+          ariaLive: 'polite',
+          createdAt: now - 2000,
+          expiresAt: now + 3000
+        }
+      }
+    });
+
+    const countdown = document.querySelector('.suu-toast__countdown');
+    expect(countdown?.getAttribute('style')).toContain('--suu-toast-duration: 5000ms');
+    expect(countdown?.getAttribute('style')).toContain('animation-delay: -2000ms');
+  });
+
+  it('clamps a not-yet-started anchor to zero elapsed time', () => {
+    vi.useFakeTimers();
+    const now = Date.now();
+
+    render(Toast, {
+      props: {
+        toast: {
+          id: 'toast-1',
+          title: '',
+          message: 'Temporary',
+          variant: 'info',
+          position: 'top-right',
+          duration: 5000,
+          showCountdown: true,
+          dismissible: true,
+          ariaLive: 'polite',
+          createdAt: now,
+          expiresAt: now + 6000
+        }
+      }
+    });
+
+    const countdown = document.querySelector('.suu-toast__countdown');
+    expect(countdown?.getAttribute('style')).toContain('animation-delay: -0ms');
+  });
+
+  it('falls back to a full countdown when the anchor is missing', () => {
+    vi.useFakeTimers();
+
+    render(Toast, {
+      props: {
+        toast: {
+          id: 'toast-1',
+          title: '',
+          message: 'Temporary',
+          variant: 'info',
+          position: 'top-right',
+          duration: 5000,
+          showCountdown: true,
+          dismissible: true,
+          ariaLive: 'polite',
+          createdAt: Date.now()
+        } as ToastItem
+      }
+    });
+
+    const countdown = document.querySelector('.suu-toast__countdown');
+    expect(countdown?.getAttribute('style')).toContain('animation-delay: -0ms');
   });
 });

@@ -28,6 +28,8 @@ export interface ToastOptions {
 export interface ToastItem extends Required<Omit<ToastOptions, 'class'>> {
   id: string;
   createdAt: number;
+  /** 当前计时周期的到期墙钟时间；countdown 与 dismiss 计时器都由它推导，重挂后可恢复剩余进度。 */
+  expiresAt: number;
   class?: string;
 }
 

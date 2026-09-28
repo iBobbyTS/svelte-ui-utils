@@ -28,6 +28,8 @@ function toToastOptions(options: ToastOptions | string, variant?: ToastVariant):
 function normalizeToast(options: ToastOptions | string, variant?: ToastVariant): ToastItem {
   const next = toToastOptions(options, variant);
   const resolvedVariant = next.variant ?? 'info';
+  const createdAt = Date.now();
+  const duration = next.duration ?? DEFAULT_DURATION;
 
   return {
     id: next.id ?? `toast-${nextToastId++}`,
@@ -35,12 +37,13 @@ function normalizeToast(options: ToastOptions | string, variant?: ToastVariant):
     message: next.message ?? '',
     variant: resolvedVariant,
     position: next.position ?? DEFAULT_POSITION,
-    duration: next.duration ?? DEFAULT_DURATION,
+    duration,
     showCountdown: next.showCountdown ?? true,
     dismissible: next.dismissible ?? true,
     ariaLive: next.ariaLive ?? (resolvedVariant === 'error' ? 'assertive' : 'polite'),
     class: next.class,
-    createdAt: Date.now()
+    createdAt,
+    expiresAt: createdAt + duration
   };
 }
 
@@ -81,7 +84,7 @@ export function createToastStore(): ToastStore {
         item.id,
         setTimeout(() => {
           dismiss(item.id);
-        }, item.duration)
+        }, Math.max(0, item.expiresAt - Date.now()))
       );
     }
   }
@@ -101,6 +104,7 @@ export function createToastStore(): ToastStore {
       id: item.id,
       dismiss: () => dismiss(item.id),
       update: (patch) => {
+        const now = Date.now();
         update((items) =>
           items.map((existing) => {
             if (existing.id !== item.id) {
@@ -108,6 +112,8 @@ export function createToastStore(): ToastStore {
             }
 
             const next = { ...existing, ...patch };
+            // update 总是重置计时周期，锚点必须与计时器同步刷新，否则 countdown 会按旧周期恢复。
+            next.expiresAt = now + next.duration;
             schedule(next);
             return next;
           })
