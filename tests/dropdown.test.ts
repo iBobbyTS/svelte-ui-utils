@@ -1402,6 +1402,51 @@ describe('dropdown', () => {
     expect(screen.getByRole('listbox', { name: 'Protocols' })).toBeInTheDocument();
   });
 
+  it('overrides the collapsed trigger text with triggerText while blank falls back', async () => {
+    const options = [
+      { label: 'Alpha', value: 'alpha' },
+      { label: 'Beta', value: 'beta' }
+    ];
+    const { container, rerender } = render(Dropdown, {
+      props: {
+        multiselect: true,
+        value: ['alpha', 'beta'],
+        options,
+        ariaLabel: 'Members',
+        triggerText: '2 selected'
+      }
+    });
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('2 selected');
+
+    // Blank triggerText keeps the default joined-label behavior.
+    await rerender({ multiselect: true, value: ['alpha', 'beta'], options, ariaLabel: 'Members', triggerText: '   ' });
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('Alpha, Beta');
+
+    await rerender({ multiselect: true, value: ['beta'], options, ariaLabel: 'Members', triggerText: '1 selected' });
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('1 selected');
+
+    // The override also applies to single-select triggers.
+    const single = render(Dropdown, {
+      props: { value: 'alpha', options, ariaLabel: 'Single', triggerText: 'Alpha only' }
+    });
+    expect(single.container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('Alpha only');
+  });
+
+  it('passes triggerText through DropdownMultiSelect to the collapsed trigger', () => {
+    const { container } = render(DropdownMultiSelect, {
+      props: {
+        value: ['alpha', 'beta'],
+        options: [
+          { label: 'Alpha', value: 'alpha' },
+          { label: 'Beta', value: 'beta' }
+        ],
+        ariaLabel: 'Members',
+        triggerText: '2 selected'
+      }
+    });
+    expect(container.querySelector('.suu-dropdown__button .suu-dropdown__label')).toHaveTextContent('2 selected');
+  });
+
   it('keeps multiselect open for keyboard toggles and closes through each dismissal path', async () => {
     const options = [
       { label: 'One', value: 'one' },

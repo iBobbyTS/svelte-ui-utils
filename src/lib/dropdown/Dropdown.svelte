@@ -44,6 +44,8 @@
   export let searchLimit = 10;
   export let searchPlaceholder: string | undefined = undefined;
   export let placeholder: string | undefined = undefined;
+  /** Collapsed trigger summary text (e.g. a selection count); blank keeps the default labels. */
+  export let triggerText: string | undefined = undefined;
   export let language: UiLanguage = 'en_us';
   export let loadingText: string | undefined = undefined;
   export let noResultsText: string | undefined = undefined;
@@ -135,6 +137,10 @@
   $: selectedText = multiselect
     ? selectedLabelTexts(selectedValues).join(', ')
     : displayLabelForValue(Array.isArray(value) ? '' : value);
+  // triggerText lets the caller summarize the collapsed button (e.g. "3
+  // selected") instead of the joined labels; a blank value keeps the default
+  // logic so existing consumers never see a behavior change.
+  $: buttonLabelText = triggerText?.trim() ? triggerText : selectedText || placeholder || '';
   $: inputMode = search && inputStyle === 'input';
   $: inputDisplayValue = inputMode
     ? (inputDraft ?? (searchQuery || (multiselect ? '' : selectedText)))
@@ -969,7 +975,7 @@
     on:click={handleTriggerClick}
     on:keydown={handleKeydown}
   >
-    <span class="suu-dropdown__label">{selectedText || placeholder || ''}</span>
+    <span class="suu-dropdown__label">{buttonLabelText}</span>
     <span class="suu-dropdown__chevron" aria-hidden="true"></span>
   </button>
   {/if}

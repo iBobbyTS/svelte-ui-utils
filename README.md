@@ -370,7 +370,10 @@ display order. `DropdownMultiSelect` is the convenience wrapper for this mode:
 
 The collapsed trigger joins selected labels with `", "` and truncates the
 single line when it exceeds the existing `width` or `maxWidth` constraint.
-Grouped and disabled options retain the same behavior as single-select mode.
+Pass `triggerText` to replace that joined text with a caller-computed summary
+(e.g. `"3 selected"`); it also applies to single-select triggers, and a blank
+value keeps the default label behavior. Grouped and disabled options retain
+the same behavior as single-select mode.
 
 The dropdown panel is constrained by default to the space available above or
 below the trigger and remains scrollable when its contents exceed that height.

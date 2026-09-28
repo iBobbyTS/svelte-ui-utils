@@ -20,6 +20,8 @@
   export let selectedOptions: DropdownOption[] = [];
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let ariaLabel: string | undefined = undefined;
+  /** Collapsed trigger summary text (e.g. a selection count); blank keeps the default labels. */
+  export let triggerText: string | undefined = undefined;
   export let placement: DropdownPlacement = 'auto';
   export let menuAlign: DropdownMenuAlign = 'left';
   export let verticalAlign: DropdownVerticalAlign = 'center';
@@ -44,6 +46,7 @@
   {selectedOptions}
   {groupsCollapsedByDefault}
   {ariaLabel}
+  {triggerText}
   {placement}
   {menuAlign}
   {verticalAlign}
