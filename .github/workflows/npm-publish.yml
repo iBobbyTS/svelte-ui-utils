@@ -54,8 +54,16 @@ jobs:
 
       # prepublishOnly builds dist/ (svelte-package) before npm packs the
       # tarball; no NODE_AUTH_TOKEN is set — the OIDC identity from
-      # id-token: write is the only credential.  workflow_dispatch is a
-      # verification-only path and stays on --dry-run; real publishing is
-      # exclusively tag-driven.
+      # id-token: write is the only credential.  Real publishing is
+      # exclusively tag-driven.  workflow_dispatch only verifies the
+      # build-and-pack pipeline: npm publish --dry-run still refuses an
+      # already published version, so dispatch packs instead.
       - name: Publish
-        run: npm publish --access public ${{ github.event_name == 'workflow_dispatch' && '--dry-run' || '' }}
+        if: github.event_name == 'push'
+        run: npm publish --access public
+
+      - name: Pack (dispatch verification only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npm run package
+          npm pack
