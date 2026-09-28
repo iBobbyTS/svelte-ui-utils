@@ -23,9 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -54,6 +54,8 @@ jobs:
 
       # prepublishOnly builds dist/ (svelte-package) before npm packs the
       # tarball; no NODE_AUTH_TOKEN is set — the OIDC identity from
-      # id-token: write is the only credential.
+      # id-token: write is the only credential.  workflow_dispatch is a
+      # verification-only path and stays on --dry-run; real publishing is
+      # exclusively tag-driven.
       - name: Publish
-        run: npm publish --access public
+        run: npm publish --access public ${{ github.event_name == 'workflow_dispatch' && '--dry-run' || '' }}
