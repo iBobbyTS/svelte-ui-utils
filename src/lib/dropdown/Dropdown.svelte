@@ -735,18 +735,52 @@
   // computes a negative top that escapes the viewport. The difference between
   // the rendered menu and its panel is exactly that non-panel chrome, whatever
   // the current max-height is.
-  function measureMenuChromeHeight(): number {
-    if (!menuElement || typeof window === 'undefined') {
+  function measureMenuChromeHeight(menu: HTMLElement): number {
+    if (typeof window === 'undefined') {
       return 0;
     }
-    const panelElement = menuElement.querySelector<HTMLElement>('.suu-dropdown__panel');
+    const panelElement = menu.querySelector<HTMLElement>('.suu-dropdown__panel');
     if (!panelElement) {
       return 0;
     }
     return Math.max(
       0,
-      menuElement.getBoundingClientRect().height - panelElement.getBoundingClientRect().height
+      menu.getBoundingClientRect().height - panelElement.getBoundingClientRect().height
     );
+  }
+
+  // The single source of the panel height budget. Writes both the reactive
+  // style binding value and the inline property itself: the binding only lands
+  // on the next flush, while callers that measure the menu right after this
+  // call (portal placement, host-side repositioning) need the final height
+  // immediately.
+  function applyViewportFit(menu: HTMLElement, rect: DOMRect) {
+    updateResolvedPlacement(rect);
+    if (!fitViewport) {
+      return;
+    }
+    const available =
+      resolvedPlacement === 'up'
+        ? rect.top - viewportMargin - menuGap
+        : window.innerHeight - rect.bottom - viewportMargin - menuGap;
+    const availablePanelHeight = available - measureMenuChromeHeight(menu);
+    viewportPanelMaxHeight = `${Math.max(0, Math.floor(availablePanelHeight))}px`;
+    menu.style.setProperty('--suu-dropdown-panel-max-height', viewportPanelMaxHeight);
+  }
+
+  // The panel max-height used to be written one tick after the menu mounted.
+  // Hosts that reposition the menu (e.g. fixed-position overlays driven by a
+  // MutationObserver) measure the menu inside that microtask window and lock in
+  // the unclamped height, so the shrunken menu ends up misplaced. Settling the
+  // height synchronously at mount makes every later measurement final.
+  function mountViewportFit(node: HTMLDivElement) {
+    if (fitViewport && open && typeof window !== 'undefined') {
+      const rect = dropdownElement?.getBoundingClientRect();
+      if (rect) {
+        applyViewportFit(node, rect);
+      }
+    }
+    return {};
   }
 
   async function updateViewportPanelMaxHeight() {
@@ -772,17 +806,9 @@
       return;
     }
 
-    const available =
-      resolvedPlacement === 'up'
-        ? rect.top - viewportMargin - menuGap
-        : window.innerHeight - rect.bottom - viewportMargin - menuGap;
-    const availablePanelHeight = available - measureMenuChromeHeight();
-    viewportPanelMaxHeight = `${Math.max(0, Math.floor(availablePanelHeight))}px`;
-    // Apply the value directly before measuring: the reactive style binding on
-    // this node only lands in the next flush, so the first upward open would
-    // otherwise measure the fallback 100vh height and place the menu above the
-    // viewport.
-    menuElement?.style.setProperty('--suu-dropdown-panel-max-height', viewportPanelMaxHeight);
+    if (menuElement) {
+      applyViewportFit(menuElement, rect);
+    }
     updatePortalPosition(rect);
   }
 
@@ -997,6 +1023,7 @@
     <div
       bind:this={menuElement}
       use:portalMenu={portal}
+      use:mountViewportFit
       class="suu-dropdown__menu"
       class:suu-dropdown__menu--portal={portal}
       class:suu-dropdown__menu--up={resolvedPlacement === 'up'}

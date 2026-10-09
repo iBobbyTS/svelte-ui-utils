@@ -474,7 +474,56 @@ describe('dropdown', () => {
     // 120px total height.
     expect(menu.style.getPropertyValue('--suu-dropdown-panel-max-height')).toBe('256px');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('176px');
-    expect(menuMeasurements).toBe(2);
+    // One measurement settles the clamp synchronously at mount; the open-time
+    // reflow repeats it and the portal placement measures once more.
+    expect(menuMeasurements).toBe(3);
+  });
+
+  it('settles the panel max-height before host observers measure the mounted menu', async () => {
+    // Regression: hosts reposition the menu with fixed coordinates from a
+    // MutationObserver callback. That microtask fires between mount and the
+    // post-mount tick that used to clamp the panel, so the host measured the
+    // unclamped height and locked the menu at a wrong offset (long option lists
+    // escaped the viewport). The clamp must already be final when the menu
+    // enters the DOM.
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'active',
+        ariaLabel: 'Status',
+        placement: 'up',
+        fitViewport: true,
+        options: [{ label: 'Active', value: 'active' }]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 240,
+      bottom: 340,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: 300,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerHeight', 640);
+
+    let mountedMaxHeight = 'not-run';
+    const observer = new MutationObserver(() => {
+      const menu = container.querySelector('.suu-dropdown__menu') as HTMLElement | null;
+      if (menu) {
+        mountedMaxHeight = menu.style.getPropertyValue('--suu-dropdown-panel-max-height');
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+    observer.disconnect();
+
+    // The observer callback runs as a microtask right after the mount flush —
+    // the exact moment a host repositioning action would take its measurement.
+    expect(mountedMaxHeight).toBe('276px');
   });
 
   it('keeps an upward search portal menu inside the viewport when the search box consumes budget', async () => {
