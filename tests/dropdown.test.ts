@@ -2022,4 +2022,63 @@ describe('dropdown search', () => {
     expect(screen.queryByRole('option', { name: 'Ignored flat' })).toBeNull();
     expect(loadOptions).not.toHaveBeenCalled();
   });
+
+  // Escape 收起菜单时必须阻断默认行为与冒泡：宿主 modal dialog 的 close request 与
+  // 键盘监听都不应被触发，否则菜单与宿主弹窗会被同一次 Escape 一起关闭。
+  function renderInsideHost() {
+    const host = document.createElement('div');
+    const hostKeydown = vi.fn();
+    host.addEventListener('keydown', hostKeydown);
+    document.body.appendChild(host);
+    const rendered = render(Dropdown, {
+      props: {
+        value: '',
+        ariaLabel: 'Country',
+        options: [
+          { label: 'Alpha', value: 'alpha' },
+          { label: 'Beta', value: 'beta' }
+        ]
+      }
+    });
+    host.appendChild(rendered.container);
+    return { host, hostKeydown, ...rendered };
+  }
+
+  it('dismisses the open menu with Escape without bubbling the keydown to the host', async () => {
+    const { host, hostKeydown, unmount } = renderInsideHost();
+
+    const trigger = screen.getByRole('button', { name: 'Country' });
+    await fireEvent.click(trigger);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    await fireEvent.keyDown(trigger, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(hostKeydown).not.toHaveBeenCalled();
+    unmount();
+    host.remove();
+  });
+
+  it('swallows Escape from a focused option so the host dialog stays in control', async () => {
+    const { host, hostKeydown, unmount } = renderInsideHost();
+
+    const trigger = screen.getByRole('button', { name: 'Country' });
+    await fireEvent.click(trigger);
+    const option = screen.getByRole('option', { name: 'Beta' }) as HTMLElement;
+    option.focus();
+
+    const capturedKeydownEvents: KeyboardEvent[] = [];
+    const captureSpy = (event: KeyboardEvent) => capturedKeydownEvents.push(event);
+    document.addEventListener('keydown', captureSpy, true);
+
+    await fireEvent.keyDown(option, { key: 'Escape' });
+
+    document.removeEventListener('keydown', captureSpy, true);
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(trigger).toHaveFocus();
+    expect(hostKeydown).not.toHaveBeenCalled();
+    expect(capturedKeydownEvents.map((event) => event.defaultPrevented)).toEqual([true]);
+    unmount();
+    host.remove();
+  });
 });

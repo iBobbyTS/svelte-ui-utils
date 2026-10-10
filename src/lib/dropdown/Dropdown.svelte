@@ -590,7 +590,10 @@
 
     if (event.key === 'Escape') {
       if (open) {
+        // 菜单打开时 Escape 只收起菜单：preventDefault 阻断浏览器对宿主 modal dialog 的
+        // close request，stopPropagation 阻断冒泡到宿主弹窗的键盘监听，避免菜单与弹窗一起被关闭。
         event.preventDefault();
+        event.stopPropagation();
         open = false;
       }
       clearTypeaheadBuffer();
@@ -666,7 +669,9 @@
 
   function handleSearchKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
+      // 与触发按钮的 Escape 分支一致：收起菜单时阻断默认行为与冒泡，宿主弹窗不被连带关闭。
       event.preventDefault();
+      event.stopPropagation();
       open = false;
       buttonElement?.focus();
       return;
@@ -684,6 +689,29 @@
         selectOption(option);
       }
     }
+  }
+
+  function handleMenuKeydown(event: KeyboardEvent) {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    // 焦点位于菜单内选项或分组折叠按钮时（这些元素自身没有键盘监听），
+    // Escape 同样只收起菜单：阻断默认 close request 与冒泡，防止宿主 modal dialog 一并关闭。
+    event.preventDefault();
+    event.stopPropagation();
+    open = false;
+    buttonElement?.focus();
+  }
+
+  // panel 自身不可聚焦（焦点在选项按钮上流转），容器级 Escape 拦截用 action 挂载，
+  // 避免编译器把 listbox 容器误判为需要 tabindex 的可聚焦元素。
+  function menuEscapeGuard(node: HTMLElement) {
+    node.addEventListener('keydown', handleMenuKeydown);
+    return {
+      destroy() {
+        node.removeEventListener('keydown', handleMenuKeydown);
+      }
+    };
   }
 
   function handleFocusout(event: FocusEvent) {
@@ -1066,6 +1094,7 @@
         role="listbox"
         aria-label={ariaLabel}
         aria-multiselectable={multiselect || undefined}
+        use:menuEscapeGuard
       >
         {#if search && searchStatus === 'loading'}
           <div class="suu-dropdown__status suu-dropdown__status--loading" aria-live="polite">
