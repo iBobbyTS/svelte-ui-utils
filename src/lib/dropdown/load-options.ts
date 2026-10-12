@@ -66,6 +66,8 @@ export interface FetchLoadOptionsConfig<TOption extends DropdownOption> {
   method?: string;
   /** Extra request headers on top of `content-type: application/json`. */
   headers?: Record<string, string>;
+  /** Fetch implementation; defaults to the global `fetch` so tests can stub transport. */
+  fetchImpl?: typeof fetch;
   /** Builds the JSON body from the trimmed query and the effective limit. */
   buildBody?: (query: string, limit: number) => Record<string, unknown>;
   /**
@@ -98,8 +100,9 @@ export function createFetchLoadOptions<TOption extends DropdownOption>(
       return { options: [] };
     }
     const limit = Math.min(config.limit ?? Number.POSITIVE_INFINITY, context.limit);
+    const doFetch = config.fetchImpl ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
     try {
-      const response = await fetch(config.url, {
+      const response = await doFetch(config.url, {
         method: config.method ?? 'POST',
         headers: { 'content-type': 'application/json', ...config.headers },
         body: JSON.stringify(config.buildBody ? config.buildBody(query, limit) : { query, limit }),

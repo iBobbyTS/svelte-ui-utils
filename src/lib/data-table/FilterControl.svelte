@@ -99,6 +99,9 @@
 
   function handleDropdownSearchQueryChange(query: string) {
     dropdownSearchQuery = query;
+    if (control.type === 'dropdownSearch') {
+      void control.onQueryChange?.(query);
+    }
   }
 
   function handleDropdownSearchChange(selection: DropdownSelection) {

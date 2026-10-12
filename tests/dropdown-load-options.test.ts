@@ -164,6 +164,26 @@ describe('createFetchLoadOptions', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('routes the request through a custom fetchImpl instead of the global fetch', async () => {
+    const globalFetch = vi.fn();
+    vi.stubGlobal('fetch', globalFetch);
+    try {
+      const fetchImpl = vi.fn(async () =>
+        jsonResponse({ options: [{ label: 'A', value: 'a' }] })
+      );
+      const load = createFetchLoadOptions({
+        url: '/api/search',
+        fetchImpl,
+        mapOptions: (payload) => (payload as { options: Array<{ label: string; value: string }> }).options
+      });
+      await expect(load('a', context())).resolves.toEqual({ options: [{ label: 'A', value: 'a' }] });
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(globalFetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe('selection narrowing helpers', () => {

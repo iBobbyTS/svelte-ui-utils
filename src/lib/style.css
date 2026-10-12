@@ -410,10 +410,13 @@
 
 .suu-filter-table__filters th {
   position: relative;
-  width: 10rem;
+  /* 标签列默认按内容自适应：管理页筛选标题多为两到四字，固定 10rem 会浪费横向空间。
+     nowrap 让列的 min/max 内容宽度一致，配合控件列吃满剩余宽度的声明，
+     auto 表格的 surplus 分配不会再把标签列压窄或推宽。 */
+  width: var(--suu-filter-table-title-width, max-content);
   color: var(--suu-color-text);
   font-weight: 700;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .suu-filter-table__filters th::after {
@@ -444,6 +447,9 @@
 
 .suu-filter-table__filters td {
   min-width: 0;
+  /* 声明控件列吃满剩余宽度：table-layout 为 auto 时表格 surplus 会按内容比例注入
+     各列，不这样声明的话，把标题列设为 max-content 的消费方仍会被 surplus 推宽。 */
+  width: 100%;
 }
 
 .suu-filter-table__control-row {

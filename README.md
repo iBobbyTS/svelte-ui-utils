@@ -554,7 +554,13 @@ JSON (default body `{ query, limit }`), passes `context.signal` through, and
 decodes the payload with `mapOptions` before slicing to the limit. HTTP and
 network failures resolve with no options by default; `throwOnError: true`
 rethrows them (aborted requests always resolve with no options) so wrappers
-that surface errors keep working.
+that surface errors keep working. `fetchImpl` swaps the transport for tests.
+
+The `filter.dropdownSearch` control reports selections through `onChange` and
+every raw keystroke through `onQueryChange` (undebounced there; wrap your own
+debounce). Pages whose table follows the free text itself — not a selected
+item — use `onQueryChange` to apply it, and keep `value`/`selectedItem` for
+the committed selection so typing is never clobbered.
 
 Multiselect handlers can also stop repeating the `string | string[]` narrowing:
 `toMultiSelection(selection)` and `toSingleSelection(selection)` normalize a
@@ -740,6 +746,17 @@ for the left column and a controlled filter created with the `filter` helper:
 `FilterTable` uses the same `1px solid var(--suu-color-border)` outer border
 and `var(--suu-radius)` corner radius as a bordered `DataTable`. Set
 `bordered={false}` to remove both the border and outer corner radius.
+
+The left title column fits its content by default (`max-content` plus
+`white-space: nowrap`, with the control column claiming all remaining width).
+Set the `--suu-filter-table-title-width` CSS variable on the `FilterTable` or
+any ancestor when a page needs a fixed width instead:
+
+```css
+.my-filters {
+  --suu-filter-table-title-width: 10rem;
+}
+```
 
 `filter.text` renders a free-text search input for `keyword contains`-style
 filtering. Unlike `filter.dropdownSearch` it has no selection semantics: the

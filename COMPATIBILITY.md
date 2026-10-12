@@ -2,6 +2,29 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## 0.5.9: FilterTable title column now fits its content
+
+Old behavior: the left title column of `.suu-filter-table__filters` was a fixed
+`10rem` wide and titles wrapped (`white-space: normal`). Short two-to-four
+character titles left most of that width empty.
+
+New behavior: the column sizes to its longest title by default (`width:
+max-content` + `white-space: nowrap`, with the control column claiming all
+remaining width). Titles no longer wrap, so a title longer than 10rem widens
+the column instead of wrapping.
+
+Migration: pages that need the old fixed width (or old wrapping for very long
+titles) set the CSS variable on the `FilterTable` or any ancestor:
+
+```css
+.my-filters {
+  --suu-filter-table-title-width: 10rem;
+}
+```
+
+There is no opt-out for the `nowrap` change itself; if you depend on wrapped
+multi-line titles, pin 0.5.8 and open an issue.
+
 ## 0.5.1: additive filter/loadOptions helpers (nothing breaks, but review these when migrating)
 
 No existing API changes. The new exports exist to absorb the boilerplate that

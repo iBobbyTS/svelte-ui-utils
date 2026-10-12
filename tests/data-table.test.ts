@@ -1204,6 +1204,34 @@ describe('data table components', () => {
     expect(await screen.findByRole('option', { name: 'Alice Chen' })).toBeInTheDocument();
   });
 
+  it('reports every free-text keystroke through onQueryChange without touching onChange', async () => {
+    const onQueryChange = vi.fn();
+    const onChange = vi.fn();
+    render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          loadOptions: () => ({ options: [] }),
+          onQueryChange,
+          onChange
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'A' } });
+    await fireEvent.input(input, { target: { value: 'Al' } });
+
+    expect(onQueryChange).toHaveBeenCalledTimes(2);
+    expect(onQueryChange).toHaveBeenNthCalledWith(1, 'A');
+    expect(onQueryChange).toHaveBeenNthCalledWith(2, 'Al');
+    // onChange 保持「选中提交」语义，纯输入不触发。
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('rebuilds the dropdown search instance when the external value resets', async () => {
     const loadOptions = vi.fn(() => ({ options: [{ label: 'Alice Chen', value: 'user-42' }] }));
     const { rerender } = render(FilterTable, {

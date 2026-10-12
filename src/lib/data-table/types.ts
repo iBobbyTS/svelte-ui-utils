@@ -330,6 +330,12 @@ export interface DropdownSearchFilterControl {
   maxWidth?: string;
   getItemLabel?: DropdownSearchItemLabelGetter;
   loadOptions: DropdownSearchLoadOptions;
+  /**
+   * Reports every raw keystroke of the free-text query (not debounced here).
+   * `onChange` stays a selection-change event, so pages whose tables follow
+   * the free text itself need this channel to debounce and apply it.
+   */
+  onQueryChange?: (query: string) => void | Promise<void>;
   onChange: (detail: DropdownSearchChangeDetail) => void | Promise<void>;
 }
 
