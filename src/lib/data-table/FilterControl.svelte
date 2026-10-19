@@ -127,12 +127,10 @@
     void control.onChange(detail);
   }
 
-  // External value/selected-item changes rebuild the root Dropdown instance:
-  // controlled `value` resets its internal query, results, and draft, and
-  // `selectedOptions` then displays the new selection.
-  $: dropdownSearchKey = control.type === 'dropdownSearch'
-    ? `${control.value}\u0000${control.selectedItem?.value ?? ''}`
-    : '';
+  // External value/selected-item changes are reconciled in place by the root
+  // Dropdown instead of rebuilding it: the input node (and focus) survives a
+  // controlled writeback after selection, while a real external replacement
+  // still resets the internal query/results/draft.
   // A selected item displays through `selectedOptions`; a free-text external
   // value has no option to resolve and falls back to the Dropdown value itself.
   $: dropdownSearchValue = control.type === 'dropdownSearch'
@@ -284,29 +282,27 @@
     {/each}
   </div>
 {:else if control.type === 'dropdownSearch'}
-  {#key dropdownSearchKey}
-    <Dropdown
-      value={dropdownSearchValue}
-      search
-      inputStyle="input"
-      portal
-      selectedOptions={dropdownSearchSelectedOptions}
-      loadOptions={loadDropdownSearchOptions}
-      searchDebounceMs={control.debounceMs ?? 500}
-      searchLimit={control.limit ?? 10}
-      placeholder={control.placeholder ?? ''}
-      ariaLabel={control.ariaLabel}
-      {language}
-      noResultsText={control.noResultsText}
-      loadingText={control.loadingText}
-      width={control.width}
-      minWidth={control.minWidth}
-      maxWidth={control.maxWidth}
-      getItemLabel={dropdownSearchOptionLabel}
-      onChange={handleDropdownSearchChange}
-      onSearchChange={handleDropdownSearchQueryChange}
-    />
-  {/key}
+  <Dropdown
+    value={dropdownSearchValue}
+    search
+    inputStyle="input"
+    portal
+    selectedOptions={dropdownSearchSelectedOptions}
+    loadOptions={loadDropdownSearchOptions}
+    searchDebounceMs={control.debounceMs ?? 500}
+    searchLimit={control.limit ?? 10}
+    placeholder={control.placeholder ?? ''}
+    ariaLabel={control.ariaLabel}
+    {language}
+    noResultsText={control.noResultsText}
+    loadingText={control.loadingText}
+    width={control.width}
+    minWidth={control.minWidth}
+    maxWidth={control.maxWidth}
+    getItemLabel={dropdownSearchOptionLabel}
+    onChange={handleDropdownSearchChange}
+    onSearchChange={handleDropdownSearchQueryChange}
+  />
 {:else if control.type === 'dateRange'}
   <DateRangeFilter
     value={control.value}

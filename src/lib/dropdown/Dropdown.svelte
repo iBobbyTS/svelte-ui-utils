@@ -104,6 +104,13 @@
   // selectedText 的旧值在同一轮更新中覆盖输入框内容。
   let inputDraft: string | undefined;
   let preserveInputDraftOnClose = false;
+  // 受控 value 的就地协调：pendingControlledEcho 记录组件刚通过 onChange
+  // 上报的变更。消费者把它回传（选中回写、输入偏离时清选）时必须保留
+  // 当前输入与焦点；只有对不上的受控变更才视为真正的外部替换。
+  let pendingControlledEcho: DropdownSelection | undefined = undefined;
+  let observedControlledValue: DropdownSelection | undefined = undefined;
+  let observedSelectedOptionValue: DropdownValue | undefined = undefined;
+  let controlledStateObserved = false;
   let searchStatus: DropdownLoadStatus = 'idle';
   let searchOptions: DropdownOption[] = [];
   let searchOptionGroups: DropdownOptionGroup[] | undefined = undefined;
@@ -143,6 +150,37 @@
   // logic so existing consumers never see a behavior change.
   $: buttonLabelText = triggerText?.trim() ? triggerText : selectedText || placeholder || '';
   $: inputMode = search && inputStyle === 'input';
+  // 受控 value/selectedItem 变化时就地协调，而不是让宿主重建组件：
+  // - 回传我们自己刚上报的值（pendingControlledEcho）→ 保留 draft/query/焦点；
+  // - 真正的外部替换 → 重置 searchQuery/results/draft 并收起菜单。
+  // 必须排在 inputDisplayValue 之前：同步重置后，本轮派生值要立刻反映新状态。
+  $: {
+    const nextObservedSelected = !Array.isArray(value)
+      ? selectedOptions.find((option) => option.value === value)?.value
+      : undefined;
+    if (!controlledStateObserved) {
+      controlledStateObserved = true;
+      observedControlledValue = value;
+      observedSelectedOptionValue = nextObservedSelected;
+    } else {
+      const valueChanged = !sameDropdownSelection(observedControlledValue, value);
+      const selectedOptionChanged = observedSelectedOptionValue !== nextObservedSelected;
+      if (valueChanged || selectedOptionChanged) {
+        observedControlledValue = value;
+        observedSelectedOptionValue = nextObservedSelected;
+        if (inputMode && !multiselect) {
+          if (
+            pendingControlledEcho !== undefined &&
+            sameDropdownSelection(pendingControlledEcho, value)
+          ) {
+            pendingControlledEcho = undefined;
+          } else {
+            resetControlledSearchState();
+          }
+        }
+      }
+    }
+  }
   $: inputDisplayValue = inputMode
     ? (inputDraft ?? (searchQuery || (multiselect ? '' : selectedText)))
     : '';
@@ -376,8 +414,32 @@
     }
     open = false;
     clearTypeaheadBuffer();
-    void (onChange as DropdownChangeHandler | undefined)?.(option.value);
+    emitSingleSelectionChange(option.value);
     buttonElement?.focus();
+  }
+
+  function sameDropdownSelection(
+    left: DropdownSelection | undefined,
+    right: DropdownSelection
+  ): boolean {
+    if (Array.isArray(left) || Array.isArray(right)) {
+      return (
+        Array.isArray(left) &&
+        Array.isArray(right) &&
+        left.length === right.length &&
+        left.every((nextValue, index) => nextValue === right[index])
+      );
+    }
+    return left === right;
+  }
+
+  // 单值变更统一从这里上报，并记录已上报值供受控回传判别使用。
+  function emitSingleSelectionChange(nextValue: DropdownValue) {
+    if (onChange === undefined) {
+      return;
+    }
+    pendingControlledEcho = nextValue;
+    void (onChange as DropdownChangeHandler)(nextValue);
   }
 
   function clampSearchLimit(limit: number): number {
@@ -493,15 +555,43 @@
   function resetSearchOnClose() {
     clearSearchTimer();
     abortSearchController();
-    searchQuery = '';
-    if (preserveInputDraftOnClose) {
+    if (inputMode) {
+      // 输入模式下菜单收起只清理菜单结果与搜索状态，输入框保留用户当前
+      // 文本（自由文本搜索），不要回退到旧的 selectedText。
+      const hadDraft = inputDraft !== undefined || searchQuery !== '';
+      if (hadDraft) {
+        inputDraft = inputDraft ?? searchQuery;
+      }
       preserveInputDraftOnClose = false;
+      searchQuery = '';
     } else {
-      inputDraft = undefined;
+      searchQuery = '';
+      if (preserveInputDraftOnClose) {
+        preserveInputDraftOnClose = false;
+      } else {
+        inputDraft = undefined;
+      }
     }
     searchOptions = [];
     searchOptionGroups = undefined;
     searchStatus = 'idle';
+  }
+
+  // 受控变更代表真正的外部替换/清空选择时，内部搜索状态必须回到初始态，
+  // 避免旧 draft、旧结果或在途请求泄漏到新的选择上。
+  function resetControlledSearchState() {
+    clearSearchTimer();
+    abortSearchController();
+    pendingControlledEcho = undefined;
+    searchQuery = '';
+    inputDraft = undefined;
+    preserveInputDraftOnClose = false;
+    searchOptions = [];
+    searchOptionGroups = undefined;
+    searchStatus = 'idle';
+    collapsedGroupIndexes = new Set();
+    searchGroupsInitialized = false;
+    open = false;
   }
 
   function beginSearchOnOpen() {
@@ -646,7 +736,7 @@
     const nextQuery = (event.currentTarget as HTMLInputElement).value;
     inputDraft = nextQuery;
     if (inputMode && !multiselect && value !== '' && nextQuery !== selectedText) {
-      void (onChange as DropdownChangeHandler | undefined)?.('');
+      emitSingleSelectionChange('');
     }
     searchQuery = nextQuery;
     if (inputMode) {

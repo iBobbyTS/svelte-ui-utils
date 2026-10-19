@@ -2082,3 +2082,187 @@ describe('dropdown search', () => {
     host.remove();
   });
 });
+
+describe('dropdown input mode state consistency', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  function searchOptionsFor(query: string) {
+    return query ? [{ label: `Result ${query}`, value: `result-${query}` }] : [];
+  }
+
+  async function renderOpenInputSearch() {
+    const loadOptions = vi.fn(async (query: string) => ({ options: searchOptionsFor(query) }));
+    const rendered = render(Dropdown, {
+      props: {
+        inputStyle: 'input',
+        search: true,
+        searchDebounceMs: 0,
+        loadOptions,
+        ariaLabel: 'Search users'
+      }
+    });
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+    await fireEvent.input(input, { target: { value: 'ea' } });
+    expect(await screen.findByRole('option', { name: 'Result ea' })).toBeInTheDocument();
+    return { ...rendered, input, loadOptions };
+  }
+
+  it('keeps the typed text and focus after an outside pointerdown closes the menu', async () => {
+    const { input, loadOptions } = await renderOpenInputSearch();
+
+    await fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(input).toHaveValue('ea');
+    expect(document.activeElement).toBe(input);
+
+    // 关闭后继续输入时按输入框中的完整文本发起搜索。
+    await fireEvent.input(input, { target: { value: 'eab' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('eab', expect.anything()));
+  });
+
+  it('keeps the typed text and focus after Escape closes the menu', async () => {
+    const { input } = await renderOpenInputSearch();
+
+    await fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(input).toHaveValue('ea');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('keeps the typed text and focus when scrolling the trigger out of view closes the menu', async () => {
+    const { container, input } = await renderOpenInputSearch();
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    const rect = vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: -120,
+      right: 240,
+      bottom: -80,
+      left: 120,
+      width: 120,
+      height: 40,
+      x: 120,
+      y: -120,
+      toJSON: () => ({})
+    });
+
+    // jsdom 没有真实滚动，直接触发关闭菜单所用的等价 viewport scroll 事件。
+    window.dispatchEvent(new Event('scroll'));
+
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+    expect(rect).toHaveBeenCalled();
+    expect(input).toHaveValue('ea');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('still resets the in-menu search field for dropdown-style search closes', async () => {
+    const loadOptions = vi.fn(async (query: string) => ({ options: searchOptionsFor(query) }));
+    render(Dropdown, {
+      props: {
+        search: true,
+        searchDebounceMs: 0,
+        loadOptions,
+        ariaLabel: 'Users'
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Users' }));
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'ea' } });
+    expect(await screen.findByRole('option', { name: 'Result ea' })).toBeInTheDocument();
+
+    await fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Users' }));
+    const reopenedInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(reopenedInput).toHaveValue('');
+    await waitFor(() => expect(loadOptions).toHaveBeenLastCalledWith('', expect.anything()));
+  });
+
+  it('keeps the same input node and focus when a controlled selection is written back', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const onChange = vi.fn();
+    const props = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: '',
+      selectedOptions: [],
+      loadOptions: async () => ({ options: [item] }),
+      onChange
+    };
+    const { container, rerender } = render(Dropdown, { props });
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+    expect(onChange).toHaveBeenCalledWith('user-42');
+
+    await rerender({ ...props, value: 'user-42', selectedOptions: [item] });
+
+    expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+    expect(document.activeElement).toBe(input);
+    expect(input).toHaveValue('Alice Chen');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps a partial deletion and focus when the consumer echoes the divergence clear', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const onChange = vi.fn();
+    const props = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: 'user-42',
+      selectedOptions: [item],
+      loadOptions: async () => ({ options: [item] }),
+      onChange
+    };
+    const { container, rerender } = render(Dropdown, { props });
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    expect(input).toHaveValue('Alice Chen');
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Alice Ch' } });
+
+    // 输入偏离选中标签时组件上报空值，消费者据此清空受控选择。
+    expect(onChange).toHaveBeenCalledWith('');
+    expect(input).toHaveValue('Alice Ch');
+    await rerender({ ...props, value: '', selectedOptions: [] });
+
+    expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+    expect(input).toHaveValue('Alice Ch');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('resets query, results and draft for a truly external value replacement', async () => {
+    const loadOptions = vi.fn(async (query: string) => ({ options: searchOptionsFor(query) }));
+    const props = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: '',
+      selectedOptions: [],
+      loadOptions,
+      onChange: vi.fn()
+    };
+    const { container, rerender } = render(Dropdown, { props });
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+
+    await fireEvent.input(input, { target: { value: 'old' } });
+    expect(await screen.findByRole('option', { name: 'Result old' })).toBeInTheDocument();
+
+    const replacement = { label: 'Bob Stone', value: 'user-7' };
+    await rerender({ ...props, value: 'user-7', selectedOptions: [replacement] });
+
+    expect(input).toHaveValue('Bob Stone');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Result old' })).toBeNull();
+  });
+});

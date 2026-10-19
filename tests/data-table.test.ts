@@ -1232,7 +1232,7 @@ describe('data table components', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('rebuilds the dropdown search instance when the external value resets', async () => {
+  it('reconciles a truly external dropdown search value without replacing the input node', async () => {
     const loadOptions = vi.fn(() => ({ options: [{ label: 'Alice Chen', value: 'user-42' }] }));
     const { rerender } = render(FilterTable, {
       props: {
@@ -1262,13 +1262,14 @@ describe('data table components', () => {
       })
     });
 
-    const rebuiltInput = screen.getByRole('combobox') as HTMLInputElement;
-    expect(rebuiltInput).not.toBe(input);
-    expect(rebuiltInput.value).toBe('New value');
+    const nextInput = screen.getByRole('combobox') as HTMLInputElement;
+    // 外部替换不重建节点，但 Dropdown 必须就地重置内部 query/results/draft。
+    expect(nextInput).toBe(input);
+    expect(nextInput.value).toBe('New value');
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('keeps a rebuilt dropdown search instance free of a pending result from the previous value', async () => {
+  it('keeps the same dropdown search instance free of a pending result from the previous value', async () => {
     let resolveOld: ((result: { options: Array<{ label: string; value: string }> }) => void) | undefined;
     const loadOptions = vi.fn(
       () => new Promise<{ options: Array<{ label: string; value: string }> }>((resolve) => {
@@ -1307,8 +1308,9 @@ describe('data table components', () => {
     await tick();
     await tick();
 
-    const rebuiltInput = screen.getByRole('combobox') as HTMLInputElement;
-    expect(rebuiltInput.value).toBe('Picked');
+    const nextInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(nextInput).toBe(input);
+    expect(nextInput.value).toBe('Picked');
     expect(screen.queryByRole('option', { name: 'Stale result' })).toBeNull();
   });
 
@@ -1371,6 +1373,102 @@ describe('data table components', () => {
       selectedItems: [],
       status: 'valid'
     });
+  });
+
+  it('keeps the same focused input when the selected value is written back', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const loadOptions = vi.fn(() => ({ options: [item] }));
+    const onChange = vi.fn();
+    const { rerender } = render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: '',
+          selectedItem: null,
+          status: 'empty',
+          debounceMs: 0,
+          loadOptions,
+          onChange
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    input.focus();
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      value: 'Alice Chen',
+      selectedItem: item,
+      selectedItems: [],
+      status: 'valid'
+    });
+
+    // 父组件把选中结果回写到受控 value/selectedItem，等价于选中后的正常回传。
+    await rerender({
+      rows: dropdownSearchRows({
+        value: 'user-42',
+        selectedItem: item,
+        status: 'valid',
+        debounceMs: 0,
+        loadOptions,
+        onChange
+      })
+    });
+
+    const nextInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(nextInput).toBe(input);
+    expect(nextInput.value).toBe('Alice Chen');
+    expect(document.activeElement).toBe(input);
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps partial input and focus when the consumer clears the controlled value', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const loadOptions = vi.fn(() => ({ options: [item] }));
+    const onChange = vi.fn();
+    const { rerender } = render(FilterTable, {
+      props: {
+        rows: dropdownSearchRows({
+          value: 'user-42',
+          selectedItem: item,
+          status: 'valid',
+          debounceMs: 0,
+          loadOptions,
+          onChange
+        })
+      }
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input.value).toBe('Alice Chen');
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Alice Ch' } });
+    expect(input.value).toBe('Alice Ch');
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Alice Ch', expect.anything()));
+
+    // lmdo UserSearchDropdown 的 handleSearchChange → clearSelection 路径：
+    // 用户输入偏离选中标签后，消费者回传清空后的受控 value。
+    await rerender({
+      rows: dropdownSearchRows({
+        value: '',
+        selectedItem: null,
+        status: 'empty',
+        debounceMs: 0,
+        loadOptions,
+        onChange
+      })
+    });
+
+    const nextInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(nextInput).toBe(input);
+    expect(nextInput.value).toBe('Alice Ch');
+    expect(document.activeElement).toBe(input);
+
+    // 保留的文本继续作为完整查询驱动搜索。
+    await fireEvent.input(nextInput, { target: { value: 'Alice Che' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Alice Che', expect.anything()));
   });
 
   it('applies a non-idempotent getItemLabel exactly once to the selected label', async () => {
