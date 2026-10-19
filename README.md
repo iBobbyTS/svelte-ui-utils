@@ -494,7 +494,8 @@ with an always-visible search input:
 `loadOptions(query, { limit, signal })` returns `{ options?, optionGroups? }`
 whose options use `label`/`value` only. The empty query fires immediately on
 every expand; typed queries are debounced with `searchDebounceMs` (default
-`300`) and receive `searchLimit` (default `10`, clamped to `1..50`). When a
+`300`) and receive `searchLimit` (default `50`, floored to at least `1`; pass a
+larger value when the source list is longer). When a
 response contains `optionGroups`, the groups are the sole render source and any
 flat `options` on the same response are ignored; empty groups stay hidden, and
 an empty result renders the no-results row. Stale responses are discarded by

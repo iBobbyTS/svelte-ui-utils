@@ -1599,7 +1599,7 @@ describe('dropdown search', () => {
 
     await vi.advanceTimersByTimeAsync(300);
     expect(loadOptions).toHaveBeenCalledTimes(1);
-    expect(loadOptions).toHaveBeenCalledWith('be', expect.objectContaining({ limit: 10 }));
+    expect(loadOptions).toHaveBeenCalledWith('be', expect.objectContaining({ limit: 50 }));
     expect(await screen.findByRole('option', { name: 'Beta' })).toBeInTheDocument();
   });
 
@@ -1665,7 +1665,7 @@ describe('dropdown search', () => {
 
     expect(await screen.findByText('Empty')).toBeInTheDocument();
     expect(screen.queryByRole('option')).toBeNull();
-    expect(loadOptions).toHaveBeenCalledWith('', expect.objectContaining({ limit: 10 }));
+    expect(loadOptions).toHaveBeenCalledWith('', expect.objectContaining({ limit: 50 }));
   });
 
   it('shows an error state when loading fails and recovers on the next query', async () => {

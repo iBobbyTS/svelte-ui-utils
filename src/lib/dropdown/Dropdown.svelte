@@ -41,7 +41,8 @@
   export let getItemLabel: DropdownItemLabelGetter = (option) => option.label;
   export let loadOptions: DropdownLoadOptions | undefined = undefined;
   export let searchDebounceMs = 300;
-  export let searchLimit = 10;
+  /** 单次搜索返回的选项上限；默认 50，传入更大值时不再受源码硬上限约束。 */
+  export let searchLimit = 50;
   export let searchPlaceholder: string | undefined = undefined;
   export let placeholder: string | undefined = undefined;
   /** Collapsed trigger summary text (e.g. a selection count); blank keeps the default labels. */
@@ -381,9 +382,9 @@
 
   function clampSearchLimit(limit: number): number {
     if (!Number.isFinite(limit)) {
-      return 10;
+      return 50;
     }
-    return Math.min(50, Math.max(1, Math.floor(limit)));
+    return Math.max(1, Math.floor(limit));
   }
 
   function clearSearchTimer() {

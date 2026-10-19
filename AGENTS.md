@@ -3,6 +3,7 @@
 ## Release Authorization
 
 - A user request to publish authorizes exactly one publication. Do not publish a second time for the same request; require a new explicit authorization before any subsequent publication.
+- Before publishing, read `docs/RELEASING.md` and follow whatever procedure it currently documents. This file deliberately names no publish channel; that document is the single source of truth for how releases ship, so a changed procedure there requires no edit here.
 
 ## Compatibility Documentation
 

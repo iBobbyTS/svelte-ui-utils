@@ -1060,7 +1060,7 @@ describe('data table components', () => {
     });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Member' }));
-    expect(loadOptions).toHaveBeenCalledWith('', expect.objectContaining({ limit: 10 }));
+    expect(loadOptions).toHaveBeenCalledWith('', expect.objectContaining({ limit: 50 }));
 
     expect(await screen.findByRole('option', { name: 'Jane Doe' })).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('option', { name: 'Jane Doe' }));
