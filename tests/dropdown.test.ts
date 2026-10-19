@@ -2265,4 +2265,123 @@ describe('dropdown input mode state consistency', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
     expect(screen.queryByRole('option', { name: 'Result old' })).toBeNull();
   });
+
+  it('does not let a dropped divergence echo swallow a later external clear', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    // 模拟 FilterControl：Divergence 的 '' 上报被丢弃，不会产生受控回写。
+    const onChange = vi.fn();
+    const props = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: 'user-42',
+      selectedOptions: [item],
+      loadOptions: async () => ({ options: [item] }),
+      onChange
+    };
+    const { container, rerender } = render(Dropdown, { props });
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Alice Ch' } });
+    expect(onChange).toHaveBeenCalledWith('');
+    expect(input).toHaveValue('Alice Ch');
+
+    // 关闭菜单后，未被回传消费的 echo 必须随搜索会话一起失效。
+    await fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(input).toHaveValue('Alice Ch');
+
+    // 宿主此后独立清空受控值：这是真正的外部清空，必须重置内部状态。
+    await rerender({ ...props, value: '', selectedOptions: [] });
+
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('keeps the selected label for a same-flush consumer that writes back only value', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const baseProps = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: '',
+      selectedOptions: [] as { label: string; value: string }[],
+      loadOptions: async () => ({ options: [item] })
+    };
+    let rerenderDropdown: ((props: Record<string, unknown>) => Promise<void>) | undefined;
+    const onChange = (selection: unknown) => {
+      if (typeof selection !== 'string') {
+        return;
+      }
+      // 真实消费者在 onChange 中同步回写受控 value（Svelte 合并到同一 flush）。
+      void rerenderDropdown?.({ ...baseProps, value: selection, onChange });
+    };
+    const rendered = render(Dropdown, { props: { ...baseProps, onChange } });
+    rerenderDropdown = rendered.rerender as unknown as (props: Record<string, unknown>) => Promise<void>;
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+    await tick();
+
+    // 回传 echo 必须在关闭块清理前被消费：没有 selectedOptions 时，
+    // 标签只能来自 selectOption 写入的 draft。
+    expect(input).toHaveValue('Alice Chen');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('does not reset when only selectedOptions resolves for an unchanged value', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const unresolvedSelectedOptions: { label: string; value: string }[] = [];
+    const props = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: 'user-42',
+      selectedOptions: unresolvedSelectedOptions,
+      loadOptions: async () => ({ options: [] }),
+      onChange: vi.fn()
+    };
+    const { container, rerender } = render(Dropdown, { props });
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Ali' } });
+    expect(input).toHaveValue('Ali');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    // value 未变，只是宿主的 selectedItem 异步解析后到达。
+    await rerender({ ...props, selectedOptions: [item] });
+
+    expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+    expect(input).toHaveValue('Ali');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('does not display a stale known label for an external replacement without selectedItem', async () => {
+    const staleOption = { label: 'Cached stale label', value: 'shared' };
+    const props = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: '',
+      selectedOptions: [] as { label: string; value: string }[],
+      loadOptions: async (query: string) => ({ options: query ? [staleOption] : [] }),
+      onChange: vi.fn()
+    };
+    const { container, rerender } = render(Dropdown, { props });
+    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+
+    await fireEvent.input(input, { target: { value: 'old' } });
+    expect(await screen.findByRole('option', { name: 'Cached stale label' })).toBeInTheDocument();
+
+    // 外部替换到此前会话出现过的同一 value，但宿主不提供 selectedItem。
+    await rerender({ ...props, value: 'shared' });
+
+    expect(input).toHaveValue('shared');
+    expect(input).not.toHaveValue('Cached stale label');
+  });
 });

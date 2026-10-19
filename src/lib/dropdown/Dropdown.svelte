@@ -103,13 +103,14 @@
   // 在受控 value 尚未响应 onChange 时保留用户当前输入，避免
   // selectedText 的旧值在同一轮更新中覆盖输入框内容。
   let inputDraft: string | undefined;
-  let preserveInputDraftOnClose = false;
   // 受控 value 的就地协调：pendingControlledEcho 记录组件刚通过 onChange
   // 上报的变更。消费者把它回传（选中回写、输入偏离时清选）时必须保留
   // 当前输入与焦点；只有对不上的受控变更才视为真正的外部替换。
   let pendingControlledEcho: DropdownSelection | undefined = undefined;
+  // 每次上报递增，用于让会话结束后的延迟清理只作用于它捕获的那一次 echo，
+  // 不会误清新会话中刚设置的 echo。
+  let echoGeneration = 0;
   let observedControlledValue: DropdownSelection | undefined = undefined;
-  let observedSelectedOptionValue: DropdownValue | undefined = undefined;
   let controlledStateObserved = false;
   let searchStatus: DropdownLoadStatus = 'idle';
   let searchOptions: DropdownOption[] = [];
@@ -123,6 +124,37 @@
   // while the menu is rendering a large option list.
   const typeaheadTimeoutMs = 1000;
 
+  $: inputMode = search && inputStyle === 'input';
+  // 受控 value/selectedItem 变化时就地协调，而不是让宿主重建组件：
+  // - 回传我们自己刚上报的值（pendingControlledEcho）→ 保留 draft/query/焦点；
+  // - 真正的外部替换 → 重置 searchQuery/results/draft 并收起菜单。
+  // 顺序约束（legacy 响应式同轮只按声明/依赖序执行一次，靠前的语句不会回头重算）：
+  // 1) 本块必须排在 renderOptions/resolvedOptions/selectedText 之前：外部替换
+  //    同步清空 searchOptions 与 knownLabels 后，这些派生语句才能在本轮读到
+  //    新状态（否则 selectedText 会用旧标签算完并一直保留）；
+  // 2) 本块必须排在 inputDisplayValue 与 open 关闭块之前：同 flush 的回传 echo
+  //    需要在关闭块清理前被消费，重置也要在本轮立刻反映到显示值。
+  $: {
+    if (!controlledStateObserved) {
+      controlledStateObserved = true;
+      observedControlledValue = value;
+    } else {
+      const valueChanged = !sameDropdownSelection(observedControlledValue, value);
+      // selectedOptions 后到只改善标签解析；只有 value 变化才可能是外部替换。
+      // 单独的 selectedOptions 变化绝不能触发重置，否则会强关菜单并清掉 draft。
+      observedControlledValue = value;
+      if (valueChanged && inputMode && !multiselect) {
+        if (
+          pendingControlledEcho !== undefined &&
+          sameDropdownSelection(pendingControlledEcho, value)
+        ) {
+          pendingControlledEcho = undefined;
+        } else {
+          resetControlledSearchState();
+        }
+      }
+    }
+  }
   $: messages = getUiMessages(language);
   $: resolvedLoadingText = loadingText?.trim() ? loadingText : messages.dropdownSearch.loadingText;
   $: resolvedNoResultsText = noResultsText?.trim() ? noResultsText : messages.dropdownSearch.noResultsText;
@@ -149,38 +181,6 @@
   // selected") instead of the joined labels; a blank value keeps the default
   // logic so existing consumers never see a behavior change.
   $: buttonLabelText = triggerText?.trim() ? triggerText : selectedText || placeholder || '';
-  $: inputMode = search && inputStyle === 'input';
-  // 受控 value/selectedItem 变化时就地协调，而不是让宿主重建组件：
-  // - 回传我们自己刚上报的值（pendingControlledEcho）→ 保留 draft/query/焦点；
-  // - 真正的外部替换 → 重置 searchQuery/results/draft 并收起菜单。
-  // 必须排在 inputDisplayValue 之前：同步重置后，本轮派生值要立刻反映新状态。
-  $: {
-    const nextObservedSelected = !Array.isArray(value)
-      ? selectedOptions.find((option) => option.value === value)?.value
-      : undefined;
-    if (!controlledStateObserved) {
-      controlledStateObserved = true;
-      observedControlledValue = value;
-      observedSelectedOptionValue = nextObservedSelected;
-    } else {
-      const valueChanged = !sameDropdownSelection(observedControlledValue, value);
-      const selectedOptionChanged = observedSelectedOptionValue !== nextObservedSelected;
-      if (valueChanged || selectedOptionChanged) {
-        observedControlledValue = value;
-        observedSelectedOptionValue = nextObservedSelected;
-        if (inputMode && !multiselect) {
-          if (
-            pendingControlledEcho !== undefined &&
-            sameDropdownSelection(pendingControlledEcho, value)
-          ) {
-            pendingControlledEcho = undefined;
-          } else {
-            resetControlledSearchState();
-          }
-        }
-      }
-    }
-  }
   $: inputDisplayValue = inputMode
     ? (inputDraft ?? (searchQuery || (multiselect ? '' : selectedText)))
     : '';
@@ -198,6 +198,26 @@
     } else {
       disableOpenViewportTracking();
       disableOutsidePointerDismissal();
+      // echo 生命周期与一次搜索会话对齐，但清理必须延后到当前 flush 结束：
+      // 父组件可能在同一 flush 中同步回写受控 value（子组件先 update、父再
+      // 传播 props），协调块在该轮稍后才看到新值。清理时协调块在同一 flush
+      // 中先于本块执行（源码声明顺序，见上方放置约束）；因此这里只登记
+      // “会话已结束”，待 tick 后仍未被消费的 echo 才算失去出处（例如
+      // FilterControl 丢弃的 '' 上报），才可清除，避免后续真正的外部清空
+      // 因与残留 echo 相等而被误判为回传、跳过重置。
+      const echoAtClose = pendingControlledEcho;
+      const echoGenerationAtClose = echoGeneration;
+      if (echoAtClose !== undefined) {
+        void tick().then(() => {
+          if (
+            !open &&
+            echoGeneration === echoGenerationAtClose &&
+            pendingControlledEcho === echoAtClose
+          ) {
+            pendingControlledEcho = undefined;
+          }
+        });
+      }
       if (search) {
         resetSearchOnClose();
       }
@@ -410,7 +430,6 @@
 
     if (inputMode) {
       inputDraft = getItemLabel(option);
-      preserveInputDraftOnClose = true;
     }
     open = false;
     clearTypeaheadBuffer();
@@ -439,6 +458,7 @@
       return;
     }
     pendingControlledEcho = nextValue;
+    echoGeneration += 1;
     void (onChange as DropdownChangeHandler)(nextValue);
   }
 
@@ -562,47 +582,41 @@
       if (hadDraft) {
         inputDraft = inputDraft ?? searchQuery;
       }
-      preserveInputDraftOnClose = false;
       searchQuery = '';
     } else {
       searchQuery = '';
-      if (preserveInputDraftOnClose) {
-        preserveInputDraftOnClose = false;
-      } else {
-        inputDraft = undefined;
-      }
+      inputDraft = undefined;
     }
     searchOptions = [];
     searchOptionGroups = undefined;
     searchStatus = 'idle';
   }
 
-  // 受控变更代表真正的外部替换/清空选择时，内部搜索状态必须回到初始态，
-  // 避免旧 draft、旧结果或在途请求泄漏到新的选择上。
-  function resetControlledSearchState() {
+  // beginSearchOnOpen 与 resetControlledSearchState 共享的搜索会话清理核心。
+  // resetSearchOnClose 不能复用：它必须先捕获 draft 回退值再清空 searchQuery。
+  function resetSearchSession() {
     clearSearchTimer();
     abortSearchController();
-    pendingControlledEcho = undefined;
     searchQuery = '';
     inputDraft = undefined;
-    preserveInputDraftOnClose = false;
     searchOptions = [];
     searchOptionGroups = undefined;
-    searchStatus = 'idle';
     collapsedGroupIndexes = new Set();
     searchGroupsInitialized = false;
+  }
+
+  // 受控变更代表真正的外部替换/清空选择时，内部搜索状态必须回到初始态，
+  // 避免旧 draft、旧结果、在途请求或上一数据源的标签记忆泄漏到新的选择上。
+  function resetControlledSearchState() {
+    resetSearchSession();
+    pendingControlledEcho = undefined;
+    searchStatus = 'idle';
+    knownLabels.clear();
     open = false;
   }
 
   function beginSearchOnOpen() {
-    searchQuery = '';
-    inputDraft = undefined;
-    searchOptions = [];
-    searchOptionGroups = undefined;
-    collapsedGroupIndexes = new Set();
-    searchGroupsInitialized = false;
-    clearSearchTimer();
-    abortSearchController();
+    resetSearchSession();
     if (loadOptions === undefined) {
       searchStatus = 'idle';
       return;
