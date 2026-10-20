@@ -6,6 +6,7 @@ import type { DropdownLoadOptionsResult } from '../src/lib/dropdown/types.js';
 import FilterTable from '../src/lib/data-table/FilterTable.svelte';
 import { filter } from '../src/lib/data-table/index.js';
 import ControlledDropdownMultiSelectHarness from './fixtures/ControlledDropdownMultiSelectHarness.svelte';
+import ControlledDropdownInputSearchHarness from './fixtures/ControlledDropdownInputSearchHarness.svelte';
 
 describe('dropdown', () => {
   afterEach(() => {
@@ -2781,5 +2782,112 @@ describe('dropdown input mode state consistency', () => {
     expect(screen.getByRole('combobox')).toBe(input);
     expect(input).toHaveValue('Canonical Alice');
     expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  describe('real plain-assignment host', () => {
+    const candidate = { label: 'Candidate label', value: '42' };
+
+    it('shows the candidate label after a synchronous value-only writeback', async () => {
+      const { container } = render(ControlledDropdownInputSearchHarness, {
+        props: {
+          initialValue: '',
+          loadOptions: async () => ({ options: [candidate] }),
+          writeback: 'value-only'
+        }
+      });
+      const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+      input.focus();
+
+      await fireEvent.input(input, { target: { value: 'Cand' } });
+      await fireEvent.click(await screen.findByRole('option', { name: 'Candidate label' }));
+
+      expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+      expect(input).toHaveValue('Candidate label');
+      expect(document.activeElement).toBe(input);
+    });
+
+    it('shows the canonical selectedOptions label after a synchronous writeback', async () => {
+      const { container } = render(ControlledDropdownInputSearchHarness, {
+        props: {
+          initialValue: '',
+          loadOptions: async () => ({ options: [candidate] }),
+          writeback: 'canonical',
+          canonicalLabel: 'Canonical label'
+        }
+      });
+      const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+      input.focus();
+
+      await fireEvent.input(input, { target: { value: 'Cand' } });
+      await fireEvent.click(await screen.findByRole('option', { name: 'Candidate label' }));
+
+      expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+      expect(input).toHaveValue('Canonical label');
+      expect(document.activeElement).toBe(input);
+    });
+
+    it('shows an empty-valued option label after a synchronous writeback', async () => {
+      const { container } = render(ControlledDropdownInputSearchHarness, {
+        props: {
+          initialValue: 'old',
+          initialSelectedOptions: [{ label: 'Old label', value: 'old' }],
+          loadOptions: async () => ({ options: [{ label: 'All users', value: '' }] }),
+          writeback: 'value-only',
+          writebackEmptySelection: true
+        }
+      });
+      const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+      input.focus();
+
+      await fireEvent.input(input, { target: { value: 'All' } });
+      await fireEvent.click(await screen.findByRole('option', { name: 'All users' }));
+
+      expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+      expect(input).toHaveValue('All users');
+      expect(document.activeElement).toBe(input);
+    });
+
+    it('keeps text typed after selection when the selection writeback is delayed', async () => {
+      const signals: AbortSignal[] = [];
+      const loadOptions = vi.fn((query: string, context: { signal: AbortSignal }) => {
+        signals.push(context.signal);
+        if (query === 'Typed') {
+          return new Promise<{ options: Array<{ label: string; value: string }> }>(() => undefined);
+        }
+        return { options: [{ label: 'Picked', value: '42' }] };
+      });
+      const { container } = render(ControlledDropdownInputSearchHarness, {
+        props: {
+          initialValue: 'old',
+          initialSelectedOptions: [{ label: 'Old label', value: 'old' }],
+          loadOptions,
+          writeback: 'value-only',
+          writebackDelayMs: 100
+        }
+      });
+      const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+      input.focus();
+
+      // 旧受控值下选中一个新选项（回写被延迟）。
+      await fireEvent.input(input, { target: { value: 'New' } });
+      await fireEvent.click(await screen.findByRole('option', { name: 'Picked' }));
+      expect(input).toHaveValue('Picked');
+
+      // 回写到达前继续输入：会先发一次 divergence，但不能覆盖待回传的选中。
+      await fireEvent.input(input, { target: { value: 'Typed' } });
+      await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Typed', expect.anything()));
+      const pendingSignal = signals[signals.length - 1];
+      expect(pendingSignal.aborted).toBe(false);
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+      // 延迟的选中回写到达后：新文本、菜单、在途搜索都必须保留。
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+      expect(input).toHaveValue('Typed');
+      expect(document.activeElement).toBe(input);
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(pendingSignal.aborted).toBe(false);
+    });
   });
 });

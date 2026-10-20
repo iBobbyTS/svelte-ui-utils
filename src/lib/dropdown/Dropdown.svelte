@@ -103,19 +103,18 @@
   // 在受控 value 尚未响应 onChange 时保留用户当前输入，避免
   // selectedText 的旧值在同一轮更新中覆盖输入框内容。
   let inputDraft: string | undefined;
-  // 受控 value 的就地协调：pendingControlledEcho 记录组件刚通过 onChange
-  // 上报的变更。消费者把它回传（选中回写、输入偏离时清选）时必须保留
-  // 当前输入与焦点；只有对不上的受控变更才视为真正的外部替换。
-  let pendingControlledEcho: DropdownSelection | undefined = undefined;
-  // echo 的来源：selection（真实选中）与 divergence（输入偏离清选）在回传
-  // 消费时需要不同的显示处理——只有 selection 才释放乐观标签 draft。
-  let pendingControlledEchoSource: 'selection' | 'divergence' | undefined = undefined;
+  // 受控 value 的就地协调：记录组件刚通过 onChange 上报的选中/偏离变更。
+  // 消费者把它回传时按 slot 消费；只有对不上的受控变更才视为真正的外部替换。
+  // 两个单用途 echo slot，避免输入偏离覆盖待回传的选中变更：
+  // - selection echo 持久到被消费 / 被新的选中覆盖 / 外部重置；
+  // - divergence echo 只服务同步同 flush 回传，由自己的 generation + microtask
+  //   过期，且不会触碰 selection slot。
+  let pendingSelectionEcho: DropdownSelection | undefined = undefined;
   // selectOption 写入的乐观标签草稿。只有它仍是当前 inputDraft 时，selection
   // echo 被消费后才能释放，避免误清用户在回传前继续输入的新文本。
   let pendingSelectionDraft: string | undefined = undefined;
-  // 每次上报递增，用于让会话结束后的延迟清理只作用于它捕获的那一次 echo，
-  // 不会误清新会话中刚设置的 echo。
-  let echoGeneration = 0;
+  let pendingDivergenceEcho: DropdownValue | undefined = undefined;
+  let divergenceEchoGeneration = 0;
   let observedControlledValue: DropdownSelection | undefined = undefined;
   let controlledStateObserved = false;
   let searchStatus: DropdownLoadStatus = 'idle';
@@ -132,7 +131,7 @@
 
   $: inputMode = search && inputStyle === 'input';
   // 受控 value/selectedItem 变化时就地协调，而不是让宿主重建组件：
-  // - 回传我们自己刚上报的值（pendingControlledEcho）→ 保留 draft/query/焦点；
+  // - 回传我们自己刚上报的值（selection/divergence slot）→ 保留 draft/query/焦点；
   // - 真正的外部替换 → 重置 searchQuery/results/draft 并收起菜单。
   // 顺序约束（legacy 响应式同轮只按声明/依赖序执行一次，靠前的语句不会回头重算）：
   // 1) 本块必须排在 renderOptions/resolvedOptions/selectedText 之前：外部替换
@@ -149,21 +148,25 @@
       // 单独的 selectedOptions 变化绝不能触发重置，否则会强关菜单并清掉 draft。
       observedControlledValue = value;
       if (valueChanged && inputMode && !multiselect) {
-        if (
-          pendingControlledEcho !== undefined &&
-          sameDropdownSelection(pendingControlledEcho, value)
-        ) {
-          const echoSource = pendingControlledEchoSource;
-          pendingControlledEcho = undefined;
-          pendingControlledEchoSource = undefined;
-          // selection 回传消费后释放乐观标签 draft，让 canonical label 经
-          // selectedText / selectedOptions / knownLabels 接管显示；
-          // divergence 回传必须保留用户当前的部分输入文本。
-          if (echoSource === 'selection') {
+        const selectionMatched =
+          pendingSelectionEcho !== undefined &&
+          sameDropdownSelection(pendingSelectionEcho, value);
+        const divergenceMatched =
+          pendingDivergenceEcho !== undefined &&
+          sameDropdownSelection(pendingDivergenceEcho, value);
+        if (selectionMatched || divergenceMatched) {
+          if (selectionMatched) {
+            // selection 回传消费后释放乐观标签 draft，让 canonical label 经
+            // selectedText / selectedOptions / knownLabels 接管显示。
+            pendingSelectionEcho = undefined;
             if (pendingSelectionDraft !== undefined && inputDraft === pendingSelectionDraft) {
               inputDraft = undefined;
             }
             pendingSelectionDraft = undefined;
+          }
+          // divergence 回传必须保留用户当前的部分输入文本。
+          if (divergenceMatched) {
+            pendingDivergenceEcho = undefined;
           }
         } else {
           resetControlledSearchState();
@@ -433,6 +436,16 @@
     if (inputMode) {
       inputDraft = getItemLabel(option);
     }
+    if (search) {
+      // 选中即结束本次搜索会话：清掉查询与结果，否则关闭块在 echo 消费并
+      // 释放 draft 后会以 searchQuery 回退值把旧查询片段重新显示出来。
+      clearSearchTimer();
+      abortSearchController();
+      searchQuery = '';
+      searchOptions = [];
+      searchOptionGroups = undefined;
+      searchStatus = 'idle';
+    }
     open = false;
     clearTypeaheadBuffer();
     emitSingleSelectionChange(option.value, 'selection');
@@ -478,18 +491,17 @@
     if (onChange === undefined) {
       return;
     }
-    pendingControlledEcho = nextValue;
-    pendingControlledEchoSource = source;
-    // selection：记住 selectOption 刚写入的乐观标签；divergence：用户已经
-    // 开始改写输入，旧的选择标签草稿不再属于这次交互。
-    pendingSelectionDraft = source === 'selection' ? inputDraft : undefined;
-    echoGeneration += 1;
-    const generation = echoGeneration;
-    if (source === 'divergence') {
+    if (source === 'selection') {
+      // 新选中覆盖旧的 selection slot；输入偏离不会清掉它（C02）。
+      pendingSelectionEcho = nextValue;
+      pendingSelectionDraft = inputDraft;
+    } else {
+      pendingDivergenceEcho = nextValue;
+      divergenceEchoGeneration += 1;
+      const generation = divergenceEchoGeneration;
       queueMicrotask(() => {
-        if (generation === echoGeneration && pendingControlledEcho === '') {
-          pendingControlledEcho = undefined;
-          pendingControlledEchoSource = undefined;
+        if (generation === divergenceEchoGeneration && pendingDivergenceEcho !== undefined) {
+          pendingDivergenceEcho = undefined;
         }
       });
     }
@@ -644,9 +656,9 @@
   // 避免旧 draft、旧结果、在途请求或上一数据源的标签记忆泄漏到新的选择上。
   function resetControlledSearchState() {
     resetSearchSession();
-    pendingControlledEcho = undefined;
-    pendingControlledEchoSource = undefined;
+    pendingSelectionEcho = undefined;
     pendingSelectionDraft = undefined;
+    pendingDivergenceEcho = undefined;
     searchStatus = 'idle';
     knownLabels.clear();
     open = false;
