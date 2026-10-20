@@ -412,7 +412,7 @@
     }
     open = false;
     clearTypeaheadBuffer();
-    emitSingleSelectionChange(option.value);
+    emitSingleSelectionChange(option.value, 'selection');
     buttonElement?.focus();
   }
 
@@ -432,22 +432,28 @@
   }
 
   // 单值变更统一从这里上报，并记录已上报值供受控回传判别使用。
-  // echo 生命周期按来源分类：
-  // - 偏离清选（''）：只可能被同步同 flush 的回传消费（真实 UserSearchDropdown
-  //   在 onSearchChange 中同步清空受控选择）。当前 flush 结束后仍未消费即失效，
-  //   与菜单开闭无关——否则菜单保持打开时，残留 '' 会吞掉宿主随后的独立外部清空。
-  // - 选中回写（非 ''）：onChange 契约允许异步回传（消费者可能在 await/setTimeout
-  //   后写回 value），因此不主动过期；它只能被新的上报、回传消费或外部替换重置
-  //   覆盖。边界：宿主“外部设置成与残留选中 echo 完全相同的 value”在受控 props
-  //   上与合法异步回写在语义上不可区分，按回传处理。
-  function emitSingleSelectionChange(nextValue: DropdownValue) {
+  // echo 生命周期按 **emit 来源** 分类，而不是按值本身（空字符串是合法的选项
+  // value，例如 “全部/不限” 哨兵项，不能与输入偏离混淆）：
+  // - divergence（handleSearchInput 的输入偏离清选）：只可能被同步同 flush 的
+  //   回传消费（真实 UserSearchDropdown 在 onSearchChange 中同步清空受控选择）。
+  //   当前 flush 结束后仍未消费即失效，与菜单开闭无关——否则菜单保持打开时，
+  //   残留的偏离 echo 会吞掉宿主随后的独立外部清空。
+  // - selection（selectOption 的真实选中，含 value === '' 的选项）：onChange 契约
+  //   允许异步回传（消费者可能在 await/setTimeout 后写回 value），因此不主动
+  //   过期；它只能被新的上报、回传消费或外部替换重置覆盖。边界：宿主“外部设置
+  //   成与残留选中 echo 完全相同的 value”在受控 props 上与合法异步回写在语义上
+  //   不可区分，按回传处理。
+  function emitSingleSelectionChange(
+    nextValue: DropdownValue,
+    source: 'selection' | 'divergence'
+  ) {
     if (onChange === undefined) {
       return;
     }
     pendingControlledEcho = nextValue;
     echoGeneration += 1;
     void (onChange as DropdownChangeHandler)(nextValue);
-    if (nextValue === '') {
+    if (source === 'divergence') {
       const generation = echoGeneration;
       void tick().then(() => {
         if (generation === echoGeneration && pendingControlledEcho === '') {
@@ -746,7 +752,7 @@
     const nextQuery = (event.currentTarget as HTMLInputElement).value;
     inputDraft = nextQuery;
     if (inputMode && !multiselect && value !== '' && nextQuery !== selectedText) {
-      emitSingleSelectionChange('');
+      emitSingleSelectionChange('', 'divergence');
     }
     searchQuery = nextQuery;
     if (inputMode) {

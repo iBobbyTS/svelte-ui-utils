@@ -2494,6 +2494,52 @@ describe('dropdown input mode state consistency', () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it('keeps an empty-valued selection label for an async value-only writeback', async () => {
+    const initial = { label: 'Initial', value: 'initial' };
+    const emptyOption = { label: 'All users', value: '' };
+    const baseProps = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: 'initial',
+      selectedOptions: [initial] as { label: string; value: string }[],
+      loadOptions: async () => ({ options: [emptyOption] })
+    };
+    let rerenderDropdown: ((props: Record<string, unknown>) => Promise<void>) | undefined;
+    let resolveWriteback: (() => void) | undefined;
+    const writebackDone = new Promise<void>((resolve) => {
+      resolveWriteback = resolve;
+    });
+    const onChange = (selection: unknown) => {
+      if (typeof selection !== 'string') {
+        return;
+      }
+      // value 为 '' 的选项是合法选中；异步回写必须能消费这次 selection echo。
+      setTimeout(() => {
+        void rerenderDropdown?.({ ...baseProps, value: selection, selectedOptions: [], onChange }).then(() => {
+          resolveWriteback?.();
+        });
+      }, 0);
+    };
+    const rendered = render(Dropdown, { props: { ...baseProps, onChange } });
+    rerenderDropdown = rendered.rerender as unknown as (props: Record<string, unknown>) => Promise<void>;
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    expect(input).toHaveValue('Initial');
+    input.focus();
+
+    // 输入与当前标签完全一致 → 不产生 divergence echo；选中值为 '' 的合法选项。
+    await fireEvent.input(input, { target: { value: 'Initial' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'All users' }));
+    expect(input).toHaveValue('All users');
+
+    // 等 setTimeout(0) 的异步 value 回写真正落定后再断言。
+    await writebackDone;
+    await tick();
+    expect(rendered.container.querySelector('input.suu-dropdown__input')).toBe(input);
+    expect(input).toHaveValue('All users');
+    expect(document.activeElement).toBe(input);
+  });
+
   it('clears the query text on close for multiselect input mode', async () => {
     const rendered = render(Dropdown, {
       props: {
