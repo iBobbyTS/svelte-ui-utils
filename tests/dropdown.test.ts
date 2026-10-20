@@ -2566,4 +2566,79 @@ describe('dropdown input mode state consistency', () => {
     await fireEvent.pointerDown(document.body);
     expect(input).toHaveValue('');
   });
+
+  it('shows an asynchronously resolved selectedItem label without an input draft', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const rows = (selectedItem: { label: string; value: string } | null) => [
+      {
+        key: 'search',
+        title: 'Search',
+        filter: filter.dropdownSearch({
+          value: 'user-42',
+          selectedItem,
+          status: selectedItem ? 'valid' : 'invalid',
+          debounceMs: 0,
+          loadOptions: () => ({ options: [] }),
+          onChange: vi.fn()
+        })
+      }
+    ];
+
+    const { rerender } = render(FilterTable, { props: { rows: rows(null) } });
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    // 没有 draft 时先显示原始 value。
+    expect(input).toHaveValue('user-42');
+
+    // value 不变，仅 selectedItem 稍后解析到达。
+    await rerender({ rows: rows(item) });
+
+    expect(screen.getByRole('combobox')).toBe(input);
+    expect(input).toHaveValue('Alice Chen');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('treats a one-microtask async divergence writeback as an external clear', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const signals: AbortSignal[] = [];
+    const loadOptions = vi.fn(
+      (_query: string, context: { signal: AbortSignal }) => {
+        signals.push(context.signal);
+        return new Promise<{ options: Array<{ label: string; value: string }> }>(() => undefined);
+      }
+    );
+    const baseProps = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: 'user-42',
+      selectedOptions: [item] as { label: string; value: string }[],
+      loadOptions
+    };
+    let rerenderDropdown: ((props: Record<string, unknown>) => Promise<void>) | undefined;
+    const onChange = async (selection: unknown) => {
+      if (typeof selection !== 'string') {
+        return;
+      }
+      // 只让出一个 microtask：不是同步同 flush 回写，应被视为外部清空。
+      await Promise.resolve();
+      await rerenderDropdown?.({ ...baseProps, value: '', selectedOptions: [], onChange });
+    };
+    const rendered = render(Dropdown, { props: { ...baseProps, onChange } });
+    rerenderDropdown = rendered.rerender as unknown as (props: Record<string, unknown>) => Promise<void>;
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    // 先打开菜单并制造一个在途请求（输入与当前标签一致，不触发 divergence）。
+    await fireEvent.input(input, { target: { value: 'Alice Chen' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+    const pendingSignal = signals[0];
+    expect(pendingSignal.aborted).toBe(false);
+
+    // 输入偏离选中标签：上报 ''，宿主在一个 microtask 后回写 value ''。
+    await fireEvent.input(input, { target: { value: 'Alice Ch' } });
+    await waitFor(() => expect(input).toHaveValue(''));
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(pendingSignal.aborted).toBe(true);
+  });
 });

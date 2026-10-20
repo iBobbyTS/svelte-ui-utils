@@ -175,7 +175,7 @@
   $: selectedOption = Array.isArray(value) ? undefined : resolvedOptions.find((option) => option.value === value);
   $: selectedText = multiselect
     ? selectedLabelTexts(selectedValues).join(', ')
-    : displayLabelForValue(Array.isArray(value) ? '' : value);
+    : displayLabelForValue(Array.isArray(value) ? '' : value, selectedOptions);
   // triggerText lets the caller summarize the collapsed button (e.g. "3
   // selected") instead of the joined labels; a blank value keeps the default
   // logic so existing consumers never see a behavior change.
@@ -252,9 +252,15 @@
     return option?.label ?? knownLabels.get(nextValue) ?? String(nextValue);
   }
 
-  function displayLabelForValue(nextValue: DropdownValue): string {
+  // nextSelectedOptions 显式传入（而不是只从闭包读取 selectedOptions），
+  // 让 selectedText 的响应式语句把 selectedOptions 记为静态依赖：宿主的
+  // selectedItem 异步解析后即便 value 未变，也能重新解析并显示标签。
+  function displayLabelForValue(
+    nextValue: DropdownValue,
+    nextSelectedOptions: DropdownOption[] = selectedOptions
+  ): string {
     const option = resolvedOptions.find((candidate) => candidate.value === nextValue) ??
-      selectedOptions.find((candidate) => candidate.value === nextValue);
+      nextSelectedOptions.find((candidate) => candidate.value === nextValue);
     return option ? getItemLabel(option) : labelForValue(nextValue);
   }
 
@@ -443,6 +449,11 @@
   //   过期；它只能被新的上报、回传消费或外部替换重置覆盖。边界：宿主“外部设置
   //   成与残留选中 echo 完全相同的 value”在受控 props 上与合法异步回写在语义上
   //   不可区分，按回传处理。
+  // 过期边界必须在调用消费者之前登记：这里直接用 queueMicrotask 抢占
+  // microtask 队首（tick 的 `await Promise.resolve()` 还要再晚一个 hop，会让
+  // “await 一个 microtask 后才回写”的宿主抢先消费 echo）。同步同 flush 回写
+  // 不受影响：触发本次输入更新的 Svelte flush 在该 microtask 之前已经入队/
+  // 执行，协调块仍能看到 echo 并消费。
   function emitSingleSelectionChange(
     nextValue: DropdownValue,
     source: 'selection' | 'divergence'
@@ -452,15 +463,15 @@
     }
     pendingControlledEcho = nextValue;
     echoGeneration += 1;
-    void (onChange as DropdownChangeHandler)(nextValue);
+    const generation = echoGeneration;
     if (source === 'divergence') {
-      const generation = echoGeneration;
-      void tick().then(() => {
+      queueMicrotask(() => {
         if (generation === echoGeneration && pendingControlledEcho === '') {
           pendingControlledEcho = undefined;
         }
       });
     }
+    void (onChange as DropdownChangeHandler)(nextValue);
   }
 
   function clampSearchLimit(limit: number): number {
