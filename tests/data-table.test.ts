@@ -1423,7 +1423,7 @@ describe('data table components', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('keeps partial input and focus when the consumer clears the controlled value', async () => {
+  it('treats a controlled clear after a dropped divergence report as an external replacement', async () => {
     const item = { label: 'Alice Chen', value: 'user-42' };
     const loadOptions = vi.fn(() => ({ options: [item] }));
     const onChange = vi.fn();
@@ -1448,8 +1448,8 @@ describe('data table components', () => {
     expect(input.value).toBe('Alice Ch');
     await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Alice Ch', expect.anything()));
 
-    // lmdo UserSearchDropdown 的 handleSearchChange → clearSelection 路径：
-    // 用户输入偏离选中标签后，消费者回传清空后的受控 value。
+    // FilterControl 的适配器契约会丢弃偏离上报的 ''（onChange 只表达选中变更），
+    // 因此此后的受控清空不是对本次上报的同步回传，而是真正的外部替换。
     await rerender({
       rows: dropdownSearchRows({
         value: '',
@@ -1463,10 +1463,11 @@ describe('data table components', () => {
 
     const nextInput = screen.getByRole('combobox') as HTMLInputElement;
     expect(nextInput).toBe(input);
-    expect(nextInput.value).toBe('Alice Ch');
+    expect(nextInput.value).toBe('');
     expect(document.activeElement).toBe(input);
+    expect(screen.queryByRole('listbox')).toBeNull();
 
-    // 保留的文本继续作为完整查询驱动搜索。
+    // 重置后继续输入仍按完整文本驱动搜索。
     await fireEvent.input(nextInput, { target: { value: 'Alice Che' } });
     await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Alice Che', expect.anything()));
   });

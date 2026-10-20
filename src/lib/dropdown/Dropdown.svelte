@@ -132,8 +132,7 @@
   // 1) 本块必须排在 renderOptions/resolvedOptions/selectedText 之前：外部替换
   //    同步清空 searchOptions 与 knownLabels 后，这些派生语句才能在本轮读到
   //    新状态（否则 selectedText 会用旧标签算完并一直保留）；
-  // 2) 本块必须排在 inputDisplayValue 与 open 关闭块之前：同 flush 的回传 echo
-  //    需要在关闭块清理前被消费，重置也要在本轮立刻反映到显示值。
+  // 2) 本块必须排在 inputDisplayValue 之前：重置要在本轮立刻反映到显示值。
   $: {
     if (!controlledStateObserved) {
       controlledStateObserved = true;
@@ -198,26 +197,6 @@
     } else {
       disableOpenViewportTracking();
       disableOutsidePointerDismissal();
-      // echo 生命周期与一次搜索会话对齐，但清理必须延后到当前 flush 结束：
-      // 父组件可能在同一 flush 中同步回写受控 value（子组件先 update、父再
-      // 传播 props），协调块在该轮稍后才看到新值。清理时协调块在同一 flush
-      // 中先于本块执行（源码声明顺序，见上方放置约束）；因此这里只登记
-      // “会话已结束”，待 tick 后仍未被消费的 echo 才算失去出处（例如
-      // FilterControl 丢弃的 '' 上报），才可清除，避免后续真正的外部清空
-      // 因与残留 echo 相等而被误判为回传、跳过重置。
-      const echoAtClose = pendingControlledEcho;
-      const echoGenerationAtClose = echoGeneration;
-      if (echoAtClose !== undefined) {
-        void tick().then(() => {
-          if (
-            !open &&
-            echoGeneration === echoGenerationAtClose &&
-            pendingControlledEcho === echoAtClose
-          ) {
-            pendingControlledEcho = undefined;
-          }
-        });
-      }
       if (search) {
         resetSearchOnClose();
       }
@@ -453,6 +432,14 @@
   }
 
   // 单值变更统一从这里上报，并记录已上报值供受控回传判别使用。
+  // echo 生命周期按来源分类：
+  // - 偏离清选（''）：只可能被同步同 flush 的回传消费（真实 UserSearchDropdown
+  //   在 onSearchChange 中同步清空受控选择）。当前 flush 结束后仍未消费即失效，
+  //   与菜单开闭无关——否则菜单保持打开时，残留 '' 会吞掉宿主随后的独立外部清空。
+  // - 选中回写（非 ''）：onChange 契约允许异步回传（消费者可能在 await/setTimeout
+  //   后写回 value），因此不主动过期；它只能被新的上报、回传消费或外部替换重置
+  //   覆盖。边界：宿主“外部设置成与残留选中 echo 完全相同的 value”在受控 props
+  //   上与合法异步回写在语义上不可区分，按回传处理。
   function emitSingleSelectionChange(nextValue: DropdownValue) {
     if (onChange === undefined) {
       return;
@@ -460,6 +447,14 @@
     pendingControlledEcho = nextValue;
     echoGeneration += 1;
     void (onChange as DropdownChangeHandler)(nextValue);
+    if (nextValue === '') {
+      const generation = echoGeneration;
+      void tick().then(() => {
+        if (generation === echoGeneration && pendingControlledEcho === '') {
+          pendingControlledEcho = undefined;
+        }
+      });
+    }
   }
 
   function clampSearchLimit(limit: number): number {
@@ -575,9 +570,10 @@
   function resetSearchOnClose() {
     clearSearchTimer();
     abortSearchController();
-    if (inputMode) {
-      // 输入模式下菜单收起只清理菜单结果与搜索状态，输入框保留用户当前
-      // 文本（自由文本搜索），不要回退到旧的 selectedText。
+    if (inputMode && !multiselect) {
+      // 单值输入模式下菜单收起只清理菜单结果与搜索状态，输入框保留用户
+      // 当前文本（自由文本搜索），不要回退到旧的 selectedText。
+      // 多选 inputMode 保持基线语义：关闭即清空查询与 draft（chips 由 value 渲染）。
       const hadDraft = inputDraft !== undefined || searchQuery !== '';
       if (hadDraft) {
         inputDraft = inputDraft ?? searchQuery;

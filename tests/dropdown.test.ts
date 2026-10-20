@@ -3,6 +3,8 @@ import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dropdown, DropdownMultiSelect } from '../src/lib/dropdown/index.js';
 import type { DropdownLoadOptionsResult } from '../src/lib/dropdown/types.js';
+import FilterTable from '../src/lib/data-table/FilterTable.svelte';
+import { filter } from '../src/lib/data-table/index.js';
 import ControlledDropdownMultiSelectHarness from './fixtures/ControlledDropdownMultiSelectHarness.svelte';
 
 describe('dropdown', () => {
@@ -2212,31 +2214,39 @@ describe('dropdown input mode state consistency', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('keeps a partial deletion and focus when the consumer echoes the divergence clear', async () => {
+  it('keeps a partial deletion and focus when the consumer echoes the divergence clear in the same flush', async () => {
     const item = { label: 'Alice Chen', value: 'user-42' };
-    const onChange = vi.fn();
-    const props = {
+    const baseProps = {
       inputStyle: 'input' as const,
       search: true,
       searchDebounceMs: 0,
       value: 'user-42',
       selectedOptions: [item],
-      loadOptions: async () => ({ options: [item] }),
-      onChange
+      loadOptions: async () => ({ options: [item] })
     };
-    const { container, rerender } = render(Dropdown, { props });
-    const input = container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    const onChangeValues: unknown[] = [];
+    let rerenderDropdown: ((props: Record<string, unknown>) => Promise<void>) | undefined;
+    const onChange = (selection: unknown) => {
+      onChangeValues.push(selection);
+      if (selection !== '') {
+        return;
+      }
+      // 真实 UserSearchDropdown 的 handleSearchChange → clearSelection：在同一个
+      // 输入事件回调中同步清空受控选择，Svelte 合并到同一 flush。
+      void rerenderDropdown?.({ ...baseProps, value: '', selectedOptions: [], onChange });
+    };
+    const rendered = render(Dropdown, { props: { ...baseProps, onChange } });
+    rerenderDropdown = rendered.rerender as unknown as (props: Record<string, unknown>) => Promise<void>;
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
     expect(input).toHaveValue('Alice Chen');
     input.focus();
 
     await fireEvent.input(input, { target: { value: 'Alice Ch' } });
+    await tick();
 
-    // 输入偏离选中标签时组件上报空值，消费者据此清空受控选择。
-    expect(onChange).toHaveBeenCalledWith('');
-    expect(input).toHaveValue('Alice Ch');
-    await rerender({ ...props, value: '', selectedOptions: [] });
-
-    expect(container.querySelector('input.suu-dropdown__input')).toBe(input);
+    // 输入偏离选中标签时组件上报空值，消费者在同一 flush 内清空受控选择。
+    expect(onChangeValues).toContain('');
+    expect(rendered.container.querySelector('input.suu-dropdown__input')).toBe(input);
     expect(input).toHaveValue('Alice Ch');
     expect(document.activeElement).toBe(input);
   });
@@ -2383,5 +2393,131 @@ describe('dropdown input mode state consistency', () => {
 
     expect(input).toHaveValue('shared');
     expect(input).not.toHaveValue('Cached stale label');
+  });
+
+  it('resets and aborts an open-menu divergence drop when the host clears externally', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    let resolveStale: ((result: { options: Array<{ label: string; value: string }> }) => void) | undefined;
+    const signals: AbortSignal[] = [];
+    const loadOptions = vi.fn((query: string, context: { signal: AbortSignal }) => {
+      signals.push(context.signal);
+      if (query === 'Ali') {
+        return new Promise<{ options: Array<{ label: string; value: string }> }>((resolve) => {
+          resolveStale = resolve;
+        });
+      }
+      return { options: query ? [item] : [] };
+    });
+    const rows = (value: string, selectedItem: { label: string; value: string } | null) => [
+      {
+        key: 'search',
+        title: 'Search',
+        filter: filter.dropdownSearch({
+          value,
+          selectedItem,
+          status: value ? 'valid' : 'empty',
+          debounceMs: 0,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    ];
+
+    const { rerender } = render(FilterTable, { props: { rows: rows('user-42', item) } });
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    input.focus();
+
+    // 输入偏离选中标签：Dropdown 上报 ''，但 FilterControl 适配器将其丢弃，
+    // 因此没有回传写回，菜单保持打开。
+    await fireEvent.input(input, { target: { value: 'Ali' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Ali', expect.anything()));
+    const pendingSignal = signals[signals.length - 1];
+    expect(pendingSignal.aborted).toBe(false);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(input).toHaveValue('Ali');
+
+    // 宿主独立发起外部清空（不是对本次上报的回传）。
+    await rerender({ rows: rows('', null) });
+
+    const nextInput = screen.getByRole('combobox') as HTMLInputElement;
+    expect(nextInput).toBe(input);
+    expect(nextInput).toHaveValue('');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(pendingSignal.aborted).toBe(true);
+
+    resolveStale?.({ options: [{ label: 'Stale result', value: 'stale' }] });
+    await tick();
+    await tick();
+    expect(screen.queryByRole('option', { name: 'Stale result' })).toBeNull();
+  });
+
+  it('keeps the selected label for an async value-only writeback after the menu closes', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const baseProps = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: '',
+      selectedOptions: [] as { label: string; value: string }[],
+      loadOptions: async () => ({ options: [item] })
+    };
+    let rerenderDropdown: ((props: Record<string, unknown>) => Promise<void>) | undefined;
+    let resolveWriteback: (() => void) | undefined;
+    const writebackDone = new Promise<void>((resolve) => {
+      resolveWriteback = resolve;
+    });
+    const onChange = (selection: unknown) => {
+      if (typeof selection !== 'string') {
+        return;
+      }
+      // onChange 契约允许异步回写；选中 echo 必须存活到它到达。
+      setTimeout(() => {
+        void rerenderDropdown?.({ ...baseProps, value: selection, onChange }).then(() => {
+          resolveWriteback?.();
+        });
+      }, 0);
+    };
+    const rendered = render(Dropdown, { props: { ...baseProps, onChange } });
+    rerenderDropdown = rendered.rerender as unknown as (props: Record<string, unknown>) => Promise<void>;
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Alice' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Alice Chen' }));
+    expect(input).toHaveValue('Alice Chen');
+
+    // selectOption 已关闭菜单；等 setTimeout(0) 的异步 value 回写真正落定后再断言。
+    await writebackDone;
+    await tick();
+    expect(rendered.container.querySelector('input.suu-dropdown__input')).toBe(input);
+    expect(input).toHaveValue('Alice Chen');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('clears the query text on close for multiselect input mode', async () => {
+    const rendered = render(Dropdown, {
+      props: {
+        inputStyle: 'input',
+        multiselect: true,
+        search: true,
+        searchDebounceMs: 0,
+        value: [],
+        ariaLabel: 'Members',
+        loadOptions: async (query: string) => ({
+          options: query ? [{ label: 'Alpha', value: 'alpha' }] : []
+        })
+      }
+    });
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+
+    await fireEvent.input(input, { target: { value: 'Al' } });
+    expect(input).toHaveValue('Al');
+    await fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).toHaveValue('');
+
+    await fireEvent.input(input, { target: { value: 'Al' } });
+    expect(input).toHaveValue('Al');
+    await fireEvent.pointerDown(document.body);
+    expect(input).toHaveValue('');
   });
 });
