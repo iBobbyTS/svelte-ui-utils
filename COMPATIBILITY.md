@@ -2,6 +2,38 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## 0.5.10: Dropdown inputMode keeps free text on close; two accepted display regressions
+
+Old behavior: closing a single-select `inputMode` dropdown (outside click,
+Escape, or the menu leaving the viewport) could clear the free-text draft or
+revert the input to the previously selected label, and a controlled value
+write-back racing the user's next keystrokes could clobber the draft.
+
+New behavior: closing the menu keeps the free-text draft and focus; typing
+after close searches with the full current text; selecting an option ends the
+search session; controlled write-backs are coordinated through separate
+selection/divergence echo slots and support synchronous and asynchronous
+hosts.
+
+Known limitations (accepted and deferred, see
+`docs/dropdown-input-mode-writeback-acceptance.md`):
+
+- **B1-001**: a directly controlled Dropdown with a non-identity
+  `getItemLabel`, whose host writes back only `value` after selection and
+  supplies no matching `selectedOptions`, may show the raw `option.label`
+  instead of the transformed label once the optimistic draft is released.
+- **B1-002**: when a `FilterControl` root value has been memoized as free
+  text, a later `selectedItem` whose business id differs from it arrives
+  without a public `value` change and there is no input draft, the resolved
+  canonical label does not take over the display (display association and
+  business identifier are conflated).
+
+Migration: none required. Hosts that depend on value-only write-back with a
+custom `getItemLabel` display, or on free-text root values with late
+item-id-only updates, should read the acceptance document above; the explicit
+write-back association API that restores those paths is planned follow-up
+work.
+
 ## 0.5.9: FilterTable title column now fits its content
 
 Old behavior: the left title column of `.suu-filter-table__filters` was a fixed
