@@ -2641,4 +2641,145 @@ describe('dropdown input mode state consistency', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
     expect(pendingSignal.aborted).toBe(true);
   });
+
+  it('shows the canonical label written back after a selection instead of the candidate draft', async () => {
+    const candidate = { label: 'Candidate label', value: 'user-42' };
+    const canonical = { label: 'Canonical label', value: 'user-42' };
+    const loadOptions = vi.fn(() => ({ options: [candidate] }));
+    const rows = (value: string, selectedItem: { label: string; value: string } | null) => [
+      {
+        key: 'search',
+        title: 'Search',
+        filter: filter.dropdownSearch({
+          value,
+          selectedItem,
+          status: selectedItem ? 'valid' : value ? 'invalid' : 'empty',
+          debounceMs: 0,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    ];
+
+    const { rerender } = render(FilterTable, { props: { rows: rows('', null) } });
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Cand' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Candidate label' }));
+    expect(input).toHaveValue('Candidate label');
+
+    // 宿主回写公共 value + 同 id 的 canonical selectedItem。
+    await rerender({ rows: rows('user-42', canonical) });
+
+    expect(screen.getByRole('combobox')).toBe(input);
+    expect(input).toHaveValue('Canonical label');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('releases the optimistic draft so later selectedOptions labels win', async () => {
+    const candidate = { label: 'Candidate label', value: 'user-42' };
+    const canonical = { label: 'Canonical label', value: 'user-42' };
+    const baseProps = {
+      inputStyle: 'input' as const,
+      search: true,
+      searchDebounceMs: 0,
+      value: '',
+      selectedOptions: [] as { label: string; value: string }[],
+      loadOptions: async () => ({ options: [candidate] }),
+      onChange: vi.fn()
+    };
+    const rendered = render(Dropdown, { props: baseProps });
+    const input = rendered.container.querySelector('input.suu-dropdown__input') as HTMLInputElement;
+    input.focus();
+
+    await fireEvent.input(input, { target: { value: 'Cand' } });
+    await fireEvent.click(await screen.findByRole('option', { name: 'Candidate label' }));
+    expect(input).toHaveValue('Candidate label');
+
+    // value-only 回写：释放 draft 后由 knownLabels 提供乐观候选标签。
+    await rendered.rerender({ ...baseProps, value: 'user-42' });
+    expect(input).toHaveValue('Candidate label');
+
+    // 后续 selectedOptions 的 canonical 标签（同 id、value 未变）必须接管显示。
+    await rendered.rerender({ ...baseProps, value: 'user-42', selectedOptions: [canonical] });
+
+    expect(rendered.container.querySelector('input.suu-dropdown__input')).toBe(input);
+    expect(input).toHaveValue('Canonical label');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('keeps the editing draft when only selectedItem resolves asynchronously', async () => {
+    const item = { label: 'Alice Chen', value: 'user-42' };
+    const signals: AbortSignal[] = [];
+    const loadOptions = vi.fn(
+      (_query: string, context: { signal: AbortSignal }) => {
+        signals.push(context.signal);
+        return new Promise<{ options: Array<{ label: string; value: string }> }>(() => undefined);
+      }
+    );
+    const rows = (selectedItem: { label: string; value: string } | null) => [
+      {
+        key: 'search',
+        title: 'Search',
+        filter: filter.dropdownSearch({
+          value: 'Alice Chen',
+          selectedItem,
+          status: selectedItem ? 'valid' : 'invalid',
+          debounceMs: 0,
+          loadOptions,
+          onChange: vi.fn()
+        })
+      }
+    ];
+
+    const { rerender } = render(FilterTable, { props: { rows: rows(null) } });
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input).toHaveValue('Alice Chen');
+    input.focus();
+
+    // 用户开始编辑：公共 control.value 仍是自由文本 'Alice Chen'。
+    await fireEvent.input(input, { target: { value: 'Ali' } });
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('Ali', expect.anything()));
+    const pendingSignal = signals[signals.length - 1];
+    expect(pendingSignal.aborted).toBe(false);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    // 宿主只解析 selectedItem（公共 value 不变）：不能伪造根 value 变化。
+    await rerender({ rows: rows(item) });
+
+    expect(screen.getByRole('combobox')).toBe(input);
+    expect(input).toHaveValue('Ali');
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(pendingSignal.aborted).toBe(false);
+  });
+
+  it('shows the label when only selectedItem resolves without a draft', async () => {
+    const resolved = { label: 'Canonical Alice', value: 'user-42' };
+    const rows = (selectedItem: { label: string; value: string } | null) => [
+      {
+        key: 'search',
+        title: 'Search',
+        filter: filter.dropdownSearch({
+          value: 'user-42',
+          selectedItem,
+          status: selectedItem ? 'valid' : 'invalid',
+          debounceMs: 0,
+          loadOptions: () => ({ options: [] }),
+          onChange: vi.fn()
+        })
+      }
+    ];
+
+    const { rerender } = render(FilterTable, { props: { rows: rows(null) } });
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input).toHaveValue('user-42');
+
+    await rerender({ rows: rows(resolved) });
+
+    expect(screen.getByRole('combobox')).toBe(input);
+    expect(input).toHaveValue('Canonical Alice');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
 });

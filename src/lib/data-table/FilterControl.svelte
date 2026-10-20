@@ -133,10 +133,30 @@
   // still resets the internal query/results/draft.
   // A selected item displays through `selectedOptions`; a free-text external
   // value has no option to resolve and falls back to the Dropdown value itself.
+  //
+  // 只有公共 control.value 真正变化时才重新合成根 value。selectedItem 的
+  // 异步解析（例如自由文本过滤时 item 后到、control.value 未变）不能伪造一次
+  // 根 value 变化，否则 Dropdown 会按外部替换重置用户正在编辑的 draft、关闭
+  // 菜单并中止在途搜索。item-only 到达只通过 selectedOptions 改善显示。
+  let dropdownSearchObservedControlValue = '';
+  let dropdownSearchSynthesizedValue = '';
+  let dropdownSearchValueInitialized = false;
+  $: if (control.type === 'dropdownSearch') {
+    if (!dropdownSearchValueInitialized) {
+      dropdownSearchValueInitialized = true;
+      dropdownSearchObservedControlValue = control.value;
+      dropdownSearchSynthesizedValue = control.selectedItem
+        ? control.selectedItem.value
+        : control.value;
+    } else if (control.value !== dropdownSearchObservedControlValue) {
+      dropdownSearchObservedControlValue = control.value;
+      dropdownSearchSynthesizedValue = control.selectedItem
+        ? control.selectedItem.value
+        : control.value;
+    }
+  }
   $: dropdownSearchValue = control.type === 'dropdownSearch'
-    ? control.selectedItem
-      ? control.selectedItem.value
-      : control.value
+    ? dropdownSearchSynthesizedValue
     : '';
   // The raw item is handed to the Dropdown untouched so its `getItemLabel` prop
   // is the single label conversion on the display path.

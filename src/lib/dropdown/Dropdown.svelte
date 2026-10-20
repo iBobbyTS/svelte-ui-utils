@@ -107,6 +107,12 @@
   // 上报的变更。消费者把它回传（选中回写、输入偏离时清选）时必须保留
   // 当前输入与焦点；只有对不上的受控变更才视为真正的外部替换。
   let pendingControlledEcho: DropdownSelection | undefined = undefined;
+  // echo 的来源：selection（真实选中）与 divergence（输入偏离清选）在回传
+  // 消费时需要不同的显示处理——只有 selection 才释放乐观标签 draft。
+  let pendingControlledEchoSource: 'selection' | 'divergence' | undefined = undefined;
+  // selectOption 写入的乐观标签草稿。只有它仍是当前 inputDraft 时，selection
+  // echo 被消费后才能释放，避免误清用户在回传前继续输入的新文本。
+  let pendingSelectionDraft: string | undefined = undefined;
   // 每次上报递增，用于让会话结束后的延迟清理只作用于它捕获的那一次 echo，
   // 不会误清新会话中刚设置的 echo。
   let echoGeneration = 0;
@@ -147,7 +153,18 @@
           pendingControlledEcho !== undefined &&
           sameDropdownSelection(pendingControlledEcho, value)
         ) {
+          const echoSource = pendingControlledEchoSource;
           pendingControlledEcho = undefined;
+          pendingControlledEchoSource = undefined;
+          // selection 回传消费后释放乐观标签 draft，让 canonical label 经
+          // selectedText / selectedOptions / knownLabels 接管显示；
+          // divergence 回传必须保留用户当前的部分输入文本。
+          if (echoSource === 'selection') {
+            if (pendingSelectionDraft !== undefined && inputDraft === pendingSelectionDraft) {
+              inputDraft = undefined;
+            }
+            pendingSelectionDraft = undefined;
+          }
         } else {
           resetControlledSearchState();
         }
@@ -462,12 +479,17 @@
       return;
     }
     pendingControlledEcho = nextValue;
+    pendingControlledEchoSource = source;
+    // selection：记住 selectOption 刚写入的乐观标签；divergence：用户已经
+    // 开始改写输入，旧的选择标签草稿不再属于这次交互。
+    pendingSelectionDraft = source === 'selection' ? inputDraft : undefined;
     echoGeneration += 1;
     const generation = echoGeneration;
     if (source === 'divergence') {
       queueMicrotask(() => {
         if (generation === echoGeneration && pendingControlledEcho === '') {
           pendingControlledEcho = undefined;
+          pendingControlledEchoSource = undefined;
         }
       });
     }
@@ -623,6 +645,8 @@
   function resetControlledSearchState() {
     resetSearchSession();
     pendingControlledEcho = undefined;
+    pendingControlledEchoSource = undefined;
+    pendingSelectionDraft = undefined;
     searchStatus = 'idle';
     knownLabels.clear();
     open = false;
