@@ -49,9 +49,15 @@
         onvalueinput?: (value: string) => void;
     }>();
 
-    let year = $state("");
-    let month = $state("");
-    let day = $state("");
+    // Initialize segments from the incoming value so SSR renders real dates;
+    // the effect below only needs to track later value changes. An $effect
+    // alone never runs on the server, which left the visible inputs blank
+    // in server-rendered HTML until hydration.
+    // svelte-ignore state_referenced_locally
+    const initialParts = splitSegmentedDate(value, precision);
+    let year = $state(initialParts.year);
+    let month = $state(initialParts.month);
+    let day = $state(initialParts.day);
 
     $effect(() => {
         const parts = splitSegmentedDate(value, precision);
