@@ -923,6 +923,11 @@
 
   position: relative;
   display: inline-flex;
+  /* 固定/受限宽度宿主（grid auto 轨道、flex 行项目）按 min-width:auto 会取内容
+     min-content 作最小尺寸，一段不换行的已选文本因此把轨道/行撑到比容器更宽，
+     按钮跟着溢出卡片边界、省略号永远没有机会出现。min-width:0 让宿主约束
+     真正生效，超出部分交回 .suu-dropdown__label 的既有省略机制裁剪。 */
+  min-width: 0;
   color: var(--suu-color-text);
 }
 
