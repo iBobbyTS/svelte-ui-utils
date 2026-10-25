@@ -500,10 +500,14 @@ response contains `optionGroups`, the groups are the sole render source and any
 flat `options` on the same response are ignored; empty groups stay hidden, and
 an empty result renders the no-results row. Stale responses are discarded by
 request order, closing the menu aborts the in-flight request, and a rejected
-load shows the error row (override the text with `errorText`). Search-result
-groups follow the same `groupsCollapsedByDefault` states as static groups; with
-`"auto"` the collapse state is seeded once per open session, and manual toggles
-survive later query refreshes within that session.
+load shows the error row (override the text with `errorText`). The empty-query
+response is the browsing list and follows the same `groupsCollapsedByDefault`
+states as static groups; with `"auto"` its collapse state is seeded once per
+open session and manual toggles survive later empty-query refreshes. A
+non-empty query renders every matched group expanded regardless of that
+setting (filtered results drop groups, so browsing indexes would point at the
+wrong groups); toggles made during a query apply to that query text only, and
+clearing the query restores the browsing state.
 
 A single-select pick closes the menu; a multiselect pick keeps it open and
 emits the complete selected array. Values picked during earlier queries stay

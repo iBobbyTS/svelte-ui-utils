@@ -2,6 +2,24 @@
 
 This document records only releases that break existing behavior or require consumer migration.
 
+## 0.5.13: Dropdown search results render matched groups expanded
+
+Old behavior: in search mode, `groupsCollapsedByDefault: "true" | "auto"`
+seeded the group collapse set from the first grouped response of an open
+session (whatever its query) and reused it by group index for every later
+response. A filtered response that dropped groups inherited collapse flags
+meant for other groups, so matched groups could render collapsed and, when no
+option was selected, every search result was hidden behind collapsed headers.
+
+New behavior: the auto/true seeding applies only to the empty-query browsing
+list. While the query is non-empty every matched group renders expanded;
+toggles made during a query apply to that query text only and a changed query
+text starts expanded again. Clearing the query restores the browsing list with
+its seeded state and manual toggles.
+
+Migration: none required. There is no opt-out; a host that needs collapsed
+groups inside search results must collapse them manually after each result.
+
 ## 0.5.10: Dropdown inputMode keeps free text on close; two accepted display regressions
 
 Old behavior: closing a single-select `inputMode` dropdown (outside click,

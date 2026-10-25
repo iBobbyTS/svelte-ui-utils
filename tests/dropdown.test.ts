@@ -1843,21 +1843,19 @@ describe('dropdown search', () => {
     expect(screen.getByRole('listbox', { name: 'Protocols' })).toBeInTheDocument();
   });
 
-  it('preserves manual group collapse toggles across query refreshes within one open session', async () => {
-    const loadOptions = vi
-      .fn()
-      .mockResolvedValueOnce({
-        optionGroups: [
-          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
-          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
-        ]
-      })
-      .mockResolvedValueOnce({
-        optionGroups: [
-          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
-          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }, { label: 'Mail Pro', value: 'mailPro' }] }
-        ]
-      });
+  it('expands every matched group while a query is active and restores browsing toggles when it clears', async () => {
+    const browsingGroups = {
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+      ]
+    };
+    // The query response drops Core and carries an option the browsing list lacks,
+    // so "Mail Pro" appearing proves the filtered result has rendered.
+    const queryGroups = {
+      optionGroups: [{ label: 'Extra', options: [{ label: 'Mail', value: 'mail' }, { label: 'Mail Pro', value: 'mailPro' }] }]
+    };
+    const loadOptions = vi.fn().mockImplementation(async (query: string) => (query ? queryGroups : browsingGroups));
 
     render(Dropdown, {
       props: {
@@ -1881,11 +1879,61 @@ describe('dropdown search', () => {
     expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
     expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
 
+    // The filtered response drops Core, so Extra now sits at index 0 — the index
+    // Core was manually collapsed at. A matched group must still render expanded.
     await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ma' } });
 
     expect(await screen.findByRole('option', { name: 'Mail Pro' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Core' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Extra' })).toHaveAttribute('aria-expanded', 'true');
+
+    // Clearing the query returns to the browsing list with its manual toggles intact.
+    await fireEvent.input(screen.getByRole('combobox'), { target: { value: '' } });
+
+    expect(await screen.findByRole('group', { name: 'Core' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Mail Pro' })).toBeNull();
+  });
+
+  it('resets query collapse toggles per query text while keeping them across same-text refreshes', async () => {
+    const groups = {
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+      ]
+    };
+    const loadOptions = vi.fn().mockResolvedValue(groups);
+
+    render(Dropdown, {
+      props: {
+        value: [],
+        multiselect: true,
+        ariaLabel: 'Protocols',
+        search: true,
+        groupsCollapsedByDefault: 'true' as const,
+        searchDebounceMs: 0,
+        loadOptions
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
+    expect(await screen.findByRole('group', { name: 'Core' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+
+    const input = screen.getByRole('combobox');
+    await fireEvent.input(input, { target: { value: 'a' } });
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    // A manual collapse during the query sticks for that query text only.
+    await fireEvent.click(screen.getByRole('button', { name: 'Core' }));
+    expect(screen.queryByRole('option', { name: 'Chat' })).toBeNull();
+
+    await fireEvent.input(input, { target: { value: 'ai' } });
+    expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
   });
 
   it('re-evaluates auto group collapse after closing and reopening the menu', async () => {
@@ -1929,16 +1977,17 @@ describe('dropdown search', () => {
     expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
   });
 
-  it('seeds auto collapse at the first valid grouped response of an open session', async () => {
+  it('seeds auto collapse from the first empty-query grouped response, not from a query result', async () => {
+    const groups = {
+      optionGroups: [
+        { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
+        { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
+      ]
+    };
     const loadOptions = vi
       .fn()
       .mockResolvedValueOnce({ options: [], optionGroups: [] })
-      .mockResolvedValueOnce({
-        optionGroups: [
-          { label: 'Core', options: [{ label: 'Chat', value: 'chat' }] },
-          { label: 'Extra', options: [{ label: 'Mail', value: 'mail' }] }
-        ]
-      });
+      .mockResolvedValue(groups);
 
     render(Dropdown, {
       props: {
@@ -1955,10 +2004,17 @@ describe('dropdown search', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Protocols' }));
     expect(await screen.findByText('Empty')).toBeInTheDocument();
 
-    await fireEvent.input(screen.getByRole('combobox'), { target: { value: 'ch' } });
-
+    // A query result is never collapsed by the auto rule: both matched groups show.
+    const input = screen.getByRole('combobox');
+    await fireEvent.input(input, { target: { value: 'ch' } });
     expect(await screen.findByRole('option', { name: 'Chat' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'Mail' })).toBeInTheDocument();
+
+    // The first grouped empty-query response seeds auto collapse by selection.
+    await fireEvent.input(input, { target: { value: '' } });
+    await waitFor(() => expect(screen.queryByRole('option', { name: 'Mail' })).toBeNull());
+    expect(screen.getByRole('group', { name: 'Extra' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Chat' })).toBeInTheDocument();
   });
 
   it('supports keyboard selection and escape dismissal from the search input', async () => {

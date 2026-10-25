@@ -95,9 +95,17 @@
   let typeaheadBuffer = '';
   let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
   let typeaheadGeneration = 0;
+  // Collapse state of the browsing list (static groups, or the empty-query
+  // search response). Seeded once per open session; manual toggles then own it.
   let collapsedGroupIndexes = new Set<number>();
+  // Collapse state while a non-empty query is applied. Filtered results drop
+  // groups, so browsing indexes no longer point at the same groups; every new
+  // query text therefore starts fully expanded and only its own toggles apply.
+  let queryCollapsedGroupIndexes = new Set<number>();
+  // Trimmed query text of the search response currently rendered.
+  let appliedSearchQuery = '';
   // Whether the current open session has already seeded auto group collapse
-  // from a search response; once true, the user's manual toggles own the set.
+  // from an empty-query search response; once true, the user's manual toggles own the set.
   let searchGroupsInitialized = false;
   let searchQuery = '';
   // 在受控 value 尚未响应 onChange 时保留用户当前输入，避免
@@ -184,9 +192,10 @@
   $: renderOptions = search ? searchOptions : options;
   $: renderOptionGroups = search ? searchOptionGroups : optionGroups;
   $: resolvedOptions = renderOptionGroups === undefined ? renderOptions : renderOptionGroups.flatMap((group) => group.options);
+  $: activeCollapsedGroupIndexes = search && appliedSearchQuery ? queryCollapsedGroupIndexes : collapsedGroupIndexes;
   $: visibleOptions = renderOptionGroups === undefined
     ? renderOptions
-    : renderOptionGroups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
+    : renderOptionGroups.flatMap((group, groupIndex) => group.label && activeCollapsedGroupIndexes.has(groupIndex) ? [] : group.options);
   $: trackOptionLabels(resolvedOptions);
   $: trackOptionLabels(selectedOptions);
   $: rawSelectedValues = normalizeSelectedValues(multiselect && Array.isArray(value) ? value : []);
@@ -603,17 +612,27 @@
       searchOptionGroups = undefined;
       searchOptions = query.trim() ? (Array.isArray(result.options) ? result.options : []) : mergeSelectedOptions(Array.isArray(result.options) ? result.options : []);
     }
-    // Only the first valid grouped response of an open session seeds the auto
-    // collapse state; later responses just swap groups so manual collapse and
-    // expand choices survive query refreshes within the same session.
-    if (!searchGroupsInitialized && groups !== undefined && groups.length > 0) {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery) {
+      // A query result must show what it matched: a changed query text resets its
+      // collapse set to fully expanded, while refreshes of the same text keep the
+      // user's toggles. The browsing set is left untouched for when the query clears.
+      if (trimmedQuery !== appliedSearchQuery) {
+        queryCollapsedGroupIndexes = new Set();
+      }
+    } else if (!searchGroupsInitialized && groups !== undefined && groups.length > 0) {
+      // Only the first valid empty-query grouped response of an open session seeds
+      // the auto collapse state; later refreshes just swap groups so manual collapse
+      // and expand choices survive within the same session.
       searchGroupsInitialized = true;
       initializeCollapsedGroups(groups);
     }
+    appliedSearchQuery = trimmedQuery;
+    const collapsedForResult = trimmedQuery ? queryCollapsedGroupIndexes : collapsedGroupIndexes;
     const nextResolvedOptions = groups === undefined ? searchOptions : groups.flatMap((group) => group.options);
     const nextVisibleOptions = groups === undefined
       ? searchOptions
-      : groups.flatMap((group, groupIndex) => group.label && collapsedGroupIndexes.has(groupIndex) ? [] : group.options);
+      : groups.flatMap((group, groupIndex) => group.label && collapsedForResult.has(groupIndex) ? [] : group.options);
     activeValue = initialActiveValueFor(nextVisibleOptions, nextResolvedOptions);
     scrollActiveOptionIntoView();
   }
@@ -636,6 +655,8 @@
     }
     searchOptions = [];
     searchOptionGroups = undefined;
+    queryCollapsedGroupIndexes = new Set();
+    appliedSearchQuery = '';
     searchStatus = 'idle';
   }
 
@@ -649,6 +670,8 @@
     searchOptions = [];
     searchOptionGroups = undefined;
     collapsedGroupIndexes = new Set();
+    queryCollapsedGroupIndexes = new Set();
+    appliedSearchQuery = '';
     searchGroupsInitialized = false;
   }
 
@@ -704,7 +727,7 @@
   }
 
   function isGroupCollapsed(groupIndex: number): boolean {
-    return collapsedGroupIndexes.has(groupIndex);
+    return activeCollapsedGroupIndexes.has(groupIndex);
   }
 
   function initializeCollapsedGroups(nextOptionGroups: DropdownOptionGroup[] | undefined) {
@@ -726,10 +749,11 @@
   }
 
   function toggleGroup(groupIndex: number) {
-    const next = new Set(collapsedGroupIndexes);
+    const next = new Set(activeCollapsedGroupIndexes);
     if (next.has(groupIndex)) next.delete(groupIndex);
     else next.add(groupIndex);
-    collapsedGroupIndexes = next;
+    if (search && appliedSearchQuery) queryCollapsedGroupIndexes = next;
+    else collapsedGroupIndexes = next;
   }
 
   function handleTriggerClick(event: MouseEvent) {
@@ -1296,14 +1320,14 @@
                 <button
                   type="button"
                   class="suu-dropdown__group-label"
-                  aria-expanded={!collapsedGroupIndexes.has(groupIndex)}
+                  aria-expanded={!activeCollapsedGroupIndexes.has(groupIndex)}
                   on:click|stopPropagation={() => toggleGroup(groupIndex)}
                 >
                   <span class="suu-dropdown__group-title">{group.label}</span>
                   <span class="suu-dropdown__group-chevron" aria-hidden="true"></span>
                 </button>
               {/if}
-              {#if !group.label || !collapsedGroupIndexes.has(groupIndex)}
+              {#if !group.label || !activeCollapsedGroupIndexes.has(groupIndex)}
                 {#each group.options as option, optionIndex}
                 <button
                   type="button"
