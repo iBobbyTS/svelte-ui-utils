@@ -1126,13 +1126,17 @@
   right: var(--suu-dropdown-menu-right, auto);
   left: var(--suu-dropdown-menu-left, auto);
   bottom: auto;
-  /* 首选宽=触发器宽+外扩（下限，JS 必设）；内容更宽时放开通到内容宽，
-     但不超过 JS 按对齐方向算出的视口预算。上限收紧时选项按 label 基础
-     规则折行省略，不横向裁切。 */
-  width: max(var(--suu-dropdown-menu-width, 0px), min(max-content, var(--suu-dropdown-menu-max-width, 100vw)));
-  /* Fixed positioning makes the base `min-width: 100%` resolve against the
-     viewport, which would stretch the menu to full width. */
-  min-width: 0;
+  /* 首选宽=内容宽；下限=触发器宽+外扩（JS 必设；fixed 定位下基础规则的
+     min-width:100% 会按视口解析把菜单拉满，故显式覆盖为该下限）；上限=
+     JS 按对齐方向算出的视口预算。上限收紧时选项按 label 基础规则折行
+     省略，不横向裁切。
+     不得把 intrinsic 关键字（max-content 等）写进 min()/max() 数学函数：
+     Chromium 149 拒绝该组合、整条声明失效，portal 菜单会退化为
+     shrink-to-fit（0.5.14 实测）。三条独立长声明在全部支持的浏览器中
+     与原意图等价。 */
+  width: max-content;
+  min-width: var(--suu-dropdown-menu-width, 0px);
+  max-width: var(--suu-dropdown-menu-max-width, 100vw);
   margin: 0;
   padding: 0;
   z-index: 1200;
@@ -1160,10 +1164,12 @@
   max-width: var(--suu-dropdown-menu-max-width, calc(100vw - 40px));
 }
 
-/* 未受限时 panel 与菜单同为 max-content；受限后跟随菜单实际宽，把长选项
-   交回 label 的两行省略，而不是横向裁切。 */
+/* panel 铺满菜单实际宽即可：未受限时菜单本身已按 max-content 取宽，
+   受限后菜单宽=上限，两种形态下 100% 都与「内容宽或满宽」等价，且不含
+   intrinsic-in-min() 组合（Chromium 149 拒绝，见 portal 规则注）。长选项
+   由 label 两行省略兜底，不横向裁切。 */
 .suu-dropdown__menu--fit-content:not(.suu-dropdown__menu--portal) .suu-dropdown__panel {
-  min-width: min(max-content, 100%);
+  min-width: 100%;
 }
 
 /* 选项按内容自然宽，hover 背景与分隔线仍铺满菜单。菜单宽=max-content 时

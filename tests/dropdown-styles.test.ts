@@ -23,15 +23,18 @@ test('dropdown trigger never stretches its host and ellipsizes overflow instead'
 // label 基础两行省略而不是被强制单行后横向裁切——强制 nowrap 因此被移除。
 test('dropdown menus clamp horizontally and degrade to wrapping, never clipping', () => {
   const css = readFileSync(resolve(process.cwd(), 'src/lib/style.css'), 'utf8');
+  // 三条独立长声明（不可用 min()/max() 包 intrinsic——Chromium 149 拒绝，0.5.14 教训）
   expect(css).toMatch(
-    /\.suu-dropdown__menu--portal \{[^}]*width: max\(var\(--suu-dropdown-menu-width, 0px\), min\(max-content, var\(--suu-dropdown-menu-max-width, 100vw\)\)\);/s
+    /\.suu-dropdown__menu--portal \{[^}]*width: max-content;[^}]*min-width: var\(--suu-dropdown-menu-width, 0px\);[^}]*max-width: var\(--suu-dropdown-menu-max-width, 100vw\);/s
   );
   expect(css).toMatch(
     /\.suu-dropdown__menu--fit-content:not\(\.suu-dropdown__menu--portal\) \{[^}]*width: max-content;[^}]*max-width: var\(--suu-dropdown-menu-max-width, calc\(100vw - 40px\)\);/s
   );
   expect(css).toMatch(
-    /\.suu-dropdown__menu--fit-content:not\(\.suu-dropdown__menu--portal\) \.suu-dropdown__panel \{[^}]*min-width: min\(max-content, 100%\);/s
+    /\.suu-dropdown__menu--fit-content:not\(\.suu-dropdown__menu--portal\) \.suu-dropdown__panel \{[^}]*min-width: 100%;/s
   );
+  // 全库禁绝 intrinsic 进数学函数（回归防线）
+  expect(css).not.toMatch(/(?:min|max)\([^)]*\b(?:max-content|min-content|fit-content)\b/);
   const optionRule = css.match(
     /\.suu-dropdown__menu--fit-content:not\(\.suu-dropdown__menu--portal\) \.suu-dropdown__option \{[^}]*\}/s
   )?.[0];
