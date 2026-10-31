@@ -90,6 +90,7 @@
   let portalMenuLeft: string | undefined = undefined;
   let portalMenuRight: string | undefined = undefined;
   let portalMenuWidth: string | undefined = undefined;
+  let portalMenuMaxWidth: string | undefined = undefined;
   let removeOpenViewportListeners: (() => void) | undefined = undefined;
   let removeOutsidePointerListener: (() => void) | undefined = undefined;
   let typeaheadBuffer = '';
@@ -1030,9 +1031,13 @@
     if (menuAlign === 'right') {
       portalMenuLeft = undefined;
       portalMenuRight = `${Math.max(0, Math.round(window.innerWidth - rect.right - menuOutset))}px`;
+      // 右对齐菜单向左生长：可用预算 = 触发器右缘（含外扩）到视口左缘的间距。
+      portalMenuMaxWidth = `${Math.max(0, Math.round(rect.right + menuOutset - viewportMargin))}px`;
     } else {
       portalMenuLeft = `${Math.max(0, Math.round(rect.left - menuOutset))}px`;
       portalMenuRight = undefined;
+      // 左对齐菜单向右生长：可用预算 = 视口右缘到菜单左缘的间距。
+      portalMenuMaxWidth = `${Math.max(0, Math.round(window.innerWidth - rect.left + menuOutset - viewportMargin))}px`;
     }
     portalMenuWidth = `${Math.round(rect.width + menuOutset * 2)}px`;
   }
@@ -1141,6 +1146,7 @@
     'suu-dropdown',
     multiselect ? 'suu-dropdown--multiselect' : '',
     search ? 'suu-dropdown--search' : '',
+    inputMode ? 'suu-dropdown--search-input' : '',
     width !== undefined || minWidth !== undefined || maxWidth !== undefined
       ? 'suu-dropdown--sized'
       : '',
@@ -1160,7 +1166,7 @@
           {@const selectedOption = resolvedOptions.find((option) => option.value === selectedValue) ?? selectedOptions.find((option) => option.value === selectedValue)}
           {#if selectedOption}
             <span class="suu-dropdown__selected-item">
-              <span>{getItemLabel(selectedOption)}</span>
+              <span class="suu-dropdown__selected-item-label">{getItemLabel(selectedOption)}</span>
               <button
                 type="button"
                 class="suu-dropdown__selected-remove"
@@ -1241,6 +1247,7 @@
       style:--suu-dropdown-menu-left={portalMenuLeft}
       style:--suu-dropdown-menu-right={portalMenuRight}
       style:--suu-dropdown-menu-width={portalMenuWidth}
+      style:--suu-dropdown-menu-max-width={portalMenuMaxWidth}
       style:--suu-dropdown-panel-max-height={viewportPanelMaxHeight}
     >
       {#if search && !inputMode}

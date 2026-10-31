@@ -365,6 +365,43 @@ describe('dropdown', () => {
     expect(menu).toHaveClass('suu-dropdown__menu--up', 'suu-dropdown__menu--right');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-top')).toBe('296px');
     expect(menu.style.getPropertyValue('--suu-dropdown-menu-right')).toBe('496px');
+    // 右对齐菜单向左生长，视口预算=触发器右缘（含外扩）减边距：500+4-20=484。
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-max-width')).toBe('484px');
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-width')).toBe('128px');
+  });
+
+  it('publishes a left-growing viewport width budget for portal menus', async () => {
+    const { container } = render(Dropdown, {
+      props: {
+        value: 'one',
+        ariaLabel: 'Provider',
+        portal: true,
+        options: [
+          { label: 'One', value: 'one' },
+          { label: 'Two', value: 'two' }
+        ]
+      }
+    });
+    const dropdown = container.querySelector('.suu-dropdown') as HTMLElement;
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+      right: 500,
+      bottom: 340,
+      left: 380,
+      width: 120,
+      height: 40,
+      x: 380,
+      y: 300,
+      toJSON: () => ({})
+    });
+    vi.stubGlobal('innerWidth', 1000);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Provider' }));
+
+    const menu = document.body.querySelector('.suu-dropdown__menu--portal') as HTMLElement;
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-left')).toBe('376px');
+    // 左对齐菜单向右生长，预算=视口右缘到菜单左缘减边距：1000-376-20=604。
+    expect(menu.style.getPropertyValue('--suu-dropdown-menu-max-width')).toBe('604px');
   });
 
   it('applies viewport height to the in-tree portal menu', async () => {
