@@ -805,6 +805,11 @@
   justify-content: flex-end;
 }
 
+.suu-table__sort-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .suu-table__sort-button:focus-visible {
   outline: 2px solid var(--suu-color-accent);
   outline-offset: 2px;

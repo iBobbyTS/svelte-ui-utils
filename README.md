@@ -666,8 +666,10 @@ defaults such as empty state, pagination label, and page-size label; use
 them.
 Pass `pagination={false}` for static tables. Use `showHeader={false}` for
 tables that should render body rows without a header section. Sortable headers
-preserve the current window scroll position by default and wait for an async
-`onSortChange` before restoring scroll position.
+preserve the current window scroll position by default. If `onSortChange`
+returns a Promise, all sorting buttons in that table are disabled until it
+settles, even when `preserveScrollOnSort` is disabled. Return the Promise for
+the full sort operation (including any data reload).
 
 Body rows change background on pointer hover by default. Set
 `hoverable={false}` to disable that behavior. When `zebra={false}`, the body

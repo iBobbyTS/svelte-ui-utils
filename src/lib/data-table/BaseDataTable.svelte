@@ -35,6 +35,7 @@
   export let onSortChange: DataTableSortChangeHandler | undefined = undefined;
 
   let scrollRestoreSequence = 0;
+  let sortPending = false;
   let tableElement: HTMLTableElement | undefined = undefined;
   let stickyHeaderVisible = false;
   let stickyHeaderLeft = 0;
@@ -110,7 +111,7 @@
   }
 
   async function handleSort(column: DataTableColumn) {
-    if (!column.sortable) {
+    if (!column.sortable || sortPending) {
       return;
     }
 
@@ -120,16 +121,14 @@
     const sequence = shouldPreserveScroll ? scrollRestoreSequence + 1 : scrollRestoreSequence;
     scrollRestoreSequence = sequence;
 
-    const sortResult = onSortChange?.(toggleSort(sort, column.key));
-    if (!shouldPreserveScroll) {
-      return;
-    }
-
-    queueScrollRestore(scrollX, scrollY, sequence);
+    sortPending = true;
     try {
-      await sortResult;
+      const sortResult = onSortChange?.(toggleSort(sort, column.key));
+      if (shouldPreserveScroll) queueScrollRestore(scrollX, scrollY, sequence);
+      if (sortResult) await sortResult;
     } finally {
-      queueScrollRestore(scrollX, scrollY, sequence);
+      sortPending = false;
+      if (shouldPreserveScroll) queueScrollRestore(scrollX, scrollY, sequence);
     }
   }
 
@@ -248,7 +247,7 @@
                 style:max-width={stickyHeaderColumnWidths[columnIndex] ? `${stickyHeaderColumnWidths[columnIndex]}px` : undefined}
               >
                 {#if column.sortable}
-                  <button class="suu-table__sort-button" type="button" on:click={() => handleSort(column)}>
+                  <button class="suu-table__sort-button" type="button" disabled={sortPending} on:click={() => handleSort(column)}>
                     <span><slot name="header" {column} {sort}>{column.header}</slot></span>
                     <span class="suu-table__sort-indicator" aria-hidden="true">
                       {#if sort?.key === column.key && sort.direction === 'asc'}
@@ -302,7 +301,7 @@
               scope="col"
             >
               {#if column.sortable}
-                <button class="suu-table__sort-button" type="button" on:click={() => handleSort(column)}>
+                <button class="suu-table__sort-button" type="button" disabled={sortPending} on:click={() => handleSort(column)}>
                   <span><slot name="header" {column} {sort}>{column.header}</slot></span>
                   <span class="suu-table__sort-indicator" aria-hidden="true">
                     {#if sort?.key === column.key && sort.direction === 'asc'}

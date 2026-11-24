@@ -234,8 +234,10 @@ describe('data table components', () => {
     expect(screen.queryByText('▼')).toBeNull();
     expect(container.querySelector('.suu-table__sort-icon--both')).toBeTruthy();
 
-    await fireEvent.click(screen.getByRole('button', { name: /Name/i }));
+    const button = screen.getByRole('button', { name: /Name/i });
+    await fireEvent.click(button);
     expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc' });
+    expect(button).toBeEnabled();
   });
 
   it('preserves window scroll around async sort changes', async () => {
@@ -381,7 +383,10 @@ describe('data table components', () => {
     expect(container.querySelector('.suu-table--sticky-header')).toBeFalsy();
   });
 
-  it('shows the fixed header as soon as the original header reaches the sticky offset', async () => {
+  it('shows the fixed header at the sticky offset and locks both sets of sort buttons during sorting', async () => {
+    let finishSort!: () => void;
+    const pending = new Promise<void>((resolve) => { finishSort = resolve; });
+    const onSortChange = vi.fn().mockReturnValueOnce(pending);
     const { container } = render(DataTable, {
       props: {
         pagination: false,
@@ -390,7 +395,9 @@ describe('data table components', () => {
           { key: 'id', header: 'ID', sortable: true },
           { key: 'name', header: 'Name', sortable: true }
         ],
-        stickyHeaderOffset: '64px'
+        stickyHeaderOffset: '64px',
+        preserveScrollOnSort: false,
+        onSortChange
       }
     });
 
@@ -410,9 +417,28 @@ describe('data table components', () => {
       window.dispatchEvent(new Event('scroll'));
       await flushAnimationFrame();
 
-      expect(container.querySelector('.suu-table__sticky-clone')).toBeTruthy();
       expect(table.classList.contains('suu-table--sticky-header-shadowed')).toBe(true);
+      const stickyButtons = container.querySelectorAll<HTMLButtonElement>('.suu-table__sticky-clone button');
+      const regularButtons = header.querySelectorAll<HTMLButtonElement>('button');
+      expect(stickyButtons).toHaveLength(2);
+      expect(regularButtons).toHaveLength(2);
+
+      await fireEvent.click(stickyButtons[0]);
+      expect(onSortChange).toHaveBeenCalledWith({ key: 'id', direction: 'asc' });
+      for (const button of [...stickyButtons, ...regularButtons]) {
+        expect(button).toBeDisabled();
+        await fireEvent.click(button);
+      }
+      expect(onSortChange).toHaveBeenCalledTimes(1);
+
+      finishSort();
+      await waitFor(() => {
+        for (const button of [...stickyButtons, ...regularButtons]) expect(button).toBeEnabled();
+      });
+      await fireEvent.click(regularButtons[1]);
+      expect(onSortChange).toHaveBeenLastCalledWith({ key: 'name', direction: 'asc' });
     } finally {
+      finishSort();
       spies.forEach((spy) => spy.mockRestore());
     }
   });
