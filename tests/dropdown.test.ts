@@ -41,12 +41,12 @@ describe('dropdown', () => {
     expect(onChange).toHaveBeenCalledWith('alice');
   });
 
-  it('supports right-aligned secondary text in grouped multiselect options', async () => {
+  it.each(['left', 'right'] as const)('supports inline %s secondary text in grouped multiselect options', async (position) => {
     const onChange = vi.fn();
     render(DropdownMultiSelect, {
       props: {
         ariaLabel: 'Members',
-        secondaryTextPosition: 'right',
+        secondaryTextPosition: position,
         optionGroups: [{ label: 'Strings', options: [{ value: 'alice', label: 'Alice', secondaryText: 'Calgary' }] }],
         onChange
       }
@@ -55,7 +55,7 @@ describe('dropdown', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Members' }));
     const alice = screen.getByRole('option', { name: 'Alice Calgary' });
     const secondary = screen.getByText('Calgary');
-    expect(secondary.parentElement).toHaveAttribute('data-secondary-position', 'right');
+    expect(secondary.parentElement).toHaveAttribute('data-secondary-position', position);
     expect(alice.querySelector('.suu-dropdown__checkbox')).toBeInTheDocument();
     await fireEvent.click(secondary);
     expect(onChange).toHaveBeenCalledWith(['alice']);

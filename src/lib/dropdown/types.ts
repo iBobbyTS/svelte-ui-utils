@@ -20,7 +20,7 @@ export type DropdownMenuAlign = 'left' | 'right';
  */
 export type DropdownVerticalAlign = 'start' | 'center' | 'end';
 
-export type DropdownSecondaryTextPosition = 'below' | 'right';
+export type DropdownSecondaryTextPosition = 'below' | 'left' | 'right';
 
 export interface DropdownOption {
   label: string;
