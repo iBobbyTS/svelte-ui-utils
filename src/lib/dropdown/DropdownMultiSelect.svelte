@@ -9,6 +9,7 @@
     DropdownOption,
     DropdownOptionGroup,
     DropdownPlacement,
+    DropdownSecondaryTextPosition,
     DropdownTriggerClickHandler,
     DropdownVerticalAlign
   } from './types.js';
@@ -18,6 +19,7 @@
   export let options: DropdownOption[] = [];
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   export let selectedOptions: DropdownOption[] = [];
+  export let secondaryTextPosition: DropdownSecondaryTextPosition = 'below';
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let ariaLabel: string | undefined = undefined;
   /** Collapsed trigger summary text (e.g. a selection count); blank keeps the default labels. */
@@ -44,6 +46,7 @@
   {options}
   {optionGroups}
   {selectedOptions}
+  {secondaryTextPosition}
   {groupsCollapsedByDefault}
   {ariaLabel}
   {triggerText}

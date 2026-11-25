@@ -20,8 +20,12 @@ export type DropdownMenuAlign = 'left' | 'right';
  */
 export type DropdownVerticalAlign = 'start' | 'center' | 'end';
 
+export type DropdownSecondaryTextPosition = 'below' | 'right';
+
 export interface DropdownOption {
   label: string;
+  /** Optional supporting text shown only in the expanded option row. */
+  secondaryText?: string;
   /** Optional text used for keyboard typeahead matching instead of (or in addition to) the label. */
   searchText?: string;
   value: DropdownValue;

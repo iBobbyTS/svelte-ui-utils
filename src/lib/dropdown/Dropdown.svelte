@@ -20,6 +20,7 @@
     DropdownOption,
     DropdownOptionGroup,
     DropdownPlacement,
+    DropdownSecondaryTextPosition,
     DropdownSelectionChangeHandler,
     DropdownSearchChangeHandler,
     DropdownSelection,
@@ -35,6 +36,7 @@
   export let optionGroups: DropdownOptionGroup[] | undefined = undefined;
   /** Labels for controlled values that are not present in the current search result. */
   export let selectedOptions: DropdownOption[] = [];
+  export let secondaryTextPosition: DropdownSecondaryTextPosition = 'below';
   export let groupsCollapsedByDefault: 'true' | 'false' | 'auto' = 'false';
   export let search = false;
   export let inputStyle: DropdownInputStyle = 'dropdown';
@@ -1140,6 +1142,17 @@
   });
 </script>
 
+{#snippet optionText(option: DropdownOption)}
+  {#if option.secondaryText?.trim()}
+    <span class="suu-dropdown__option-text" data-secondary-position={secondaryTextPosition}>
+      <span class="suu-dropdown__label">{option.label}</span>
+      <span class="suu-dropdown__secondary-text">{option.secondaryText}</span>
+    </span>
+  {:else}
+    <span class="suu-dropdown__label">{option.label}</span>
+  {/if}
+{/snippet}
+
 <span
   bind:this={dropdownElement}
   class={[
@@ -1317,7 +1330,7 @@
                   aria-hidden="true"
                 ></span>
               {/if}
-              <span class="suu-dropdown__label">{option.label}</span>
+              {@render optionText(option)}
             </button>
           {/each}
         {:else}
@@ -1362,7 +1375,7 @@
                       aria-hidden="true"
                     ></span>
                   {/if}
-                  <span class="suu-dropdown__label">{option.label}</span>
+                  {@render optionText(option)}
                 </button>
                 {/each}
               {/if}

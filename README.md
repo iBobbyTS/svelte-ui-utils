@@ -332,7 +332,7 @@ is ignored when `search` is disabled.
 
 For keyboard typeahead, an option may provide `searchText` separately from its
 display `label`. Typeahead matches the beginning of `searchText` or `label`,
-while the label remains the only text shown in the trigger and menu:
+without including an option’s `secondaryText` in typeahead matching:
 
 ```svelte
 <Dropdown
@@ -341,6 +341,12 @@ while the label remains the only text shown in the trigger and menu:
   ariaLabel="Country"
 />
 ```
+
+An option can supply `secondaryText` for smaller supporting text in the open
+menu. By default it appears below the label. Set
+`secondaryTextPosition="right"` on `Dropdown` or `DropdownMultiSelect` to put
+it at the right edge of the same row. On narrow menus both texts can truncate.
+The supporting text does not change the trigger label or submitted value.
 
 Set `multiselect={true}` to control the component with a `DropdownValue[]`.
 Each option then shows a checkbox, selecting or deselecting an option keeps the

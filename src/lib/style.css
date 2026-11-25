@@ -1283,6 +1283,44 @@
   text-align: left;
 }
 
+.suu-dropdown__option-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.suu-dropdown__secondary-text {
+  color: var(--suu-color-muted);
+  font-size: 0.85em;
+  font-weight: 400;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.suu-dropdown__option-text[data-secondary-position='right'] {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.suu-dropdown__option-text[data-secondary-position='right'] > .suu-dropdown__label,
+.suu-dropdown__option-text[data-secondary-position='right'] > .suu-dropdown__secondary-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suu-dropdown__option-text[data-secondary-position='right'] > .suu-dropdown__secondary-text {
+  flex: 0 1 auto;
+  max-width: 60%;
+  margin-left: auto;
+  text-align: right;
+}
+
 /* 仅有标题的组选项缩进，未分组的「未选择」等操作保持原始对齐。 */
 .suu-dropdown__group-label ~ .suu-dropdown__option {
   padding-inline-start: 24px;

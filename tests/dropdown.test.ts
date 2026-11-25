@@ -15,6 +15,53 @@ describe('dropdown', () => {
     vi.unstubAllGlobals();
   });
 
+  it('shows secondary text below by default without changing selection or the trigger label', async () => {
+    const onChange = vi.fn();
+    render(Dropdown, {
+      props: {
+        ariaLabel: 'Members',
+        value: 'alice',
+        options: [
+          { value: 'alice', label: 'Alice', secondaryText: 'Calgary' },
+          { value: 'bob', label: 'Bob', secondaryText: '  ' }
+        ],
+        onChange
+      }
+    });
+
+    const trigger = screen.getByRole('button', { name: 'Members' });
+    expect(trigger).toHaveTextContent('Alice');
+    expect(trigger).not.toHaveTextContent('Calgary');
+    await fireEvent.click(trigger);
+
+    const alice = screen.getByRole('option', { name: 'Alice Calgary' });
+    expect(screen.getByText('Calgary').parentElement).toHaveAttribute('data-secondary-position', 'below');
+    expect(screen.getByRole('option', { name: 'Bob' }).querySelector('[data-secondary-position]')).toBeNull();
+    await fireEvent.click(alice);
+    expect(onChange).toHaveBeenCalledWith('alice');
+  });
+
+  it('supports right-aligned secondary text in grouped multiselect options', async () => {
+    const onChange = vi.fn();
+    render(DropdownMultiSelect, {
+      props: {
+        ariaLabel: 'Members',
+        secondaryTextPosition: 'right',
+        optionGroups: [{ label: 'Strings', options: [{ value: 'alice', label: 'Alice', secondaryText: 'Calgary' }] }],
+        onChange
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Members' }));
+    const alice = screen.getByRole('option', { name: 'Alice Calgary' });
+    const secondary = screen.getByText('Calgary');
+    expect(secondary.parentElement).toHaveAttribute('data-secondary-position', 'right');
+    expect(alice.querySelector('.suu-dropdown__checkbox')).toBeInTheDocument();
+    await fireEvent.click(secondary);
+    expect(onChange).toHaveBeenCalledWith(['alice']);
+    expect(alice).toBeInTheDocument();
+  });
+
   it('renders input style only when search is enabled and loads after typing', async () => {
     const loadOptions = vi.fn(async (query: string) => ({
       options: [{ label: query ? `Result ${query}` : 'Default result', value: 'result' }]

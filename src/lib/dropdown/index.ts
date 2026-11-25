@@ -21,6 +21,7 @@ export type {
   DropdownOption,
   DropdownOptionGroup,
   DropdownPlacement,
+  DropdownSecondaryTextPosition,
   DropdownSelectionChangeHandler,
   DropdownSearchChangeHandler,
   DropdownSelection,
