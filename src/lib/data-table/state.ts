@@ -1,4 +1,12 @@
-import type { DataTableColumn, DataTableState, FilterState, PaginationState, SortState } from './types.js';
+import type {
+  DataTableCellValue,
+  DataTableColumn,
+  DataTableState,
+  DataTableSubColumn,
+  FilterState,
+  PaginationState,
+  SortState
+} from './types.js';
 
 export function toggleSort(current: SortState | null, columnKey: string): SortState {
   if (!current || current.key !== columnKey) {
@@ -69,6 +77,25 @@ export function getCellValue<Row = unknown>(row: Row, column: DataTableColumn<Ro
   const value =
     row && typeof row === 'object' && column.key in row
       ? (row as Record<string, unknown>)[column.key]
+      : undefined;
+  return value === null || value === undefined ? '' : value;
+}
+
+/**
+ * Default content of one grouped sub cell: the sub column's `render` when it
+ * returns a value, otherwise the sub row's own `key` field. `null` and
+ * `undefined` render as an empty string so a missing cell never prints
+ * "null"/"undefined".
+ */
+export function getSubCellValue(subRow: unknown, subColumn: DataTableSubColumn): DataTableCellValue {
+  const rendered = subColumn.render?.(subRow, subColumn);
+  if (rendered !== undefined) {
+    return rendered === null ? '' : rendered;
+  }
+
+  const value =
+    subRow && typeof subRow === 'object' && subColumn.key in subRow
+      ? (subRow as Record<string, unknown>)[subColumn.key]
       : undefined;
   return value === null || value === undefined ? '' : value;
 }

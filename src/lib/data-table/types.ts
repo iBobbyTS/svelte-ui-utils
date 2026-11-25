@@ -84,6 +84,45 @@ export type DataTableHorizontalAlign = 'left' | 'center' | 'right';
 
 export type DataTableVerticalAlign = 'top' | 'middle' | 'bottom';
 
+/**
+ * Sub column of an opt-in grouped column. Sub columns share the parent
+ * column's tracks: the header renders a second header row, and every sub row
+ * inside a parent row uses one cell per sub column, so widths stay aligned
+ * across parent rows without measuring anything at runtime.
+ */
+export interface DataTableSubColumn {
+  /** Stable identifier used for cell rendering and test targeting. */
+  key: string;
+  header?: string;
+  headerClass?: string;
+  /** Extra cell class; the structural sub-cell class is always present. */
+  class?: string;
+  /**
+   * Preferred track width as any CSS length. Under `tableLayout: 'auto'` it is
+   * the preferred column width that long content may still expand; under
+   * `tableLayout: 'fixed'` it defines the track (unspecified tracks split the
+   * remaining space).
+   */
+  width?: string;
+  headerHorizontalAlign?: DataTableHorizontalAlign;
+  cellHorizontalAlign?: DataTableHorizontalAlign;
+  cellVerticalAlign?: DataTableVerticalAlign;
+  nowrap?: boolean;
+  /** Cell content; `undefined` falls back to the sub row's own `key` value. */
+  render?: (subRow: unknown, subColumn: DataTableSubColumn) => DataTableCellValue;
+}
+
+/**
+ * Returns the sub rows rendered inside one parent row for a grouped column.
+ * An empty result renders the caller's full-width `subEmpty` fallback, which
+ * is also how a caller expresses "no detail for this row" (for example a
+ * missing read permission) without letting the table know about permissions.
+ */
+export type DataTableSubRowsResolver<Row = unknown> = (
+  row: Row,
+  column: DataTableColumn<Row>
+) => readonly unknown[] | null | undefined;
+
 export interface DataTableColumn<Row = unknown> {
   key: string;
   header?: string;
@@ -96,6 +135,15 @@ export interface DataTableColumn<Row = unknown> {
   headerClass?: string;
   nowrap?: boolean;
   render?: (row: Row, column: DataTableColumn<Row>) => DataTableCellValue;
+  /**
+   * Opt-in grouping. When non-empty the column occupies one track per sub
+   * column, gets a parent header spanning the second header row, and renders
+   * the output of `getSubRows` as multiple rows inside the parent row.
+   * Omitting it keeps the single-row table DOM, visual and behavior.
+   */
+  subColumns?: readonly DataTableSubColumn[];
+  /** Sub rows of this parent row; only read for grouped columns. */
+  getSubRows?: DataTableSubRowsResolver<Row>;
 }
 
 export interface FilterOption {

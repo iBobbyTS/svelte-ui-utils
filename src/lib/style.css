@@ -699,6 +699,17 @@
   border-left: 1px solid var(--suu-color-border);
 }
 
+/* 分组表按逻辑列轨绘制竖线：子行续行的首列不在最左侧，不能因 DOM 顺序丢失分组左边界。 */
+.suu-table--grouped.suu-table--vertical-separators th,
+.suu-table--grouped.suu-table--vertical-separators td {
+  border-left: 0;
+}
+
+.suu-table--grouped.suu-table--vertical-separators th:not([data-suu-first-column='true']),
+.suu-table--grouped.suu-table--vertical-separators td:not([data-suu-first-column='true']) {
+  border-left: 1px solid var(--suu-color-border);
+}
+
 .suu-table th[data-nowrap='true'],
 .suu-table td[data-nowrap='true'] {
   white-space: nowrap;
@@ -767,7 +778,12 @@
   pointer-events: auto;
 }
 
-.suu-table--zebra tbody tr:nth-child(even) {
+.suu-table--zebra:not(.suu-table--grouped) tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--suu-color-surface) 70%, transparent);
+}
+
+/* 分组表的一个父行是一个 tbody：斑马纹和悬停高亮按父行整体生效，不被子行切断。 */
+.suu-table--grouped.suu-table--zebra tbody:nth-of-type(even) {
   background: color-mix(in srgb, var(--suu-color-surface) 70%, transparent);
 }
 
@@ -775,11 +791,19 @@
   background: var(--suu-color-bg);
 }
 
-.suu-table tbody tr:last-child td {
+.suu-table:not(.suu-table--grouped) tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.suu-table--hoverable tbody tr:hover {
+.suu-table--grouped tbody:last-of-type tr:last-child td {
+  border-bottom: 0;
+}
+
+.suu-table--hoverable:not(.suu-table--grouped) tbody tr:hover {
+  background: color-mix(in srgb, var(--suu-color-surface) 88%, transparent);
+}
+
+.suu-table--grouped.suu-table--hoverable tbody:hover {
   background: color-mix(in srgb, var(--suu-color-surface) 88%, transparent);
 }
 

@@ -6,10 +6,12 @@ import DateRangeFilter from '../src/lib/data-table/DateRangeFilter.svelte';
 import FilterTable from '../src/lib/data-table/FilterTable.svelte';
 import NumberRangeFilter from '../src/lib/data-table/NumberRangeFilter.svelte';
 import SyncedPaginationHarness from './fixtures/SyncedPaginationHarness.svelte';
+import GroupedTableHarness from './fixtures/GroupedTableHarness.svelte';
 import {
   filter,
   getAriaSort,
   getPageCount,
+  getSubCellValue,
   isDateRangePreset,
   normalizePagination,
   resolveDateRangePreset,
@@ -18,7 +20,7 @@ import {
   toggleSort
 } from '../src/lib/data-table/index.js';
 import { Pagination } from '../src/lib/pagination/index.js';
-import type { DataTableState, FilterTableRow } from '../src/lib/data-table/index.js';
+import type { DataTableColumn, DataTableState, FilterTableRow } from '../src/lib/data-table/index.js';
 
 function mockWindowScroll(initialX: number, initialY: number) {
   const originalScrollTo = window.scrollTo;
@@ -153,6 +155,17 @@ describe('data table state helpers', () => {
     expect(normalizePagination({ page: 99, pageSize: 20 }, 42)).toEqual({ page: 3, pageSize: 20 });
     expect(setDataTablePageSize(state, 50, 200).pagination).toEqual({ page: 1, pageSize: 50 });
     expect(setDataTableFilters(state, { status: 'active' }).pagination.page).toBe(1);
+  });
+
+  it('resolves grouped sub cell values from render callbacks or the sub row field', () => {
+    expect(getSubCellValue({ label: '甲' }, { key: 'label' })).toBe('甲');
+    expect(getSubCellValue({ label: '甲' }, { key: 'label', render: (subRow) => `[${(subRow as { label: string }).label}]` })).toBe('[甲]');
+    // render 返回 undefined 表示回退到子行同名字段。
+    expect(getSubCellValue({ label: '甲' }, { key: 'label', render: () => undefined })).toBe('甲');
+    expect(getSubCellValue({ label: null }, { key: 'label' })).toBe('');
+    expect(getSubCellValue({}, { key: 'missing' })).toBe('');
+    expect(getSubCellValue(null, { key: 'label' })).toBe('');
+    expect(getSubCellValue('text', { key: 'label' })).toBe('');
   });
 });
 
@@ -387,13 +400,14 @@ describe('data table components', () => {
     let finishSort!: () => void;
     const pending = new Promise<void>((resolve) => { finishSort = resolve; });
     const onSortChange = vi.fn().mockReturnValueOnce(pending);
-    const { container } = render(DataTable, {
+    const { container, rerender } = render(DataTable, {
       props: {
         pagination: false,
         rows: [{ id: 1, name: 'Jane' }],
         columns: [
           { key: 'id', header: 'ID', sortable: true },
-          { key: 'name', header: 'Name', sortable: true }
+          { key: 'name', header: 'Name', sortable: true },
+          { key: 'status', header: 'Status' }
         ],
         stickyHeaderOffset: '64px',
         preserveScrollOnSort: false,
@@ -423,6 +437,12 @@ describe('data table components', () => {
       expect(stickyButtons).toHaveLength(2);
       expect(regularButtons).toHaveLength(2);
 
+      const sortHeaders = [header, container.querySelector('.suu-table__sticky-clone thead')!];
+      for (const section of sortHeaders) {
+        expect(Array.from(section.querySelectorAll('th'), (cell) => cell.getAttribute('aria-sort')))
+          .toEqual(['none', 'none', null]);
+      }
+
       await fireEvent.click(stickyButtons[0]);
       expect(onSortChange).toHaveBeenCalledWith({ key: 'id', direction: 'asc' });
       for (const button of [...stickyButtons, ...regularButtons]) {
@@ -437,6 +457,14 @@ describe('data table components', () => {
       });
       await fireEvent.click(regularButtons[1]);
       expect(onSortChange).toHaveBeenLastCalledWith({ key: 'name', direction: 'asc' });
+
+      for (const [direction, ariaSort] of [['asc', 'ascending'], ['desc', 'descending']] as const) {
+        await rerender({ sort: { key: 'id', direction } });
+        for (const section of sortHeaders) {
+          expect(Array.from(section.querySelectorAll('th'), (cell) => cell.getAttribute('aria-sort')))
+            .toEqual([ariaSort, 'none', null]);
+        }
+      }
     } finally {
       finishSort();
       spies.forEach((spy) => spy.mockRestore());
@@ -2072,5 +2100,447 @@ describe('data table components', () => {
 
     await fireEvent.input(screen.getByLabelText('最小值'), { target: { value: '9' } });
     expect(onChange).toHaveBeenLastCalledWith({ min: 9, max: null });
+  });
+});
+
+describe('grouped data table columns', () => {
+  type Detail = { id: number; label: string; count: string; note?: string };
+  type ParentRow = { id: string; name: string; details: Detail[]; canAdd?: boolean };
+
+  function bodyTrackOccupancy(body: HTMLTableSectionElement, trackCount: number) {
+    const rows = Array.from(body.rows);
+    const slots = rows.map(() => Array<HTMLTableCellElement | null>(trackCount).fill(null));
+
+    rows.forEach((row, rowIndex) => {
+      let trackIndex = 0;
+      for (const cell of row.cells) {
+        while (slots[rowIndex][trackIndex]) trackIndex += 1;
+        const trackEnd = trackIndex + cell.colSpan;
+        const rowEnd = rowIndex + cell.rowSpan;
+        expect(trackEnd, `physical row ${rowIndex} exceeds the declared tracks`).toBeLessThanOrEqual(trackCount);
+        expect(rowEnd).toBeLessThanOrEqual(rows.length);
+
+        for (let y = rowIndex; y < rowEnd; y += 1) {
+          for (let x = trackIndex; x < trackEnd; x += 1) {
+            expect(slots[y][x]).toBeNull();
+            slots[y][x] = cell;
+          }
+        }
+        trackIndex = trackEnd;
+      }
+      expect(slots[rowIndex]).not.toContain(null);
+    });
+
+    return slots;
+  }
+
+  function detailColumns(): DataTableColumn[] {
+    return [
+      { key: 'name', header: '姓名' },
+      {
+        key: 'details',
+        header: '明细',
+        subColumns: [
+          { key: 'label', header: '项目' },
+          { key: 'count', header: '数量', cellHorizontalAlign: 'right', nowrap: false },
+          { key: 'note', header: '备注' }
+        ],
+        getSubRows: (row) => (row as ParentRow).details
+      }
+    ];
+  }
+
+  const parentRows: ParentRow[] = [
+    { id: 'a', name: '甲', details: [{ id: 1, label: '甲-1', count: '1' }] },
+    {
+      id: 'b',
+      name: '乙',
+      details: [
+        { id: 2, label: '乙-1', count: '2', note: '长文本备注用于撑开列宽并保持列轨对齐' },
+        { id: 3, label: '乙-2', count: '3' }
+      ]
+    }
+  ];
+
+  it('renders a single header row and no grouped markup without subColumns', () => {
+    const { container } = render(DataTable, {
+      props: {
+        pagination: false,
+        rows: [{ name: 'Jane' }, { name: 'John' }],
+        columns: [{ key: 'name', header: 'Name' }]
+      }
+    });
+
+    const table = container.querySelector('table.suu-table') as HTMLTableElement;
+    expect(table.classList.contains('suu-table--grouped')).toBe(false);
+    expect(table.querySelector('colgroup')).toBeNull();
+    expect(container.querySelectorAll('thead tr')).toHaveLength(1);
+    expect(container.querySelectorAll('tbody')).toHaveLength(1);
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(container.querySelector('[data-suu-first-column]')).toBeNull();
+    expect(container.querySelector('[data-suu-group-header]')).toBeNull();
+    expect(container.querySelector('th')?.hasAttribute('rowspan')).toBe(false);
+  });
+
+  it('renders two header rows with a grouped parent header and its sub columns', () => {
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: parentRows, columns: detailColumns() }
+    });
+
+    const headerRows = Array.from(container.querySelectorAll('thead tr')) as HTMLTableRowElement[];
+    expect(headerRows).toHaveLength(2);
+
+    const [firstRow, secondRow] = headerRows;
+    const nameHeader = firstRow.cells[0] as HTMLTableCellElement;
+    expect(nameHeader.textContent?.trim()).toBe('姓名');
+    expect(nameHeader.getAttribute('rowspan')).toBe('2');
+    expect(nameHeader.getAttribute('scope')).toBe('col');
+
+    const groupHeader = firstRow.cells[1] as HTMLTableCellElement;
+    expect(groupHeader.textContent?.trim()).toBe('明细');
+    expect(groupHeader.getAttribute('colspan')).toBe('3');
+    expect(groupHeader.getAttribute('scope')).toBe('colgroup');
+    expect(groupHeader.getAttribute('data-suu-group-header')).toBe('true');
+
+    expect(Array.from(secondRow.cells).map((cell) => cell.textContent?.trim())).toEqual(['项目', '数量', '备注']);
+    for (const cell of Array.from(secondRow.cells)) {
+      expect(cell.getAttribute('scope')).toBe('col');
+    }
+    expect(secondRow.cells[1].getAttribute('data-nowrap')).toBe('false');
+    expect(secondRow.cells[1].getAttribute('data-horizontal-align')).toBe('left');
+  });
+
+  it('renders sub rows inside the parent row with spanning parent cells', () => {
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: parentRows, columns: detailColumns() }
+    });
+
+    const groups = Array.from(container.querySelectorAll('tbody.suu-table__row-group'));
+    expect(groups).toHaveLength(2);
+
+    // 首条子行与父行其它单元格共用第一物理行：一条子行只有一行，两条子行多出一条续行。
+    expect(groups[0].querySelectorAll('tr')).toHaveLength(1);
+    expect(groups[1].querySelectorAll('tr')).toHaveLength(2);
+
+    const firstParentCell = groups[0].querySelector('tr td') as HTMLTableCellElement;
+    expect(firstParentCell.getAttribute('rowspan')).toBe('1');
+    const secondParentCell = groups[1].querySelector('tr td') as HTMLTableCellElement;
+    expect(secondParentCell.getAttribute('rowspan')).toBe('2');
+
+    const firstGroupCells = Array.from(groups[0].querySelectorAll('tr:first-child td')).filter(
+      (cell) => cell.getAttribute('data-suu-group-cell') === 'true'
+    );
+    expect(firstGroupCells.map((cell) => cell.textContent?.trim())).toEqual(['甲-1', '1', '']);
+    expect(firstGroupCells[1].getAttribute('data-horizontal-align')).toBe('right');
+
+    // 单分组列时每个父行的物理行数由自身子行数决定，不需要填充格。
+    expect(container.querySelectorAll('.suu-table__sub-filler')).toHaveLength(0);
+
+    const secondGroupSubRows = Array.from(groups[1].querySelectorAll('tr.suu-table__sub-row')) as HTMLTableRowElement[];
+    expect(secondGroupSubRows).toHaveLength(1);
+    expect(secondGroupSubRows[0].getAttribute('data-suu-sub-row-index')).toBe('1');
+    expect(Array.from(secondGroupSubRows[0].cells).map((cell) => cell.textContent?.trim())).toEqual(['乙-2', '3', '']);
+  });
+
+  it('keeps the fallback and caller footer in their tracks alongside populated groups', () => {
+    const columns = [...detailColumns(), { key: 'id', header: '编号' }];
+    const rows: ParentRow[] = [
+      parentRows[1],
+      { id: 'c', name: '丙', details: [] },
+      { id: 'd', name: '丁', details: [], canAdd: false }
+    ];
+    const { container } = render(GroupedTableHarness, { props: { rows, columns } });
+
+    const firstSubCell = container.querySelector('[data-testid="subcell-label"]') as HTMLElement;
+    expect(firstSubCell.textContent?.trim()).toBe('乙-1');
+    expect(firstSubCell.getAttribute('data-parent')).toBe('b');
+    expect(firstSubCell.getAttribute('data-sub-row')).toBe('2');
+    expect(firstSubCell.getAttribute('data-sub-row-index')).toBe('0');
+    expect(firstSubCell.getAttribute('data-sub-column-index')).toBe('0');
+
+    const secondRowSubCells = Array.from(container.querySelectorAll('tr.suu-table__sub-row [data-testid="subcell-label"]'));
+    expect(secondRowSubCells).toHaveLength(1);
+    expect(secondRowSubCells[0].getAttribute('data-sub-row')).toBe('3');
+    expect(secondRowSubCells[0].getAttribute('data-sub-row-index')).toBe('1');
+
+    const table = container.querySelector<HTMLTableElement>('table.suu-table')!;
+    const trackCount = table.querySelectorAll('colgroup col').length;
+    expect(trackCount).toBe(5);
+    const groups = Array.from(table.tBodies);
+    expect(groups).toHaveLength(3);
+    const [populated, editableEmpty, readOnlyEmpty] = groups.map((body) => bodyTrackOccupancy(body, trackCount));
+
+    const [parentCell, emptyCell, trailingCell] = Array.from(groups[1].rows[0].cells);
+    const emptyFooter = groups[1].rows[1].cells[0];
+    expect(editableEmpty).toEqual([
+      [parentCell, emptyCell, emptyCell, emptyCell, trailingCell],
+      [parentCell, emptyFooter, emptyFooter, emptyFooter, trailingCell]
+    ]);
+    expect(emptyCell.querySelector('[data-testid="sub-empty-details"]')?.textContent).toBe('无明细：c');
+    expect(emptyFooter.querySelector('[data-testid="sub-add-details"]')).toHaveAttribute('data-parent', 'c');
+
+    const populatedFooterTracks = populated[2].slice(1, 4);
+    expect(populatedFooterTracks).toEqual(Array(3).fill(groups[0].rows[2].cells[0]));
+    expect(populatedFooterTracks[0]?.querySelector('[data-testid="sub-add-details"]')).toHaveAttribute('data-parent', 'b');
+    expect(readOnlyEmpty[0][1]?.querySelector('[data-testid="sub-empty-details"]')).toHaveTextContent('无明细：d');
+    expect(readOnlyEmpty[1][1]?.querySelector('button')).toBeNull();
+    expect(container.querySelectorAll('.suu-table__sub-filler')).toHaveLength(0);
+  });
+
+  it('spans an empty group through another group’s continuation rows and stops before the footer', () => {
+    const columns = [
+      ...detailColumns(),
+      { key: 'other', header: '其他', subColumns: [{ key: 'label', header: '其他项目' }] }
+    ];
+    const { container } = render(GroupedTableHarness, { props: { rows: [parentRows[1]], columns } });
+    const body = container.querySelector<HTMLTableSectionElement>('tbody.suu-table__row-group')!;
+    const slots = bodyTrackOccupancy(body, 5);
+    const emptyCell = body.rows[0].cells[4];
+    expect(emptyCell).toHaveClass('suu-table__sub-empty');
+    expect(slots[1][4]).toBe(emptyCell);
+    expect(slots[2][4]).toBe(body.rows[2].cells[1]);
+    expect(slots[2][4]?.querySelector('[data-testid="sub-add-other"]')).toBeInTheDocument();
+  });
+
+  it('renders the add-control footer row only for callers that provide the subFooter slot', () => {
+    const columns = detailColumns();
+
+    const withFooter = render(GroupedTableHarness, { props: { rows: parentRows, columns } });
+    const footerRows = withFooter.container.querySelectorAll('tr.suu-table__sub-footer');
+    expect(footerRows).toHaveLength(2);
+    const footerCell = footerRows[0].querySelector('td') as HTMLTableCellElement;
+    expect(footerCell.getAttribute('colspan')).toBe('3');
+    expect(footerRows[0].querySelector('[data-testid="sub-add-details"]')?.getAttribute('data-parent')).toBe('a');
+    const parentCellWithFooter = withFooter.container.querySelector('tbody.suu-table__row-group tr td') as HTMLTableCellElement;
+    expect(parentCellWithFooter.getAttribute('rowspan')).toBe('2');
+    withFooter.unmount();
+
+    const withoutFooter = render(DataTable, { props: { pagination: false, rows: parentRows, columns } });
+    expect(withoutFooter.container.querySelector('tr.suu-table__sub-footer')).toBeNull();
+    const parentCellWithoutFooter = withoutFooter.container.querySelector('tbody.suu-table__row-group tr td') as HTMLTableCellElement;
+    expect(parentCellWithoutFooter.getAttribute('rowspan')).toBe('1');
+  });
+
+  it('uses the populated parent-row attributes on the first physical row only', () => {
+    const { container } = render(DataTable, {
+      props: {
+        pagination: false,
+        rows: parentRows,
+        columns: detailColumns(),
+        rowKey: 'id',
+        rowClass: (row) => `row-${(row as ParentRow).id}`,
+        rowAttributes: (row) => ({ 'data-parent-id': (row as ParentRow).id })
+      }
+    });
+
+    const firstRows = Array.from(container.querySelectorAll('tbody.suu-table__row-group > tr:first-child'));
+    expect(firstRows).toHaveLength(2);
+    expect(firstRows[0].classList.contains('row-a')).toBe(true);
+    expect(firstRows[0].getAttribute('data-parent-id')).toBe('a');
+    expect(firstRows[1].getAttribute('data-parent-id')).toBe('b');
+    expect(container.querySelectorAll('[data-parent-id]')).toHaveLength(2);
+  });
+
+  it('marks only the first logical track so vertical separators follow the column tracks', () => {
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: parentRows, columns: detailColumns(), verticalSeparators: true }
+    });
+
+    // 第一逻辑列是未分组的“姓名”列：表头 + 每个父行一个单元格，子行中不重复出现。
+    const marked = Array.from(container.querySelectorAll('[data-suu-first-column="true"]'));
+    expect(marked.map((cell) => cell.textContent?.trim())).toEqual(['姓名', '甲', '乙']);
+    for (const cell of marked) {
+      expect(cell.getAttribute('data-suu-group-cell')).toBeNull();
+    }
+    expect(container.querySelector('.suu-table__sub-cell[data-suu-first-column="true"]')).toBeNull();
+    expect(container.querySelector('.suu-table__sub-empty[data-suu-first-column="true"]')).toBeNull();
+  });
+
+  it('emits the parent column sort key from a grouped header', async () => {
+    const onSortChange = vi.fn();
+    render(DataTable, {
+      props: {
+        pagination: false,
+        rows: parentRows,
+        columns: detailColumns().map((column) => (column.key === 'details' ? { ...column, sortable: true } : column)),
+        onSortChange,
+        preserveScrollOnSort: false
+      }
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: /明细/ }));
+    expect(onSortChange).toHaveBeenCalledWith({ key: 'details', direction: 'asc' });
+  });
+
+  it('keeps the empty state spanning every grouped track', () => {
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: [], columns: detailColumns() }
+    });
+
+    const emptyCell = container.querySelector('.suu-table__empty') as HTMLTableCellElement;
+    expect(emptyCell.getAttribute('colspan')).toBe('4');
+    expect(container.querySelectorAll('tbody.suu-table__row-group')).toHaveLength(0);
+  });
+
+  it('renders grouped rows without a header section when showHeader is false', () => {
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: parentRows, columns: detailColumns(), showHeader: false }
+    });
+
+    expect(container.querySelector('thead')).toBeNull();
+    expect(container.querySelector('colgroup')).toBeTruthy();
+    expect(container.querySelectorAll('tbody.suu-table__row-group')).toHaveLength(2);
+  });
+
+  it('falls back to the caller fallback cell when a grouped column has no sub rows resolver', () => {
+    const columns: DataTableColumn[] = [
+      { key: 'name', header: '姓名' },
+      {
+        key: 'details',
+        header: '明细',
+        subColumns: [{ key: 'label', header: '项目' }]
+      }
+    ];
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: parentRows, columns }
+    });
+
+    expect(container.querySelectorAll('.suu-table__sub-empty')).toHaveLength(2);
+    expect(container.querySelectorAll('.suu-table__sub-cell')).toHaveLength(0);
+    // 没有子行就没有续行，父单元格无需跨行。
+    expect(container.querySelector('tbody.suu-table__row-group tr td')?.getAttribute('rowspan')).toBe('1');
+  });
+
+  it('supports several grouped columns with different sub row counts', () => {
+    const columns: DataTableColumn[] = [
+      { key: 'name', header: '姓名' },
+      {
+        key: 'left',
+        header: '左组',
+        subColumns: [
+          { key: 'a', header: 'A' },
+          { key: 'b', header: 'B' }
+        ],
+        getSubRows: () => [{ a: 'a1', b: 'b1' }, { a: 'a2', b: 'b2' }]
+      },
+      {
+        key: 'right',
+        header: '右组',
+        subColumns: [
+          { key: 'c', header: 'C' },
+          { key: 'd', header: 'D' }
+        ],
+        getSubRows: () => [{ c: 'c1', d: 'd1' }]
+      },
+      { key: 'id', header: '编号' }
+    ];
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: [{ name: '甲', id: '甲一' }], columns }
+    });
+
+    const nativeGroups = Array.from(container.querySelectorAll('table.suu-table > colgroup'));
+    const groupHeaderCells = Array.from(container.querySelectorAll<HTMLTableCellElement>('thead tr:first-child th'));
+    expect(groupHeaderCells.map((cell) => cell.textContent?.trim())).toEqual(['姓名', '左组', '右组', '编号']);
+    expect(groupHeaderCells.map((cell) => cell.scope)).toEqual(['col', 'colgroup', 'colgroup', 'col']);
+    expect(nativeGroups.map((group) => group.querySelectorAll('col').length)).toEqual(
+      groupHeaderCells.map((cell) => cell.colSpan)
+    );
+    expect(container.querySelectorAll('thead tr:nth-child(2) th')).toHaveLength(4);
+
+    const physicalRows = Array.from(container.querySelectorAll('tbody.suu-table__row-group > tr')) as HTMLTableRowElement[];
+    expect(physicalRows).toHaveLength(2);
+    expect(Array.from(physicalRows[0].cells).map((cell) => cell.textContent?.trim())).toEqual(['甲', 'a1', 'b1', 'c1', 'd1', '甲一']);
+    expect(Array.from(physicalRows[1].cells).map((cell) => cell.textContent?.trim())).toEqual(['a2', 'b2', '']);
+    const rightFiller = physicalRows[1].querySelector('.suu-table__sub-filler') as HTMLTableCellElement;
+    expect(rightFiller.getAttribute('colspan')).toBe('2');
+    // 右侧分组只有一条子行，填充格覆盖该分组剩余的续行。
+    expect(rightFiller.getAttribute('rowspan')).toBe('1');
+    expect(physicalRows[0].cells[0].getAttribute('rowspan')).toBe('2');
+  });
+
+  it('uses sub column render callbacks and renders nullish values as empty text', () => {
+    const columns: DataTableColumn[] = [
+      { key: 'name', header: '姓名' },
+      {
+        key: 'details',
+        header: '明细',
+        subColumns: [
+          { key: 'label', header: '项目', render: (subRow) => `[${(subRow as Detail).label}]` },
+          { key: 'missing', header: '缺失' }
+        ],
+        getSubRows: () => [{ label: '值', missing: null }]
+      }
+    ];
+    const { container } = render(DataTable, {
+      props: { pagination: false, rows: [{ name: '甲' }], columns }
+    });
+
+    const subCells = Array.from(container.querySelectorAll('.suu-table__sub-cell'));
+    expect(subCells.map((cell) => cell.textContent?.trim())).toEqual(['[值]', '']);
+  });
+
+  it('aligns sticky sub column tracks and exposes sorting on the parent header only', async () => {
+    const { container, rerender } = render(DataTable, {
+      props: {
+        pagination: false,
+        rows: parentRows,
+        columns: detailColumns().map((column) => (column.key === 'details' ? { ...column, sortable: true } : column)),
+        stickyHeaderOffset: '64px',
+        preserveScrollOnSort: false
+      }
+    });
+
+    const table = container.querySelector('.suu-table-wrap > table.suu-table') as HTMLTableElement;
+    const header = table.tHead as HTMLTableSectionElement;
+    const probe = container.querySelector('.suu-table__sticky-offset-probe') as HTMLElement;
+    const [nameHeader, groupHeader] = Array.from(header.rows[0].cells) as HTMLElement[];
+    const [labelHeader, countHeader, noteHeader] = Array.from(header.rows[1].cells) as HTMLElement[];
+    const spies = [
+      vi.spyOn(table, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 63, bottom: 520, width: 420, height: 457 })),
+      vi.spyOn(header, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 63, bottom: 107, width: 420, height: 44 })),
+      vi.spyOn(probe, 'getBoundingClientRect').mockReturnValue(makeRect({ top: 64, bottom: 64 })),
+      vi.spyOn(nameHeader, 'getBoundingClientRect').mockReturnValue(makeRect({ width: 120 })),
+      vi.spyOn(groupHeader, 'getBoundingClientRect').mockReturnValue(makeRect({ width: 300 })),
+      vi.spyOn(labelHeader, 'getBoundingClientRect').mockReturnValue(makeRect({ width: 90 })),
+      vi.spyOn(countHeader, 'getBoundingClientRect').mockReturnValue(makeRect({ width: 100 })),
+      vi.spyOn(noteHeader, 'getBoundingClientRect').mockReturnValue(makeRect({ width: 110 }))
+    ];
+
+    try {
+      window.dispatchEvent(new Event('scroll'));
+      await flushAnimationFrame();
+
+      const clone = container.querySelector('.suu-table__sticky-clone') as HTMLElement;
+      expect(clone).toBeTruthy();
+      const cloneTable = clone.querySelector('table.suu-table') as HTMLTableElement;
+      expect(cloneTable.classList.contains('suu-table--grouped')).toBe(true);
+
+      const tracks = Array.from(cloneTable.querySelectorAll('colgroup col')) as HTMLTableColElement[];
+      expect(tracks.map((track) => track.style.width)).toEqual(['120px', '90px', '100px', '110px']);
+      expect(Array.from(cloneTable.querySelectorAll(':scope > colgroup'), (group) => group.children.length))
+        .toEqual([1, 3]);
+      expect(cloneTable.style.width).toBe('420px');
+
+      const cloneRows = Array.from(cloneTable.querySelectorAll('thead tr')) as HTMLTableRowElement[];
+      expect(cloneRows).toHaveLength(2);
+      expect((cloneRows[0].cells[0] as HTMLTableCellElement).getAttribute('rowspan')).toBe('2');
+      expect((cloneRows[0].cells[1] as HTMLTableCellElement).getAttribute('colspan')).toBe('3');
+      expect(cloneRows[0].cells[1].getAttribute('scope')).toBe('colgroup');
+      expect(Array.from(cloneRows[1].cells).map((cell) => cell.textContent?.trim())).toEqual(['项目', '数量', '备注']);
+
+      for (const cell of Array.from(cloneTable.querySelectorAll('th'))) {
+        expect((cell as HTMLElement).style.width).toBe('');
+      }
+
+      for (const [direction, ariaSort] of [[null, 'none'], ['asc', 'ascending'], ['desc', 'descending']] as const) {
+        await rerender({ sort: direction === null ? null : { key: 'details', direction } });
+        for (const section of [header, cloneTable.tHead!]) {
+          expect(Array.from(section.querySelectorAll('th'), (cell) => cell.getAttribute('aria-sort')))
+            .toEqual([null, ariaSort, null, null, null]);
+        }
+      }
+    } finally {
+      spies.forEach((spy) => spy.mockRestore());
+    }
   });
 });

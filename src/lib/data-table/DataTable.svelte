@@ -7,12 +7,14 @@
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import { normalizePagination } from './state.js';
   import type {
+    DataTableCellValue,
     DataTableColumn,
     DataTableLayout,
     DataTableRowAttributes,
     DataTableRowKey,
     DataTableSortChangeHandler,
     DataTableServerPagination,
+    DataTableSubColumn,
     PaginationState,
     SortState
   } from './types.js';
@@ -38,6 +40,10 @@
   export let preserveScrollOnSort = true;
   export let rowClass: string | ((row: unknown, index: number) => string | undefined | null) | undefined = undefined;
   export let rowAttributes: DataTableRowAttributes | undefined = undefined;
+
+  // 分组表的“添加控件”占一行，只有调用方真正提供 subFooter 槽时才渲染该行，
+  // 避免未使用分组列的页面多出空白行。
+  const subFooterEnabled = $$slots.subFooter !== undefined;
 
   const defaultPageSizeOptions = [10, 20, 50, 100];
   const initialPaginationConfig = pagination === false ? undefined : pagination;
@@ -206,9 +212,31 @@
     {rowClass}
     {rowAttributes}
     {onSortChange}
+    {subFooterEnabled}
   >
     <slot name="header" slot="header" let:column let:sort {column} {sort}>{column.header}</slot>
     <slot name="cell" slot="cell" let:row let:column let:value {row} {column} {value}>{value}</slot>
+    <!-- 转发嵌套分组槽时显式保留类型，供打包后的声明使用。 -->
+    <slot
+      name="subCell"
+      slot="subCell"
+      let:row
+      let:column
+      let:subRow
+      let:subRowIndex
+      let:subColumn
+      let:subColumnIndex
+      let:value
+      {row}
+      column={column as DataTableColumn}
+      subRow={subRow as unknown}
+      {subRowIndex}
+      subColumn={subColumn as DataTableSubColumn}
+      subColumnIndex={subColumnIndex as number}
+      value={value as DataTableCellValue}
+    >{value}</slot>
+    <slot name="subEmpty" slot="subEmpty" let:row let:column {row} column={column as DataTableColumn} />
+    <slot name="subFooter" slot="subFooter" let:row let:column {row} column={column as DataTableColumn} />
   </BaseDataTable>
 
   {#if shouldShowPagination}

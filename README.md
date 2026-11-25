@@ -900,6 +900,80 @@ offset, a synchronized fixed header takes over while the original header keeps
 its layout space. The older `stickyHeaderTop` prop and
 `--suu-table-sticky-top` CSS variable remain supported.
 
+### Grouped columns with sub rows
+
+A column may opt into grouping by declaring `subColumns` and a `getSubRows`
+resolver. Grouped columns keep the plain table untouched: without
+`subColumns` the table keeps its single header row and one `<tr>` per row.
+
+```svelte
+<script lang="ts">
+  import { DataTable, type DataTableColumn } from '@ibobbyts/svelte-ui-utils/table';
+
+  type Detail = { id: number; nickname: string; audio: string; note: string };
+  type SlotRow = { id: string; partName: string; details: Detail[] };
+
+  const columns: DataTableColumn[] = [
+    { key: 'partName', header: '声部名' },
+    {
+      key: 'details',
+      header: '乐手明细',
+      subColumns: [
+        { key: 'nickname', header: '昵称', width: '12rem' },
+        { key: 'audio', header: '音频交稿', nowrap: false },
+        { key: 'note', header: '备注', nowrap: false }
+      ],
+      getSubRows: (row) => (row as SlotRow).details
+    }
+  ];
+</script>
+
+<DataTable rows={rows} {columns} rowKey="id" pagination={false}>
+  <svelte:fragment slot="subCell" let:row let:subColumn let:subRow let:subRowIndex let:value>
+    {#if subColumn.key === 'audio'}
+      <span class="audio-cell">{value}</span>
+    {:else}
+      {value}
+    {/if}
+  </svelte:fragment>
+  <svelte:fragment slot="subEmpty" let:row let:column>
+    无{column.header}权限
+  </svelte:fragment>
+</DataTable>
+```
+
+- The first header row holds the parent header with `scope="colgroup"` and
+  `colspan` equal to the sub column count; other columns span both header rows
+  with `scope="col"`. The second header row lists the sub columns with
+  `scope="col"`.
+- The first sub row shares the parent row's first `<tr>`; each further sub row
+  is an additional `<tr>` in the same `<tbody>`, and the non-grouped cells of
+  that parent row use `rowspan` to span the block. Sub cells are real table
+  cells on shared tracks, so header and body widths stay aligned across parent
+  rows without measuring anything at runtime.
+- `getSubRows(row, column)` returns the sub rows of one parent row. An empty or
+  missing result renders the caller's `subEmpty` slot as a single full-width
+  cell, which is also the supported way to express "no detail for this row"
+  (for example a missing read permission) without teaching the table about
+  permissions. The returned rows may differ in count between parent rows.
+- `subCell` receives `{ row, column, subRow, subRowIndex, subColumn,
+  subColumnIndex, value }`; without the slot, the sub column's `render` output
+  or the sub row's own `subColumn.key` field is printed (`null`/`undefined`
+  print as empty text). `getSubCellValue(subRow, subColumn)` exposes that
+  fallback as a helper.
+- `subFooter` renders an add-control row under the sub rows of each grouped
+  column. The row only exists when the caller provides the slot, so tables
+  without an add control keep their row count.
+- `subColumns[].width` is any CSS length: under `tableLayout: 'auto'` it is the
+  preferred track width that long content may still expand, under
+  `tableLayout: 'fixed'` it defines the track.
+- The sticky header clone repeats both header rows and mirrors the measured
+  track widths through a `colgroup`, so a grouped table keeps its column
+  alignment while the header sticks.
+- Grouped tables render one `<tbody>` per parent row so zebra striping and row
+  hover apply to the whole parent row, and vertical separators follow the
+  logical column tracks instead of the DOM cell order.
+
 ## Theme variables
 
 The package ships plain CSS and CSS variables. Override variables globally or
