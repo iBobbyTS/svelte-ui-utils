@@ -379,8 +379,10 @@ The collapsed trigger joins selected labels with `", "` and truncates the
 single line when it exceeds the existing `width` or `maxWidth` constraint.
 Pass `triggerText` to replace that joined text with a caller-computed summary
 (e.g. `"3 selected"`); it also applies to single-select triggers, and a blank
-value keeps the default label behavior. Grouped and disabled options retain
-the same behavior as single-select mode.
+value keeps the default label behavior. Set `wrapTriggerLabel` to wrap the
+collapsed label without line clamping, including inside a narrow table cell;
+this does not change how menu options render. Grouped and disabled options
+retain the same behavior as single-select mode.
 
 The dropdown panel is constrained by default to the space available above or
 below the trigger and remains scrollable when its contents exceed that height.
@@ -907,6 +909,13 @@ offset, a synchronized fixed header takes over while the original header keeps
 its layout space. The older `stickyHeaderTop` prop and
 `--suu-table-sticky-top` CSS variable remain supported.
 
+Use `stickyHeaderMode="in-flow"` to keep the original header and the body in the
+same horizontal scroll container, including momentum and native overscroll.
+The original header pins vertically and releases at the end of the table. Pass
+`stickyHeaderAnchor` for a fixed or sticky header in the same vertical scrollport;
+its bottom edge determines the inset instead of `stickyHeaderOffset`. The
+default sticky mode is unchanged.
+
 ### Exact column widths
 
 Pass `columnTrackWidths` to opt in to fixed pixel tracks, in display order. Supply
@@ -916,7 +925,16 @@ width is the sum of the tracks. The wrapper fits the table up to the available
 width, and wider tables scroll inside it.
 Omit the prop to keep the regular automatic or fixed table layout.
 
-For a resizable header, use `DataTableColumnResizeHandle` inside an edge-aligned,
+For built-in resizing, pass `columnResize` with `getTrack({ columnKey, subColumnKey })`
+returning `{ label, minWidth, maxWidth }` for each resizable leaf, or `undefined` to
+skip that track. The table positions the handles and guide on the real header,
+and uses in-flow pinning if stickiness is enabled. Update the controlled widths
+in `onPreview(track, width)`; persist or accept the final width in
+`onCommit(track, width)`; discard the preview in `onCancel()`. Use `disabled` to
+prevent new changes while saving. Pass `wrapColumnContent` to break long text
+inside fixed tracks. For a Dropdown trigger, use its own `wrapTriggerLabel` option.
+
+For custom header rendering, use `DataTableColumnResizeHandle` inside an edge-aligned,
 positioned container. It accepts `label`, `width`, `minWidth`, `maxWidth` and optional
 `disabled`. Use `onPreview` to update tracks while dragging, `onCommit` for the
 final pointer or keyboard value, and `onCancel` to discard a drag preview. The
@@ -938,8 +956,11 @@ into a keyboard highlight.
 ### Grouped columns with sub rows
 
 A column may opt into grouping by declaring `subColumns` and a `getSubRows`
-resolver. Grouped columns keep the plain table untouched: without
-`subColumns` the table keeps its single header row and one `<tr>` per row.
+resolver. Set `rowHoverMode="row"` to highlight only the current physical row
+and all full cells spanning it. The default still highlights a grouped row
+as a whole; `hoverable={false}` disables either mode. Set the optional
+`--suu-table-row-hover-background` token to customize the row-mode color.
+Without `subColumns` the table keeps its single header row and one `<tr>` per row.
 
 ```svelte
 <script lang="ts">

@@ -2,11 +2,16 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
+  import DataTableColumnResizeHandle from './DataTableColumnResizeHandle.svelte';
+  import { manageTableHeader } from './table-header.js';
+  import { highlightTableRow } from './column-group-row-hover.js';
   import { getUiMessages, type UiLanguage } from '../i18n.js';
   import { getAriaSort, getCellValue, getSubCellValue, toggleSort } from './state.js';
   import type {
     DataTableCellValue,
     DataTableColumn,
+    DataTableColumnResize,
+    DataTableColumnTrack,
     DataTableHorizontalAlign,
     DataTableLayout,
     DataTableRowAttributes,
@@ -23,11 +28,16 @@
   export let showHeader = true;
   export let zebra = true;
   export let hoverable = true;
+  export let rowHoverMode: 'group' | 'row' = 'group';
   export let bordered = true;
   export let verticalSeparators = false;
   export let tableLayout: DataTableLayout = 'auto';
   export let columnTrackWidths: readonly number[] | undefined = undefined;
+  export let columnResize: DataTableColumnResize | undefined = undefined;
+  export let wrapColumnContent = false;
   export let stickyHeader = true;
+  export let stickyHeaderMode: 'clone' | 'in-flow' = 'clone';
+  export let stickyHeaderAnchor: HTMLElement | null | undefined = undefined;
   export let stickyHeaderTop: string | undefined = undefined;
   export let stickyHeaderOffset: string | undefined = undefined;
   export let preserveScrollOnSort = true;
@@ -52,6 +62,8 @@
 
   interface ResolvedHeaderCell {
     id: string;
+    trackIndex?: number;
+    track: DataTableColumnTrack;
     column: DataTableColumn;
     subColumn: DataTableSubColumn | null;
     colSpan: number | undefined;
@@ -90,6 +102,9 @@
   $: sizedTracks = columnTrackWidths?.length === countTracks(columns) && columnTrackWidths.every((width) => Number.isFinite(width) && width > 0)
     ? columnTrackWidths : undefined;
   $: sizedWidth = sizedTracks?.reduce((sum, width) => sum + width, 0);
+  $: resizeConfig = sizedTracks && columnResize;
+  $: inFlowHeader = stickyHeader && (stickyHeaderMode === 'in-flow' || !!resizeConfig);
+  $: cloneHeader = stickyHeader && !inFlowHeader;
   $: headerRows = buildHeaderRows(columns, undefined, grouped);
   $: cloneHeaderRows = buildHeaderRows(columns, grouped || sizedTracks ? undefined : stickyHeaderColumnWidths, grouped);
 
@@ -114,6 +129,7 @@
   function buildHeaderRows(tableColumns: readonly DataTableColumn[], widths: number[] | undefined, isGrouped: boolean) {
     const firstRow: ResolvedHeaderCell[] = [];
     const secondRow: ResolvedHeaderCell[] = [];
+    let trackIndex = 0;
 
     tableColumns.forEach((column, columnIndex) => {
       const measuredWidth = widths?.[columnIndex];
@@ -123,6 +139,7 @@
       if (subColumns.length > 0) {
         firstRow.push({
           id: column.key,
+          track: { columnKey: column.key },
           column,
           subColumn: null,
           colSpan: subColumns.length,
@@ -141,6 +158,8 @@
         subColumns.forEach((subColumn, subColumnIndex) => {
           secondRow.push({
             id: `${column.key}::${subColumn.key}`,
+            trackIndex: trackIndex++,
+            track: { columnKey: column.key, subColumnKey: subColumn.key },
             column,
             subColumn,
             colSpan: undefined,
@@ -161,6 +180,8 @@
 
       firstRow.push({
         id: column.key,
+        trackIndex: trackIndex++,
+        track: { columnKey: column.key },
         column,
         subColumn: null,
         colSpan: undefined,
@@ -249,7 +270,7 @@
   }
 
   function updateStickyHeader() {
-    if (!showHeader || !stickyHeader || typeof window === 'undefined' || !tableElement) {
+    if (!showHeader || !cloneHeader || typeof window === 'undefined' || !tableElement) {
       stickyHeaderVisible = false;
       return;
     }
@@ -287,14 +308,15 @@
   }
 
   function queueStickyHeaderUpdate() {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+    if (typeof window === 'undefined') return;
     if (stickyHeaderUpdateFrame !== null) {
       window.cancelAnimationFrame(stickyHeaderUpdateFrame);
+      stickyHeaderUpdateFrame = null;
     }
-
+    if (!showHeader || !cloneHeader) {
+      stickyHeaderVisible = false;
+      return;
+    }
     stickyHeaderUpdateFrame = window.requestAnimationFrame(() => {
       stickyHeaderUpdateFrame = null;
       updateStickyHeader();
@@ -417,7 +439,7 @@
     columns;
     sort;
     showHeader;
-    stickyHeader;
+    cloneHeader;
     resolvedStickyHeaderTop;
     sizedTracks;
     queueStickyHeaderUpdate();
@@ -428,13 +450,14 @@
   bind:this={tableWrapElement}
   class:suu-table-wrap--borderless={!bordered}
   class:suu-table-wrap--sized-tracks={!!sizedTracks}
+  class:suu-table-wrap--in-flow-header={inFlowHeader && showHeader}
   class="suu-table-wrap"
   style:--suu-table-sticky-top={resolvedStickyHeaderTop}
-  on:scroll={(grouped || sizedTracks) && stickyHeader && showHeader ? queueStickyHeaderUpdate : undefined}
+  on:scroll={(grouped || sizedTracks) && cloneHeader && showHeader ? queueStickyHeaderUpdate : undefined}
 >
   <span bind:this={stickyHeaderOffsetProbe} class="suu-table__sticky-offset-probe" aria-hidden="true"></span>
 
-  {#if showHeader && stickyHeaderVisible}
+  {#if showHeader && cloneHeader && stickyHeaderVisible}
     <div
       class="suu-table__sticky-clone"
       style:left={`${stickyHeaderLeft}px`}
@@ -517,14 +540,16 @@
 
   <table
     bind:this={tableElement}
+    use:highlightTableRow={hoverable && rowHoverMode === 'row'}
+    class:suu-table--wrap-column-content={!!sizedTracks && wrapColumnContent}
     class:suu-table--layout-auto={tableLayout === 'auto'}
     class:suu-table--layout-fixed={tableLayout === 'fixed'}
-    class:suu-table--sticky-header={stickyHeader}
-    class:suu-table--sticky-header-shadowed={showHeader && stickyHeaderVisible}
+    class:suu-table--sticky-header={cloneHeader}
+    class:suu-table--sticky-header-shadowed={showHeader && cloneHeader && stickyHeaderVisible}
     class:suu-table--grouped={grouped}
     class:suu-table--zebra={zebra}
     class:suu-table--plain={!zebra}
-    class:suu-table--hoverable={hoverable}
+    class:suu-table--hoverable={hoverable && rowHoverMode === 'group'}
     class:suu-table--vertical-separators={verticalSeparators}
     class="suu-table"
     style:table-layout={sizedTracks ? 'fixed' : undefined}
@@ -551,13 +576,19 @@
       {/each}
     {/if}
     {#if showHeader}
-      <thead>
+      <thead
+        class:suu-table__in-flow-header={inFlowHeader}
+        use:manageTableHeader={{ pinned: inFlowHeader, anchor: stickyHeaderAnchor, offset: resolvedStickyHeaderTop, resize: !!resizeConfig }}
+      >
         {#each headerRows as headerRow, headerRowIndex (headerRowIndex)}
           <tr>
             {#each headerRow as cell (cell.id)}
+              {@const resize = cell.trackIndex === undefined ? undefined : resizeConfig?.getTrack(cell.track)}
               <th
+                aria-label={resize ? (cell.subColumn ? cell.subColumn.header : cell.column.header) : undefined}
                 aria-sort={cell.subColumn === null && cell.column.sortable ? getAriaSort(sort, cell.column.key) : undefined}
                 class={cell.headerClass}
+                class:suu-table__resize-cell={!!resize}
                 colspan={cell.colSpan}
                 data-horizontal-align={cell.horizontalAlign}
                 data-nowrap={cell.nowrap}
@@ -592,6 +623,19 @@
                   </button>
                 {:else}
                   <slot name="header" column={cell.column} {sort}>{cell.column.header}</slot>
+                {/if}
+                {#if resize && resizeConfig && sizedTracks && cell.trackIndex !== undefined}
+                  <div class="suu-table__resize-edge" class:suu-table__resize-edge--last={cell.trackIndex === trackCount - 1}>
+                    <DataTableColumnResizeHandle
+                      {...resize}
+                      width={sizedTracks[cell.trackIndex]}
+                      disabled={resizeConfig.disabled}
+                      guideTrack={{ index: cell.trackIndex, subColumn: cell.subColumn !== null }}
+                      onPreview={(width) => resizeConfig?.onPreview(cell.track, width)}
+                      onCommit={(width) => resizeConfig?.onCommit(cell.track, width)}
+                      onCancel={() => resizeConfig?.onCancel()}
+                    />
+                  </div>
                 {/if}
               </th>
             {/each}

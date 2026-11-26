@@ -9,6 +9,7 @@
   import type {
     DataTableCellValue,
     DataTableColumn,
+    DataTableColumnResize,
     DataTableLayout,
     DataTableRowAttributes,
     DataTableRowKey,
@@ -31,12 +32,17 @@
   export let maxPageButtons = 15;
   export let zebra = true;
   export let hoverable = true;
+  export let rowHoverMode: 'group' | 'row' = 'group';
   export let bordered = true;
   export let verticalSeparators = true;
   export let tableLayout: DataTableLayout = 'auto';
   /** Exact CSS pixel widths of all visible leaf tracks, in display order. */
   export let columnTrackWidths: readonly number[] | undefined = undefined;
+  export let columnResize: DataTableColumnResize | undefined = undefined;
+  export let wrapColumnContent = false;
   export let stickyHeader = true;
+  export let stickyHeaderMode: 'clone' | 'in-flow' = 'clone';
+  export let stickyHeaderAnchor: HTMLElement | null | undefined = undefined;
   export let stickyHeaderTop: string | undefined = undefined;
   export let stickyHeaderOffset: string | undefined = undefined;
   export let preserveScrollOnSort = true;
@@ -201,11 +207,16 @@
     {showHeader}
     {zebra}
     {hoverable}
+    {rowHoverMode}
     {bordered}
     {verticalSeparators}
     {tableLayout}
     {columnTrackWidths}
+    {columnResize}
+    {wrapColumnContent}
     {stickyHeader}
+    {stickyHeaderMode}
+    {stickyHeaderAnchor}
     {stickyHeaderTop}
     {stickyHeaderOffset}
     {preserveScrollOnSort}

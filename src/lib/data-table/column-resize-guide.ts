@@ -99,6 +99,7 @@ export function mountDataTableColumnResizeGuide(
 
   return {
     sync,
+    get visible() { return !guide.hidden; },
     destroy() {
       listeners.abort();
       guide.remove();

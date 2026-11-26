@@ -15,6 +15,20 @@ describe('dropdown', () => {
     vi.unstubAllGlobals();
   });
 
+  it('opts the trigger into full label wrapping without changing its menu options', async () => {
+    const { rerender } = render(Dropdown, {
+      ariaLabel: 'Members', multiselect: true, value: ['alex'],
+      options: [{ value: 'alex', label: 'Alex with a long label' }]
+    });
+    const trigger = screen.getByRole('button', { name: 'Members' });
+    expect(trigger).not.toHaveClass('suu-dropdown__button--wrap-label');
+    await rerender({ wrapTriggerLabel: true });
+    expect(trigger).toHaveClass('suu-dropdown__button--wrap-label');
+    expect(trigger).toHaveTextContent('Alex with a long label');
+    await fireEvent.click(trigger);
+    expect(screen.getByRole('option', { name: 'Alex with a long label' })).not.toHaveClass('suu-dropdown__button--wrap-label');
+  });
+
   it('shows secondary text below by default without changing selection or the trigger label', async () => {
     const onChange = vi.fn();
     render(Dropdown, {

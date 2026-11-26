@@ -49,6 +49,7 @@
   export let placeholder: string | undefined = undefined;
   /** Collapsed trigger summary text (e.g. a selection count); blank keeps the default labels. */
   export let triggerText: string | undefined = undefined;
+  export let wrapTriggerLabel = false;
   export let language: UiLanguage = 'en_us';
   export let loadingText: string | undefined = undefined;
   export let noResultsText: string | undefined = undefined;
@@ -1218,6 +1219,7 @@
     {id}
     type="button"
     class="suu-dropdown__button"
+    class:suu-dropdown__button--wrap-label={wrapTriggerLabel}
     {disabled}
     aria-label={ariaLabel}
     aria-haspopup="listbox"

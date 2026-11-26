@@ -26,6 +26,8 @@ export type {
   CheckboxFilterControl,
   CustomDateRangePreset,
   DataTableColumn,
+  DataTableColumnResize,
+  DataTableColumnTrack,
   DataTableCellValue,
   DataTableClassValue,
   DataTableHorizontalAlign,

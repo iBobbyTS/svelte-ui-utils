@@ -54,6 +54,93 @@ describe('exact column track sizing', () => {
   });
 });
 
+describe('in-flow table interactions', () => {
+  const columns: DataTableColumn[] = [
+    { key: 'part', header: 'Part', sortable: true },
+    { key: 'details', header: 'Details', subColumns: [{ key: 'name', header: 'Name' }, { key: 'note', header: 'Note' }], getSubRows: () => [{ name: 'First' }, { name: 'Second' }] }
+  ];
+
+  it('puts resize controls on their leaf headers and uses the same header for sorting and resizing', async () => {
+    const onCommit = vi.fn();
+    const onSortChange = vi.fn();
+    const { container, rerender } = render(DataTable, {
+      columns, rows: [{ part: 'Cello' }], pagination: false, columnTrackWidths: [100, 90, 120],
+      wrapColumnContent: true, preserveScrollOnSort: false, onSortChange,
+      columnResize: {
+        getTrack: ({ columnKey, subColumnKey }) => subColumnKey === 'name' ? undefined :
+          { label: 'Resize ' + (subColumnKey ?? columnKey), minWidth: 50, maxWidth: 200 },
+        onCommit, onPreview: vi.fn(), onCancel: vi.fn()
+      }
+    });
+    const table = container.querySelector('table')!;
+    const head = table.tHead!;
+    expect(head).toHaveClass('suu-table__in-flow-header');
+    expect(container.querySelectorAll('thead')).toHaveLength(1);
+    expect(table).toHaveClass('suu-table--wrap-column-content');
+    const note = screen.getByRole('separator', { name: 'Resize note' });
+    expect(note.closest('th')).toBe(screen.getByRole('columnheader', { name: 'Note' }));
+    expect(note).toHaveAttribute('data-suu-resize-track', '2');
+    expect(screen.getAllByRole('separator')).toHaveLength(2);
+    await fireEvent.pointerOver(note);
+    expect(container.querySelector('.suu-table-column-resize-guide')).not.toHaveAttribute('hidden');
+    await fireEvent.keyDown(note, { key: 'ArrowRight' });
+    expect(onCommit).toHaveBeenCalledExactlyOnceWith({ columnKey: 'details', subColumnKey: 'note' }, 128);
+    const sort = screen.getByRole('button', { name: 'Part' });
+    expect(sort).not.toContainElement(screen.getByRole('separator', { name: 'Resize part' }));
+    await fireEvent.click(sort);
+    expect(onSortChange).toHaveBeenCalledExactlyOnceWith({ key: 'part', direction: 'asc' });
+    await rerender({ columnTrackWidths: undefined });
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    expect(container.querySelector('.suu-table-column-resize-guide')).toBeNull();
+    expect(table).not.toHaveClass('suu-table--wrap-column-content');
+  });
+
+  it('pins the original header below the anchor and clamps travel at the table end in the fallback', async () => {
+    const anchor = document.createElement('div');
+    vi.spyOn(anchor, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 40));
+    const { container, rerender } = render(DataTable, {
+      columns, rows: [{ part: 'Cello' }], pagination: false, stickyHeaderMode: 'in-flow', stickyHeaderAnchor: anchor
+    });
+    const table = container.querySelector('table')!;
+    const head = table.tHead!;
+    const tableRect = vi.spyOn(table, 'getBoundingClientRect');
+    vi.spyOn(head, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 50));
+    tableRect.mockReturnValue(new DOMRect(0, 90, 200, 300));
+    await fireEvent.resize(window);
+    const y = () => head.style.getPropertyValue('--suu-table-header-y');
+    expect(y()).toBe('0px');
+    for (const [top, expected] of [[-40, '80px'], [-400, '250px'], [80, '0px']] as const) {
+      tableRect.mockReturnValue(new DOMRect(0, top, 200, 300));
+      await fireEvent.scroll(document);
+      expect(y()).toBe(expected);
+      expect(table.tHead).toBe(head);
+      expect(container.querySelector('.suu-table__sticky-clone')).toBeNull();
+    }
+    await rerender({ stickyHeader: false });
+    expect(y()).toBe('');
+  });
+
+  it('highlights only the hit physical row and the whole cells that span it', async () => {
+    const { container, rerender } = render(DataTable, {
+      columns, rows: [{ part: 'Cello' }, { part: 'Flute' }], pagination: false, stickyHeader: false, rowHoverMode: 'row'
+    });
+    const table = container.querySelector('table')!;
+    const [first, second] = [...table.tBodies[0].rows];
+    const merged = first.cells[0];
+    vi.spyOn(first, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 20, 200, 24));
+    const highlighted = () => [...table.querySelectorAll('.suu-table__row-highlight')];
+    await fireEvent.pointerMove(merged, { clientY: 55, pointerType: 'mouse' });
+    expect(highlighted()).toEqual([merged, ...second.cells]);
+    await fireEvent.pointerLeave(table);
+    expect(highlighted()).toEqual([]);
+    await fireEvent.pointerMove(second.cells[0], { clientY: 55, pointerType: 'mouse' });
+    expect(highlighted()).toEqual([merged, ...second.cells]);
+    await rerender({ rowHoverMode: 'group' });
+    expect(highlighted()).toEqual([]);
+    expect(table).toHaveClass('suu-table--hoverable');
+  });
+});
+
 function mockWindowScroll(initialX: number, initialY: number) {
   const originalScrollTo = window.scrollTo;
   const originalScrollX = Object.getOwnPropertyDescriptor(window, 'scrollX');

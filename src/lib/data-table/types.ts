@@ -15,6 +15,17 @@ export type SortDirection = 'asc' | 'desc';
 
 export type DataTableLayout = 'auto' | 'fixed';
 
+/** A visible leaf track; a grouped parent header does not own a track. */
+export type DataTableColumnTrack = { columnKey: string; subColumnKey?: string };
+
+export type DataTableColumnResize = {
+  disabled?: boolean;
+  getTrack: (track: DataTableColumnTrack) => { label: string; minWidth: number; maxWidth: number } | undefined;
+  onPreview: (track: DataTableColumnTrack, width: number) => void;
+  onCommit: (track: DataTableColumnTrack, width: number) => void;
+  onCancel: () => void;
+};
+
 export interface SortState {
   key: string;
   direction: SortDirection;

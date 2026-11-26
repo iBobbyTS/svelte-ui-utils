@@ -753,6 +753,11 @@
   vertical-align: bottom;
 }
 
+.suu-table.suu-table--wrap-column-content :is(th, td) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .suu-table thead th {
   background: var(--suu-color-surface);
   color: var(--suu-color-text);
@@ -762,6 +767,63 @@
 .suu-table--sticky-header thead th {
   position: relative;
   z-index: 1;
+}
+
+.suu-table > .suu-table__in-flow-header {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  transform: translateY(var(--suu-table-header-y, 0px));
+}
+
+/* Non-interactive header cells must not steal hover from body controls when scrolling. */
+.suu-table__in-flow-header :is(button, a[href], input, select, textarea, summary, [tabindex], [contenteditable]),
+.suu-table__resize-edge {
+  pointer-events: auto;
+}
+
+.suu-table .suu-table__resize-cell {
+  position: relative;
+}
+
+.suu-table__resize-edge {
+  position: absolute;
+  inset-block: 0;
+  right: -5px;
+  width: 10px;
+  z-index: 2;
+}
+
+.suu-table__resize-edge--last {
+  right: 0;
+}
+
+/* Collapsed table borders do not travel with a translated header. */
+.suu-table > .suu-table__in-flow-header th {
+  box-shadow: inset 0 -1px var(--suu-color-border);
+}
+
+.suu-table--vertical-separators:not(.suu-table--grouped) > .suu-table__in-flow-header th:not(:first-child),
+.suu-table--vertical-separators.suu-table--grouped > .suu-table__in-flow-header th:not([data-suu-first-column='true']) {
+  box-shadow: inset 1px 0 var(--suu-color-border), inset 0 -1px var(--suu-color-border);
+}
+
+@supports (view-timeline: --suu-table-block block) and (animation-range: exit-crossing 0% exit-crossing calc(100% - 1px)) {
+  .suu-table-wrap--in-flow-header {
+    view-timeline: --suu-table-block block;
+    view-timeline-inset: var(--suu-table-header-inset, 0px) 0px;
+  }
+
+  .suu-table > .suu-table__in-flow-header {
+    animation: suu-table-header-pin linear both;
+    animation-timeline: --suu-table-block;
+    animation-range: exit-crossing 0% exit-crossing calc(100% - var(--suu-table-header-end, 0px));
+  }
+
+  @keyframes suu-table-header-pin {
+    from { transform: none; }
+    to { transform: translateY(var(--suu-table-header-travel, 0px)); }
+  }
 }
 
 .suu-table--sticky-header-shadowed > thead {
@@ -823,6 +885,10 @@
 
 .suu-table--grouped.suu-table--hoverable tbody:hover {
   background: color-mix(in srgb, var(--suu-color-surface) 88%, transparent);
+}
+
+:where(.suu-table td.suu-table__row-highlight) {
+  background-color: var(--suu-table-row-hover-background, color-mix(in srgb, var(--suu-color-surface) 88%, transparent));
 }
 
 .suu-table__sort-button {
@@ -1014,6 +1080,14 @@
   display: block;
   white-space: nowrap;
   overflow-wrap: normal;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.suu-dropdown .suu-dropdown__button--wrap-label .suu-dropdown__label {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
   -webkit-line-clamp: unset;
   line-clamp: unset;
 }
