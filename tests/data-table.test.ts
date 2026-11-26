@@ -22,6 +22,38 @@ import {
 import { Pagination } from '../src/lib/pagination/index.js';
 import type { DataTableColumn, DataTableState, FilterTableRow } from '../src/lib/data-table/index.js';
 
+describe('exact column track sizing', () => {
+  it('renders grouped and ungrouped tracks without stretching untouched columns', async () => {
+    const columns: DataTableColumn[] = [
+      { key: 'part', header: 'Part' },
+      { key: 'musician', header: 'Musician', subColumns: [{ key: 'name', width: '8rem' }, { key: 'note' }] }
+    ];
+    const { container, rerender } = render(DataTable, { rows: [], columns, pagination: false, stickyHeader: false, columnTrackWidths: [80, 130, 300] });
+    const table = container.querySelector('table')!;
+    const widths = () => [...table.querySelectorAll('col')].map((col) => col.style.width);
+    expect(table.querySelectorAll('colgroup')).toHaveLength(2);
+    expect(table.style.tableLayout).toBe('fixed');
+    expect(table.style.width).toBe('510px');
+    expect(table.parentElement?.classList.contains('suu-table-wrap--sized-tracks')).toBe(true);
+    expect(widths()).toEqual(['80px', '130px', '300px']);
+    await rerender({ columnTrackWidths: [80, 200, 300] });
+    expect(table.style.width).toBe('580px');
+    expect(widths()).toEqual(['80px', '200px', '300px']);
+    await rerender({ columnTrackWidths: undefined });
+    expect(table.style.width).toBe('');
+    expect(table.parentElement?.classList.contains('suu-table-wrap--sized-tracks')).toBe(false);
+    expect(widths()).toEqual(['', '8rem', '']);
+  });
+
+  it('supports exact widths in a plain table without changing its header structure', () => {
+    const columns = [{ key: 'name', header: 'Name' }, { key: 'note', header: 'Note' }];
+    const { container } = render(DataTable, { rows: [], columns, pagination: false, stickyHeader: false, columnTrackWidths: [80, 240] });
+    expect(container.querySelectorAll('thead tr')).toHaveLength(1);
+    expect([...container.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['80px', '240px']);
+    expect(container.querySelector('table')!.style.width).toBe('320px');
+  });
+});
+
 function mockWindowScroll(initialX: number, initialY: number) {
   const originalScrollTo = window.scrollTo;
   const originalScrollX = Object.getOwnPropertyDescriptor(window, 'scrollX');

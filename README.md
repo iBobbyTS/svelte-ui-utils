@@ -907,6 +907,34 @@ offset, a synchronized fixed header takes over while the original header keeps
 its layout space. The older `stickyHeaderTop` prop and
 `--suu-table-sticky-top` CSS variable remain supported.
 
+### Exact column widths
+
+Pass `columnTrackWidths` to opt in to fixed pixel tracks, in display order. Supply
+one positive width per visible leaf column: one for each ordinary column, and
+one per sub-column of a group (none for the spanning group header). The table's
+width is the sum of the tracks. The wrapper fits the table up to the available
+width, and wider tables scroll inside it.
+Omit the prop to keep the regular automatic or fixed table layout.
+
+For a resizable header, use `DataTableColumnResizeHandle` inside an edge-aligned,
+positioned container. It accepts `label`, `width`, `minWidth`, `maxWidth` and optional
+`disabled`. Use `onPreview` to update tracks while dragging, `onCommit` for the
+final pointer or keyboard value, and `onCancel` to discard a drag preview. The
+caller owns rendering the handle (including on a custom sticky surface), the
+width state and any persistence.
+
+To replace the handle's short indicator with a full-column guide, call
+`mountDataTableColumnResizeGuide(scrollContainer, table, header)` with the table's
+scroll wrapper, the actual table element and the header containing the resize
+handles. Pass `guideTrack={{ index }}` on each handle using its zero-based index
+into the leaf tracks rendered by `columnTrackWidths`.
+For a grouped sub-column, add `subColumn: true` and position the handle from the
+sub-header row; the guide will start there, even on a sticky header, and won't
+cover the spanning group label above. Call `sync()` after changing header or
+track geometry, and `destroy()` on unmount. Hover, pointer capture, keyboard
+focus and resize keys show the guide; unrelated keys don't turn a pointer focus
+into a keyboard highlight.
+
 ### Grouped columns with sub rows
 
 A column may opt into grouping by declaring `subColumns` and a `getSubRows`

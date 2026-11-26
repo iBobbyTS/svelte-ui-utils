@@ -667,6 +667,24 @@
   border-radius: var(--suu-radius);
 }
 
+.suu-table-wrap--sized-tracks {
+  box-sizing: border-box;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+}
+
+.suu-table-wrap--resize-guide {
+  position: relative;
+}
+
+.suu-table-column-resize-guide {
+  position: absolute;
+  width: 2px;
+  background: var(--suu-color-accent);
+  pointer-events: none;
+  z-index: 3;
+}
+
 .suu-table-wrap--borderless {
   border: 0;
   border-radius: 0;

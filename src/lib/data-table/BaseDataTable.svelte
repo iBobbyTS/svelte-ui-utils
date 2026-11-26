@@ -26,6 +26,7 @@
   export let bordered = true;
   export let verticalSeparators = false;
   export let tableLayout: DataTableLayout = 'auto';
+  export let columnTrackWidths: readonly number[] | undefined = undefined;
   export let stickyHeader = true;
   export let stickyHeaderTop: string | undefined = undefined;
   export let stickyHeaderOffset: string | undefined = undefined;
@@ -86,8 +87,11 @@
   $: showSubFooterRow = subFooterEnabled && grouped;
   $: emptyColspan = Math.max(1, grouped ? trackCount : columns.length);
   // 主表和吸顶副本共用同一份表头模型，避免两处表头结构漂移；只有副本带测量宽度。
+  $: sizedTracks = columnTrackWidths?.length === countTracks(columns) && columnTrackWidths.every((width) => Number.isFinite(width) && width > 0)
+    ? columnTrackWidths : undefined;
+  $: sizedWidth = sizedTracks?.reduce((sum, width) => sum + width, 0);
   $: headerRows = buildHeaderRows(columns, undefined, grouped);
-  $: cloneHeaderRows = buildHeaderRows(columns, grouped ? undefined : stickyHeaderColumnWidths, grouped);
+  $: cloneHeaderRows = buildHeaderRows(columns, grouped || sizedTracks ? undefined : stickyHeaderColumnWidths, grouped);
 
   function isGroupedColumn(column: DataTableColumn) {
     return (column.subColumns?.length ?? 0) > 0;
@@ -95,6 +99,16 @@
 
   function countTracks(tableColumns: readonly DataTableColumn[]) {
     return tableColumns.reduce((total, column) => total + (isGroupedColumn(column) ? (column.subColumns?.length ?? 1) : 1), 0);
+  }
+
+  function resolveSizedTrackGroups(tableColumns: readonly DataTableColumn[], widths: readonly number[]) {
+    let offset = 0;
+    return tableColumns.map((column) => {
+      const length = column.subColumns?.length || 1;
+      const tracks = widths.slice(offset, offset + length);
+      offset += length;
+      return tracks;
+    });
   }
 
   function buildHeaderRows(tableColumns: readonly DataTableColumn[], widths: number[] | undefined, isGrouped: boolean) {
@@ -257,7 +271,7 @@
       return;
     }
 
-    if (grouped) {
+    if (grouped || sizedTracks) {
       // 固定副本裁剪到滚动容器内侧，副本内的表格跟随原表的横向位置。
       const wrapLeft = tableWrapElement.getBoundingClientRect().left + tableWrapElement.clientLeft;
       stickyHeaderLeft = Math.max(wrapLeft, tableRect.left);
@@ -405,6 +419,7 @@
     showHeader;
     stickyHeader;
     resolvedStickyHeaderTop;
+    sizedTracks;
     queueStickyHeaderUpdate();
   }
 </script>
@@ -412,9 +427,10 @@
 <div
   bind:this={tableWrapElement}
   class:suu-table-wrap--borderless={!bordered}
+  class:suu-table-wrap--sized-tracks={!!sizedTracks}
   class="suu-table-wrap"
   style:--suu-table-sticky-top={resolvedStickyHeaderTop}
-  on:scroll={grouped && stickyHeader && showHeader ? queueStickyHeaderUpdate : undefined}
+  on:scroll={(grouped || sizedTracks) && stickyHeader && showHeader ? queueStickyHeaderUpdate : undefined}
 >
   <span bind:this={stickyHeaderOffsetProbe} class="suu-table__sticky-offset-probe" aria-hidden="true"></span>
 
@@ -435,10 +451,11 @@
         class:suu-table--hoverable={hoverable}
         class:suu-table--vertical-separators={verticalSeparators}
         class="suu-table"
-        style:width={grouped ? `${stickyHeaderTrackGroups.flat().reduce((total, width) => total + width, 0)}px` : undefined}
-        style:transform={grouped ? `translateX(${stickyHeaderTrackOffset}px)` : undefined}
+        style:table-layout={sizedTracks ? 'fixed' : undefined}
+        style:width={grouped || sizedTracks ? `${stickyHeaderTrackGroups.flat().reduce((total, width) => total + width, 0)}px` : undefined}
+        style:transform={grouped || sizedTracks ? `translateX(${stickyHeaderTrackOffset}px)` : undefined}
       >
-        {#if grouped}
+        {#if grouped || sizedTracks}
           {#each stickyHeaderTrackGroups as tracks}
             <colgroup>
               {#each tracks as trackWidth}
@@ -510,8 +527,17 @@
     class:suu-table--hoverable={hoverable}
     class:suu-table--vertical-separators={verticalSeparators}
     class="suu-table"
+    style:table-layout={sizedTracks ? 'fixed' : undefined}
+    style:width={sizedWidth === undefined ? undefined : `${sizedWidth}px`}
   >
-    {#if grouped}
+    {#if sizedTracks}
+      {@const trackGroups = resolveSizedTrackGroups(columns, sizedTracks)}
+      {#each trackGroups as tracks}
+        <colgroup>
+          {#each tracks as width}<col style:width={`${width}px`} />{/each}
+        </colgroup>
+      {/each}
+    {:else if grouped}
       {#each columns as column (column.key)}
         <colgroup>
           {#if isGroupedColumn(column)}

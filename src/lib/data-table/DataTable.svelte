@@ -34,6 +34,8 @@
   export let bordered = true;
   export let verticalSeparators = true;
   export let tableLayout: DataTableLayout = 'auto';
+  /** Exact CSS pixel widths of all visible leaf tracks, in display order. */
+  export let columnTrackWidths: readonly number[] | undefined = undefined;
   export let stickyHeader = true;
   export let stickyHeaderTop: string | undefined = undefined;
   export let stickyHeaderOffset: string | undefined = undefined;
@@ -202,6 +204,7 @@
     {bordered}
     {verticalSeparators}
     {tableLayout}
+    {columnTrackWidths}
     {stickyHeader}
     {stickyHeaderTop}
     {stickyHeaderOffset}
