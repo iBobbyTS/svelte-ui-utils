@@ -1,4 +1,5 @@
 export { default as DataTable } from './DataTable.svelte';
+export { default as DataTableScrollArea } from './DataTableScrollArea.svelte';
 export { default as DataTableColumnResizeHandle } from './DataTableColumnResizeHandle.svelte';
 export { mountDataTableColumnResizeGuide } from './column-resize-guide.js';
 export { default as DateRangeFilter } from './DateRangeFilter.svelte';

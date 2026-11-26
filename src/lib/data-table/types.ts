@@ -104,6 +104,8 @@ export type DataTableVerticalAlign = 'top' | 'middle' | 'bottom';
 export interface DataTableSubColumn {
   /** Stable identifier used for cell rendering and test targeting. */
   key: string;
+  /** Pin this leaf and its group title in a shared scroll area with exact track widths. */
+  pinLeft?: boolean;
   header?: string;
   headerClass?: string;
   /** Extra cell class; the structural sub-cell class is always present. */
@@ -136,6 +138,8 @@ export type DataTableSubRowsResolver<Row = unknown> = (
 
 export interface DataTableColumn<Row = unknown> {
   key: string;
+  /** Pin this ordinary column in a shared scroll area with exact track widths. For a group, configure its leaves instead. */
+  pinLeft?: boolean;
   header?: string;
   sortable?: boolean;
   headerHorizontalAlign?: DataTableHorizontalAlign;

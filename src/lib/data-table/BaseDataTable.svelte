@@ -1,7 +1,8 @@
 <svelte:options runes={false} />
 
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { getContext, onMount } from 'svelte';
+  import { tableScrollAreaContext } from './scroll-area-context.js';
   import DataTableColumnResizeHandle from './DataTableColumnResizeHandle.svelte';
   import { manageTableHeader } from './table-header.js';
   import { highlightTableRow } from './column-group-row-hover.js';
@@ -36,6 +37,7 @@
   export let columnResize: DataTableColumnResize | undefined = undefined;
   export let wrapColumnContent = false;
   export let stickyHeader = true;
+  export let pinFirstColumn = false;
   export let stickyHeaderMode: 'clone' | 'in-flow' = 'clone';
   export let stickyHeaderAnchor: HTMLElement | null | undefined = undefined;
   export let stickyHeaderTop: string | undefined = undefined;
@@ -78,6 +80,21 @@
     style: string | undefined;
   }
 
+  interface PinnedLeaf {
+    inset: string;
+    edge: boolean;
+  }
+
+  interface PinnedGroup {
+    start: number;
+    width: number;
+    span: number;
+    layer: number;
+    leaves: Map<string, PinnedLeaf>;
+  }
+
+  type ColumnPin = PinnedLeaf | PinnedGroup;
+
   let scrollRestoreSequence = 0;
   let sortPending = false;
   let tableWrapElement: HTMLDivElement;
@@ -103,8 +120,12 @@
     ? columnTrackWidths : undefined;
   $: sizedWidth = sizedTracks?.reduce((sum, width) => sum + width, 0);
   $: resizeConfig = sizedTracks && columnResize;
-  $: inFlowHeader = stickyHeader && (stickyHeaderMode === 'in-flow' || !!resizeConfig);
-  $: cloneHeader = stickyHeader && !inFlowHeader;
+  const sharedScroll = getContext<boolean>(tableScrollAreaContext) ?? false;
+  $: nativeHeader = stickyHeader && sharedScroll;
+  $: inFlowHeader = stickyHeader && !sharedScroll && (stickyHeaderMode === 'in-flow' || !!resizeConfig);
+  $: cloneHeader = stickyHeader && !sharedScroll && !inFlowHeader;
+  $: pinnedFirstColumn = sharedScroll && pinFirstColumn && !!columns[0] && !isGroupedColumn(columns[0]);
+  $: columnPins = resolveColumnPins(columns, sharedScroll ? sizedTracks : undefined, pinnedFirstColumn);
   $: headerRows = buildHeaderRows(columns, undefined, grouped);
   $: cloneHeaderRows = buildHeaderRows(columns, grouped || sizedTracks ? undefined : stickyHeaderColumnWidths, grouped);
 
@@ -114,6 +135,45 @@
 
   function countTracks(tableColumns: readonly DataTableColumn[]) {
     return tableColumns.reduce((total, column) => total + (isGroupedColumn(column) ? (column.subColumns?.length ?? 1) : 1), 0);
+  }
+
+  function resolveColumnPins(tableColumns: readonly DataTableColumn[], widths: readonly number[] | undefined, pinFirst: boolean) {
+    const pins = new Map<string, ColumnPin>();
+    if (!widths) return pins;
+    let trackIndex = 0;
+    let start = 0;
+    for (const [index, column] of tableColumns.entries()) {
+      if (column.subColumns?.length) {
+        const leaves = new Map<string, PinnedLeaf>();
+        const groupStart = start;
+        let span = 0;
+        for (const leaf of column.subColumns) {
+          const width = widths[trackIndex++];
+          span += width;
+          if (leaf.pinLeft) {
+            leaves.set(leaf.key, { inset: start + 'px', edge: trackIndex < widths.length });
+            start += width;
+          }
+        }
+        if (leaves.size) {
+          pins.set(column.key, { start: groupStart, width: start - groupStart, span, layer: tableColumns.length - index, leaves });
+        }
+      } else {
+        const width = widths[trackIndex++];
+        const legacyFirst = pinFirst && index === 0;
+        if (column.pinLeft || legacyFirst) {
+          pins.set(column.key, { inset: start + 'px', edge: !legacyFirst && trackIndex < widths.length });
+          start += width;
+        }
+      }
+    }
+    return pins;
+  }
+
+  function resolveLeafPin(pin: ColumnPin | undefined, subKey?: string) {
+    if (!pin) return undefined;
+    if ('leaves' in pin) return subKey === undefined ? undefined : pin.leaves.get(subKey);
+    return pin;
   }
 
   function resolveSizedTrackGroups(tableColumns: readonly DataTableColumn[], widths: readonly number[]) {
@@ -451,6 +511,7 @@
   class:suu-table-wrap--borderless={!bordered}
   class:suu-table-wrap--sized-tracks={!!sizedTracks}
   class:suu-table-wrap--in-flow-header={inFlowHeader && showHeader}
+  class:suu-table-wrap--shared-scroll={sharedScroll}
   class="suu-table-wrap"
   style:--suu-table-sticky-top={resolvedStickyHeaderTop}
   on:scroll={(grouped || sizedTracks) && cloneHeader && showHeader ? queueStickyHeaderUpdate : undefined}
@@ -546,6 +607,7 @@
     class:suu-table--layout-fixed={tableLayout === 'fixed'}
     class:suu-table--sticky-header={cloneHeader}
     class:suu-table--sticky-header-shadowed={showHeader && cloneHeader && stickyHeaderVisible}
+    class:suu-table--pin-first-column={pinnedFirstColumn}
     class:suu-table--grouped={grouped}
     class:suu-table--zebra={zebra}
     class:suu-table--plain={!zebra}
@@ -578,12 +640,17 @@
     {#if showHeader}
       <thead
         class:suu-table__in-flow-header={inFlowHeader}
+        class:suu-table__native-header={nativeHeader}
+        style:--suu-table-pin-layer={columnPins.size ? columns.length + 1 : undefined}
         use:manageTableHeader={{ pinned: inFlowHeader, anchor: stickyHeaderAnchor, offset: resolvedStickyHeaderTop, resize: !!resizeConfig }}
       >
         {#each headerRows as headerRow, headerRowIndex (headerRowIndex)}
           <tr>
             {#each headerRow as cell (cell.id)}
               {@const resize = cell.trackIndex === undefined ? undefined : resizeConfig?.getTrack(cell.track)}
+              {@const pin = columnPins.get(cell.column.key)}
+              {@const leafPin = resolveLeafPin(pin, cell.subColumn?.key)}
+              {@const pinnedGroup = cell.groupHeader && pin && 'leaves' in pin ? pin : undefined}
               <th
                 aria-label={resize ? (cell.subColumn ? cell.subColumn.header : cell.column.header) : undefined}
                 aria-sort={cell.subColumn === null && cell.column.sortable ? getAriaSort(sort, cell.column.key) : undefined}
@@ -592,17 +659,24 @@
                 colspan={cell.colSpan}
                 data-horizontal-align={cell.horizontalAlign}
                 data-nowrap={cell.nowrap}
-                data-suu-first-column={cell.firstColumn}
+                data-suu-first-column={cell.firstColumn ?? (pinnedFirstColumn && cell.column === columns[0] ? 'true' : undefined)}
                 data-suu-group-header={cell.groupHeader}
+                data-suu-pinned={leafPin ? '' : undefined}
+                data-suu-pinned-edge={leafPin?.edge ? '' : undefined}
+                data-suu-pinned-group={pinnedGroup ? '' : undefined}
                 data-vertical-align={cell.verticalAlign}
                 rowspan={cell.rowSpan}
                 scope={cell.scope}
                 style={cell.style}
+                style:--suu-table-pin-start={pinnedGroup ? pinnedGroup.start + 'px' : leafPin?.inset}
+                style:--suu-table-pin-width={pinnedGroup ? pinnedGroup.width + 'px' : undefined}
+                style:--suu-table-group-width={pinnedGroup ? pinnedGroup.span + 'px' : undefined}
+                style:z-index={pinnedGroup?.layer}
               >
                 {#if cell.subColumn}
                   {cell.subColumn.header}
                 {:else if cell.column.sortable}
-                  <button class="suu-table__sort-button" type="button" disabled={sortPending} on:click={() => handleSort(cell.column)}>
+                  <button class="suu-table__sort-button" class:suu-table__pinned-group-label={!!pinnedGroup} type="button" disabled={sortPending} on:click={() => handleSort(cell.column)}>
                     <span><slot name="header" column={cell.column} {sort}>{cell.column.header}</slot></span>
                     <span class="suu-table__sort-indicator" aria-hidden="true">
                       {#if sort?.key === cell.column.key && sort.direction === 'asc'}
@@ -621,6 +695,8 @@
                       {/if}
                     </span>
                   </button>
+                {:else if pinnedGroup}
+                  <span class="suu-table__pinned-group-label"><slot name="header" column={cell.column} {sort}>{cell.column.header}</slot></span>
                 {:else}
                   <slot name="header" column={cell.column} {sort}>{cell.column.header}</slot>
                 {/if}
@@ -669,11 +745,15 @@
                     {#each group.subColumns as subColumn, subColumnIndex (subColumn.key)}
                       {@const subRow = group.subRows[0]}
                       {@const value = getSubCellValue(subRow, subColumn)}
+                      {@const leafPin = resolveLeafPin(columnPins.get(group.column.key), subColumn.key)}
                       <td
                         class={resolveSubCellClass(subColumn)}
                         data-horizontal-align={resolveSubCellHorizontalAlign(subColumn)}
                         data-suu-first-column={columnIndex === 0 && subColumnIndex === 0 ? 'true' : undefined}
                         data-suu-group-cell="true"
+                        data-suu-pinned={leafPin ? '' : undefined}
+                        data-suu-pinned-edge={leafPin?.edge ? '' : undefined}
+                        style:--suu-table-pin-start={leafPin?.inset}
                         data-vertical-align={resolveSubCellVerticalAlign(subColumn)}
                         data-nowrap={subColumn.nowrap === false ? 'false' : 'true'}
                       >
@@ -685,10 +765,14 @@
                   {/if}
                 {:else}
                   {@const value = getCellValue(row, group.column)}
+                  {@const leafPin = resolveLeafPin(columnPins.get(group.column.key))}
                   <td
                     class={resolveCellClass(group.column, row, value)}
                     data-horizontal-align={resolveCellHorizontalAlign(group.column)}
                     data-suu-first-column={firstColumnAttribute(columnIndex)}
+                    data-suu-pinned={leafPin ? '' : undefined}
+                    data-suu-pinned-edge={leafPin?.edge ? '' : undefined}
+                    style:--suu-table-pin-start={leafPin?.inset}
                     data-vertical-align={resolveCellVerticalAlign(group.column)}
                     data-nowrap={group.column.nowrap === false ? 'false' : 'true'}
                     rowspan={bodyRowCount}
@@ -706,11 +790,15 @@
                       {#each group.subColumns as subColumn, subColumnIndex (subColumn.key)}
                         {@const subRow = group.subRows[subRowIndex]}
                         {@const value = getSubCellValue(subRow, subColumn)}
+                        {@const leafPin = resolveLeafPin(columnPins.get(group.column.key), subColumn.key)}
                         <td
                           class={resolveSubCellClass(subColumn)}
                           data-horizontal-align={resolveSubCellHorizontalAlign(subColumn)}
                           data-suu-first-column={columnIndex === 0 && subColumnIndex === 0 ? 'true' : undefined}
                           data-suu-group-cell="true"
+                          data-suu-pinned={leafPin ? '' : undefined}
+                          data-suu-pinned-edge={leafPin?.edge ? '' : undefined}
+                          style:--suu-table-pin-start={leafPin?.inset}
                           data-vertical-align={resolveSubCellVerticalAlign(subColumn)}
                           data-nowrap={subColumn.nowrap === false ? 'false' : 'true'}
                         >
@@ -756,9 +844,14 @@
             <tr {...resolveRowAttributes(row, rowIndex)} class={resolveRowClass(row, rowIndex)}>
               {#each columns as column (column.key)}
                 {@const value = getCellValue(row, column)}
+                {@const leafPin = resolveLeafPin(columnPins.get(column.key))}
                 <td
                   class={resolveCellClass(column, row, value)}
                   data-horizontal-align={resolveCellHorizontalAlign(column)}
+                  data-suu-first-column={pinnedFirstColumn && column === columns[0] ? 'true' : undefined}
+                  data-suu-pinned={leafPin ? '' : undefined}
+                  data-suu-pinned-edge={leafPin?.edge ? '' : undefined}
+                  style:--suu-table-pin-start={leafPin?.inset}
                   data-vertical-align={resolveCellVerticalAlign(column)}
                   data-nowrap={column.nowrap === false ? 'false' : 'true'}
                 >

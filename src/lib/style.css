@@ -661,6 +661,44 @@
   opacity: 0.6;
 }
 
+.suu-table-scroll-area {
+  display: grid;
+  grid-template: auto minmax(0, 1fr) / minmax(0, 1fr);
+  block-size: 100%;
+  min-block-size: 0;
+  min-inline-size: 0;
+}
+
+.suu-table-scroll-area__header {
+  position: relative;
+  z-index: 4;
+}
+
+.suu-table-scroll-area__viewport {
+  grid-row: 2;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.suu-table-scroll-area__viewport:has([data-suu-scroll-area-fixed-inline]) {
+  container: suu-table-viewport / inline-size;
+}
+
+/* 非表格行必须有整条表格宽度作为横向 sticky 的活动范围。 */
+.suu-table-scroll-area__content:has([data-suu-scroll-area-fixed-inline]) {
+  inline-size: max-content;
+  min-inline-size: 100%;
+}
+
+@container suu-table-viewport (inline-size >= 0px) {
+  [data-suu-scroll-area-fixed-inline] {
+    box-sizing: border-box;
+    position: sticky;
+    inset-inline-start: var(--suu-table-scroll-area-inline-inset, 0px);
+    inline-size: calc(100cqi - 2 * var(--suu-table-scroll-area-inline-inset, 0px));
+  }
+}
+
 .suu-table-wrap {
   overflow: auto;
   border: 1px solid var(--suu-color-border);
@@ -671,6 +709,18 @@
   box-sizing: border-box;
   inline-size: fit-content;
   max-inline-size: 100%;
+}
+
+/* 纵横轴都交给共用视口，内层外框不能再成为滚动容器。 */
+.suu-table-wrap.suu-table-wrap--shared-scroll {
+  overflow: visible;
+  min-inline-size: min-content;
+  max-inline-size: none;
+}
+
+/* 裁掉单元格背景的方角，但不改变表头和首列的 sticky 滚动参照。 */
+.suu-table-wrap--shared-scroll:not(.suu-table-wrap--borderless) {
+  overflow: clip;
 }
 
 .suu-table-wrap--resize-guide {
@@ -697,6 +747,11 @@
 }
 
 /* 原位表头会整体移动；独立单元格边框跟随表头，且与表体共用列轨。 */
+.suu-table-wrap--shared-scroll > .suu-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 .suu-table-wrap--in-flow-header > .suu-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -782,8 +837,57 @@
   transform: translateY(var(--suu-table-header-y, 0px));
 }
 
+.suu-table > .suu-table__native-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.suu-table--pin-first-column :is(th, td)[data-suu-first-column='true'],
+.suu-table :is(th, td)[data-suu-pinned] {
+  position: sticky;
+  inset-inline-start: var(--suu-table-pin-start, 0px);
+  z-index: 1;
+  isolation: isolate;
+}
+
+.suu-table--pin-first-column thead th[data-suu-first-column='true'],
+.suu-table thead th[data-suu-pinned] {
+  z-index: var(--suu-table-pin-layer, 2);
+}
+
+/* At rest this covers the next cell's border instead of adding a second pixel.
+   After pinning it keeps that seam at the fixed cell, without changing widths. */
+.suu-table--vertical-separators :is(th, td)[data-suu-pinned-edge]::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: -1px;
+  inline-size: 1px;
+  background-color: var(--suu-color-border);
+  pointer-events: none;
+}
+
+/* The spanning cell keeps only its pinned width on screen. Its label can stick
+   within it; earlier groups paint above later spans as they pass behind them. */
+.suu-table th[data-suu-pinned-group] {
+  --suu-table-group-padding-inline: 12px;
+  position: sticky;
+  inset-inline-start: calc(var(--suu-table-pin-start) + var(--suu-table-pin-width) - var(--suu-table-group-width));
+  padding-inline: var(--suu-table-group-padding-inline);
+}
+
+.suu-table__pinned-group-label {
+  position: sticky;
+  display: inline-block;
+  inset-inline-start: calc(var(--suu-table-pin-start) + var(--suu-table-group-padding-inline) + 1px);
+  max-inline-size: max(0px, calc(var(--suu-table-pin-width) - 2 * var(--suu-table-group-padding-inline) - 1px));
+  overflow-wrap: anywhere;
+}
+
 /* Non-interactive header cells must not steal hover from body controls when scrolling. */
-.suu-table__in-flow-header :is(button, a[href], input, select, textarea, summary, [tabindex], [contenteditable]),
+:is(.suu-table__in-flow-header, .suu-table__native-header) :is(button, a[href], input, select, textarea, summary, [tabindex], [contenteditable]),
 .suu-table__resize-edge {
   pointer-events: auto;
 }
@@ -885,6 +989,24 @@
 
 :where(.suu-table td.suu-table__row-highlight) {
   background-color: var(--suu-table-row-hover-background, color-mix(in srgb, var(--suu-color-surface) 88%, transparent));
+}
+
+/* 固定列必须有不透底的背景，同时保留斑马纹和悬停状态。 */
+:where(.suu-table--pin-first-column td[data-suu-first-column='true'], .suu-table td[data-suu-pinned]) {
+  background-color: var(--suu-color-bg);
+}
+
+:where(.suu-table--zebra:not(.suu-table--grouped) tbody tr:nth-child(even), .suu-table--grouped.suu-table--zebra tbody:nth-of-type(even)) :where(.suu-table--pin-first-column td[data-suu-first-column='true'], td[data-suu-pinned]) {
+  background-color: color-mix(in srgb, var(--suu-color-surface) 70%, var(--suu-color-bg));
+}
+
+:where(.suu-table--hoverable:not(.suu-table--grouped) tbody tr:hover, .suu-table--grouped.suu-table--hoverable tbody:hover) :where(.suu-table--pin-first-column td[data-suu-first-column='true'], td[data-suu-pinned]) {
+  background-color: color-mix(in srgb, var(--suu-color-surface) 88%, var(--suu-color-bg));
+}
+
+:where(.suu-table--pin-first-column td[data-suu-first-column='true'], .suu-table td[data-suu-pinned]):where(.suu-table__row-highlight) {
+  --suu-table-pin-hover: var(--suu-table-row-hover-background, color-mix(in srgb, var(--suu-color-surface) 88%, transparent));
+  background: linear-gradient(var(--suu-table-pin-hover), var(--suu-table-pin-hover)) var(--suu-color-bg);
 }
 
 .suu-table__sort-button {

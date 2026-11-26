@@ -20,6 +20,8 @@ export function mountDataTableColumnResizeGuide(
   let captured: HTMLElement | null = null;
   let pointerFocused: HTMLElement | null = null;
   let activeSubHandle: HTMLElement | null = null;
+  let activePinnedCell: HTMLTableCellElement | null = null;
+  let activeTrackIsLast = false;
 
   function handleAt(target: EventTarget | null) {
     const handle = target instanceof Element ? target.closest<HTMLElement>('[data-suu-resize-track]') : null;
@@ -33,6 +35,11 @@ export function mountDataTableColumnResizeGuide(
     const scrollOrigin = scrollContainer.getBoundingClientRect().top + scrollContainer.clientTop - scrollContainer.scrollTop;
     guide.style.insetBlockStart = (start - scrollOrigin) + 'px';
     guide.style.blockSize = Math.max(0, tableRect.bottom - start) + 'px';
+  }
+
+  function syncGuideInline(edge: number, last: boolean) {
+    const origin = scrollContainer.getBoundingClientRect().left + scrollContainer.clientLeft - scrollContainer.scrollLeft;
+    guide.style.left = (edge - origin - (last ? 2 : 1)) + 'px';
   }
 
   function sync() {
@@ -53,19 +60,26 @@ export function mountDataTableColumnResizeGuide(
     guide.hidden = !track;
     if (!track) {
       activeSubHandle = null;
+      activePinnedCell = null;
       return;
     }
     const { handle, index, column } = track;
-    // Keep the guide in the table's scroll coordinates. Inset the last edge to avoid adding overflow.
-    const right = column.getBoundingClientRect().right - scrollContainer.getBoundingClientRect().left
-      - scrollContainer.clientLeft + scrollContainer.scrollLeft;
-    guide.style.left = (right - (index === columns.length - 1 ? 2 : 1)) + 'px';
+    // 共用视口里以真实表头格为准：固定列会偏离 col，部分浏览器也不提供 col 的坐标。
+    const nativeCell = scrollContainer.classList.contains('suu-table-wrap--shared-scroll') ? handle.closest('th') : null;
+    activePinnedCell = nativeCell?.hasAttribute('data-suu-pinned') ||
+      (index === 0 && table.classList.contains('suu-table--pin-first-column')) ? nativeCell : null;
+    // Inset the last edge to avoid adding overflow.
+    activeTrackIsLast = index === columns.length - 1;
+    syncGuideInline((nativeCell ?? column).getBoundingClientRect().right, activeTrackIsLast);
     activeSubHandle = handle.hasAttribute('data-suu-resize-sub-column') ? handle : null;
     syncGuideBlock();
   }
 
   window.addEventListener('scroll', () => {
     if (activeSubHandle && !guide.hidden) syncGuideBlock();
+    if (activePinnedCell && !guide.hidden) {
+      syncGuideInline(activePinnedCell.getBoundingClientRect().right, activeTrackIsLast);
+    }
   }, { capture: true, passive: true, signal });
   header.addEventListener('pointerover', (event) => {
     hovered = handleAt(event.target);

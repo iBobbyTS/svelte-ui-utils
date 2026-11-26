@@ -916,6 +916,32 @@ The original header pins vertically and releases at the end of the table. Pass
 its bottom edge determines the inset instead of `stickyHeaderOffset`. The
 default sticky mode is unchanged.
 
+### Shared table scroll area
+
+Use `DataTableScrollArea` in a parent with a definite block size. It places an
+optional `header` snippet above one shared horizontal and vertical scrollport.
+Use `label` to name the scroll region and `bind:viewport` if a section navigator
+needs its element. Keep intermediate containers free of overflow clipping.
+
+Every `DataTable` in this area uses its original, native sticky header with
+`stickyHeader` enabled. Multiple tables share a horizontal position; a header
+releases at the end of its own table. Configure `pinFirstColumn` per table to
+freeze its first ordinary (non-grouped) column. Place any toolbar used as a sticky
+boundary in the `header` snippet instead of setting a sticky-header offset. Tables
+outside this area are unchanged.
+
+With exact `columnTrackWidths`, set `pinLeft: true` on any ordinary column or
+sub-column, including non-adjacent ones. They keep their original positions
+until they reach the start of the viewport, then sit next to each other in
+display order. A group with a pinned sub-column also keeps its parent header
+label visible without pinning its other sub-columns. The offsets follow track
+width changes. Spanning empty and footer cells still scroll with the table.
+
+Mark headings or controls between tables with `data-suu-scroll-area-fixed-inline`
+so they move vertically with their tables without moving horizontally. Set
+`--suu-table-scroll-area-inline-inset` on the area to match equal inline padding
+on the content. The tables and these rows still use one scrollport.
+
 ### Exact column widths
 
 Pass `columnTrackWidths` to opt in to fixed pixel tracks, in display order. Supply
@@ -928,7 +954,7 @@ Omit the prop to keep the regular automatic or fixed table layout.
 For built-in resizing, pass `columnResize` with `getTrack({ columnKey, subColumnKey })`
 returning `{ label, minWidth, maxWidth }` for each resizable leaf, or `undefined` to
 skip that track. The table positions the handles and guide on the real header,
-and uses in-flow pinning if stickiness is enabled. Update the controlled widths
+and uses in-flow pinning outside a shared scroll area if stickiness is enabled. Update the controlled widths
 in `onPreview(track, width)`; persist or accept the final width in
 `onCommit(track, width)`; discard the preview in `onCancel()`. Use `disabled` to
 prevent new changes while saving. Pass `wrapColumnContent` to break long text

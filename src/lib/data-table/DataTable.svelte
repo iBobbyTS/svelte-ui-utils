@@ -41,6 +41,7 @@
   export let columnResize: DataTableColumnResize | undefined = undefined;
   export let wrapColumnContent = false;
   export let stickyHeader = true;
+  export let pinFirstColumn = false;
   export let stickyHeaderMode: 'clone' | 'in-flow' = 'clone';
   export let stickyHeaderAnchor: HTMLElement | null | undefined = undefined;
   export let stickyHeaderTop: string | undefined = undefined;
@@ -215,6 +216,7 @@
     {columnResize}
     {wrapColumnContent}
     {stickyHeader}
+    {pinFirstColumn}
     {stickyHeaderMode}
     {stickyHeaderAnchor}
     {stickyHeaderTop}
