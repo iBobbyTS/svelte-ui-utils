@@ -696,6 +696,12 @@
   background: var(--suu-color-bg);
 }
 
+/* 原位表头会整体移动；独立单元格边框跟随表头，且与表体共用列轨。 */
+.suu-table-wrap--in-flow-header > .suu-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 .suu-table--layout-auto {
   table-layout: auto;
 }
@@ -796,16 +802,6 @@
 
 .suu-table__resize-edge--last {
   right: 0;
-}
-
-/* Collapsed table borders do not travel with a translated header. */
-.suu-table > .suu-table__in-flow-header th {
-  box-shadow: inset 0 -1px var(--suu-color-border);
-}
-
-.suu-table--vertical-separators:not(.suu-table--grouped) > .suu-table__in-flow-header th:not(:first-child),
-.suu-table--vertical-separators.suu-table--grouped > .suu-table__in-flow-header th:not([data-suu-first-column='true']) {
-  box-shadow: inset 1px 0 var(--suu-color-border), inset 0 -1px var(--suu-color-border);
 }
 
 @supports (view-timeline: --suu-table-block block) and (animation-range: exit-crossing 0% exit-crossing calc(100% - 1px)) {
