@@ -935,7 +935,13 @@ sub-column, including non-adjacent ones. They keep their original positions
 until they reach the start of the viewport, then sit next to each other in
 display order. A group with a pinned sub-column also keeps its parent header
 label visible without pinning its other sub-columns. The offsets follow track
-width changes. Spanning empty and footer cells still scroll with the table.
+width changes. The existing `subEmpty` and `subFooter` cells keep their spans;
+within those cells, a full-width `Dropdown` docks its trigger label at the
+start of the group's pinned tracks without shrinking the clickable area. For
+custom slot content, mark a compact label or control with
+`data-suu-table-pin-content`.
+Override `--suu-table-pin-content-inset` if the content uses a different inline
+padding.
 
 Mark headings or controls between tables with `data-suu-scroll-area-fixed-inline`
 so they move vertically with their tables without moving horizontally. Set

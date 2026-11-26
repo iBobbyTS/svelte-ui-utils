@@ -126,6 +126,7 @@
   $: cloneHeader = stickyHeader && !sharedScroll && !inFlowHeader;
   $: pinnedFirstColumn = sharedScroll && pinFirstColumn && !!columns[0] && !isGroupedColumn(columns[0]);
   $: columnPins = resolveColumnPins(columns, sharedScroll ? sizedTracks : undefined, pinnedFirstColumn);
+  $: layeredBodyPins = [...columnPins.values()].filter((pin) => 'leaves' in pin).length > 1;
   $: headerRows = buildHeaderRows(columns, undefined, grouped);
   $: cloneHeaderRows = buildHeaderRows(columns, grouped || sizedTracks ? undefined : stickyHeaderColumnWidths, grouped);
 
@@ -168,6 +169,10 @@
       }
     }
     return pins;
+  }
+
+  function resolveGroupPin(pin: ColumnPin | undefined) {
+    return pin && 'leaves' in pin ? pin : undefined;
   }
 
   function resolveLeafPin(pin: ColumnPin | undefined, subKey?: string) {
@@ -650,7 +655,7 @@
               {@const resize = cell.trackIndex === undefined ? undefined : resizeConfig?.getTrack(cell.track)}
               {@const pin = columnPins.get(cell.column.key)}
               {@const leafPin = resolveLeafPin(pin, cell.subColumn?.key)}
-              {@const pinnedGroup = cell.groupHeader && pin && 'leaves' in pin ? pin : undefined}
+              {@const pinnedGroup = cell.groupHeader ? resolveGroupPin(pin) : undefined}
               <th
                 aria-label={resize ? (cell.subColumn ? cell.subColumn.header : cell.column.header) : undefined}
                 aria-sort={cell.subColumn === null && cell.column.sortable ? getAriaSort(sort, cell.column.key) : undefined}
@@ -726,17 +731,28 @@
           {@const maxSubRows = resolveMaxSubRows(rowGroups)}
           {@const continuationRows = resolveContinuationRowCount(maxSubRows)}
           {@const bodyRowCount = resolveBodyRowCount(continuationRows)}
-          <tbody class="suu-table__row-group" data-suu-row-index={rowIndex}>
+          <tbody
+            class="suu-table__row-group"
+            class:suu-table__row-group--layered-pins={layeredBodyPins}
+            style:--suu-table-body-pin-layer={layeredBodyPins ? columns.length + 1 : undefined}
+            data-suu-row-index={rowIndex}
+          >
             <tr {...resolveRowAttributes(row, rowIndex)} class={resolveRowClass(row, rowIndex)}>
               {#each rowGroups as group, columnIndex (group.column.key)}
                 {#if group.grouped}
                   {#if group.subRows.length === 0}
+                    {@const pin = resolveGroupPin(columnPins.get(group.column.key))}
                     <!-- 回退格覆盖首行和续行，页脚有自己独立的单元格。 -->
                     <td
                       class="suu-table__sub-empty"
                       colspan={group.subColumns.length}
                       data-suu-first-column={firstColumnAttribute(columnIndex)}
                       data-suu-group-cell="true"
+                      data-suu-pinned-group={pin ? (columnIndex < columns.length - 1 ? 'interior' : 'end') : undefined}
+                      style:--suu-table-pin-start={pin ? pin.start + 'px' : undefined}
+                      style:--suu-table-pin-width={pin ? pin.width + 'px' : undefined}
+                      style:--suu-table-group-width={pin ? pin.span + 'px' : undefined}
+                      style:z-index={layeredBodyPins ? pin?.layer : undefined}
                       rowspan={1 + continuationRows}
                     >
                       <slot name="subEmpty" {row} column={group.column} />
@@ -824,11 +840,17 @@
               <tr class="suu-table__sub-footer">
                 {#each rowGroups as group, columnIndex (group.column.key)}
                   {#if group.grouped}
+                    {@const pin = resolveGroupPin(columnPins.get(group.column.key))}
                     <td
                       class="suu-table__sub-footer-cell"
                       colspan={group.subColumns.length}
                       data-suu-first-column={firstColumnAttribute(columnIndex)}
                       data-suu-group-cell="true"
+                      data-suu-pinned-group={pin ? (columnIndex < columns.length - 1 ? 'interior' : 'end') : undefined}
+                      style:--suu-table-pin-start={pin ? pin.start + 'px' : undefined}
+                      style:--suu-table-pin-width={pin ? pin.width + 'px' : undefined}
+                      style:--suu-table-group-width={pin ? pin.span + 'px' : undefined}
+                      style:z-index={layeredBodyPins ? pin?.layer : undefined}
                     >
                       <slot name="subFooter" {row} column={group.column} />
                     </td>

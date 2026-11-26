@@ -848,7 +848,7 @@
 .suu-table :is(th, td)[data-suu-pinned] {
   position: sticky;
   inset-inline-start: var(--suu-table-pin-start, 0px);
-  z-index: 1;
+  z-index: var(--suu-table-body-pin-layer, 1);
   isolation: isolate;
 }
 
@@ -871,11 +871,40 @@
 
 /* The spanning cell keeps only its pinned width on screen. Its label can stick
    within it; earlier groups paint above later spans as they pass behind them. */
-.suu-table th[data-suu-pinned-group] {
-  --suu-table-group-padding-inline: 12px;
+.suu-table :is(th, td)[data-suu-pinned-group] {
   position: sticky;
   inset-inline-start: calc(var(--suu-table-pin-start) + var(--suu-table-pin-width) - var(--suu-table-group-width));
+}
+
+.suu-table th[data-suu-pinned-group] {
+  --suu-table-group-padding-inline: 12px;
   padding-inline: var(--suu-table-group-padding-inline);
+}
+
+/* Multiple spanning body cells need their own paint order without putting
+   the body above the sticky header. */
+.suu-table td[data-suu-pinned-group] {
+  z-index: 0;
+}
+
+.suu-table__row-group--layered-pins {
+  isolation: isolate;
+}
+
+.suu-table td[data-suu-pinned-group] :is([data-suu-table-pin-content], .suu-dropdown__button > .suu-dropdown__label) {
+  --suu-table-body-pin-padding: var(--suu-table-pin-content-inset, 13px);
+  position: sticky;
+  inset-inline-start: calc(var(--suu-table-pin-start) + var(--suu-table-body-pin-padding));
+  max-inline-size: max(0px, calc(var(--suu-table-pin-width) - 2 * var(--suu-table-body-pin-padding)));
+}
+
+.suu-table td[data-suu-pinned-group] [data-suu-table-pin-content] {
+  display: inline-block;
+}
+
+/* A full-width trigger keeps its hit area; only its label docks. */
+.suu-table td[data-suu-pinned-group] .suu-dropdown__button > .suu-dropdown__label {
+  flex: 0 1 auto;
 }
 
 .suu-table__pinned-group-label {
@@ -991,20 +1020,20 @@
   background-color: var(--suu-table-row-hover-background, color-mix(in srgb, var(--suu-color-surface) 88%, transparent));
 }
 
-/* 固定列必须有不透底的背景，同时保留斑马纹和悬停状态。 */
-:where(.suu-table--pin-first-column td[data-suu-first-column='true'], .suu-table td[data-suu-pinned]) {
+/* 固定列和后面仍有列的跨列格需要遮挡经过的内容；末尾跨列格没有这一层重叠。 */
+:where(.suu-table--pin-first-column td[data-suu-first-column='true'], .suu-table td:is([data-suu-pinned], [data-suu-pinned-group='interior'])) {
   background-color: var(--suu-color-bg);
 }
 
-:where(.suu-table--zebra:not(.suu-table--grouped) tbody tr:nth-child(even), .suu-table--grouped.suu-table--zebra tbody:nth-of-type(even)) :where(.suu-table--pin-first-column td[data-suu-first-column='true'], td[data-suu-pinned]) {
+:where(.suu-table--zebra:not(.suu-table--grouped) tbody tr:nth-child(even), .suu-table--grouped.suu-table--zebra tbody:nth-of-type(even)) :where(.suu-table--pin-first-column td[data-suu-first-column='true'], td:is([data-suu-pinned], [data-suu-pinned-group='interior'])) {
   background-color: color-mix(in srgb, var(--suu-color-surface) 70%, var(--suu-color-bg));
 }
 
-:where(.suu-table--hoverable:not(.suu-table--grouped) tbody tr:hover, .suu-table--grouped.suu-table--hoverable tbody:hover) :where(.suu-table--pin-first-column td[data-suu-first-column='true'], td[data-suu-pinned]) {
+:where(.suu-table--hoverable:not(.suu-table--grouped) tbody tr:hover, .suu-table--grouped.suu-table--hoverable tbody:hover) :where(.suu-table--pin-first-column td[data-suu-first-column='true'], td:is([data-suu-pinned], [data-suu-pinned-group='interior'])) {
   background-color: color-mix(in srgb, var(--suu-color-surface) 88%, var(--suu-color-bg));
 }
 
-:where(.suu-table--pin-first-column td[data-suu-first-column='true'], .suu-table td[data-suu-pinned]):where(.suu-table__row-highlight) {
+:where(.suu-table--pin-first-column td[data-suu-first-column='true'], .suu-table td:is([data-suu-pinned], [data-suu-pinned-group='interior'])):where(.suu-table__row-highlight) {
   --suu-table-pin-hover: var(--suu-table-row-hover-background, color-mix(in srgb, var(--suu-color-surface) 88%, transparent));
   background: linear-gradient(var(--suu-table-pin-hover), var(--suu-table-pin-hover)) var(--suu-color-bg);
 }

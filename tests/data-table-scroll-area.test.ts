@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { expect, test } from 'vitest';
 import TableScrollAreaHarness from './fixtures/TableScrollAreaHarness.svelte';
 
@@ -54,4 +54,23 @@ test('中间普通列和非首子列按显示顺序吸附，父表头保留原�
   expect(next.cells[1]).toHaveTextContent('Ready');
   expect(next.cells[1]).toHaveAttribute('data-suu-pinned-edge');
   expect(next.cells[1].style.getPropertyValue('--suu-table-pin-start')).toBe('220px');
+});
+
+test.each([false, true])('子行尾部和空格保留 colspan，并且只在列组固定时传递吸附位置（%s）', async (pinDetails) => {
+  render(TableScrollAreaHarness, { pinDetails, showActions: true });
+  const trigger = screen.getByRole('button', { name: 'Add player' });
+  const invite = screen.getByRole('button', { name: 'Invite player' });
+  const footer = trigger.closest('td')!;
+  const empty = invite.closest('td')!;
+  expect(footer).toHaveClass('suu-table__sub-footer-cell');
+  expect(empty).toHaveClass('suu-table__sub-empty');
+  for (const cell of [footer, empty]) {
+    expect(cell).toHaveAttribute('colspan', '3');
+    expect(cell.getAttribute('data-suu-pinned-group')).toBe(pinDetails ? 'interior' : null);
+    expect(cell.style.getPropertyValue('--suu-table-pin-start')).toBe(pinDetails ? '220px' : '');
+    expect(cell.style.getPropertyValue('--suu-table-pin-width')).toBe(pinDetails ? '310px' : '');
+    expect(cell.style.getPropertyValue('--suu-table-group-width')).toBe(pinDetails ? '990px' : '');
+  }
+  await fireEvent.click(trigger);
+  expect(screen.getByRole('option', { name: 'Riley' })).toBeVisible();
 });

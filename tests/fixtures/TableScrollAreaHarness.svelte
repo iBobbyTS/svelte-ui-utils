@@ -1,7 +1,8 @@
 <script lang="ts">
   import { DataTable, DataTableScrollArea, type DataTableColumn, type DataTableColumnResize } from '../../src/lib/data-table/index.js';
+  import { Dropdown } from '../../src/lib/dropdown/index.js';
 
-  let { stickyHeader = true, pinDetails = false }: { stickyHeader?: boolean; pinDetails?: boolean } = $props();
+  let { stickyHeader = true, pinDetails = false, showActions = false }: { stickyHeader?: boolean; pinDetails?: boolean; showActions?: boolean } = $props();
   let collapsed = $state(false);
   let widths = $state([220, 280, 310, 400]);
   const parts = [32, 12, 27, 35].map(size => Array.from({ length: size }, (_, id) => ({
@@ -41,6 +42,18 @@
           <DataTable {rows} {columns} {stickyHeader} columnTrackWidths={tracks} columnResize={resize} rowKey="id" pagination={false} pinFirstColumn />
         </section>
       {/each}
+      {#if showActions}
+        <DataTable rows={[parts[0][0], { ...parts[0][1], details: [] }]} {columns} {stickyHeader} columnTrackWidths={tracks} columnResize={resize} rowKey="id" pagination={false} pinFirstColumn>
+          <svelte:fragment slot="subFooter" let:row>
+            {#if (row as typeof parts[number][number]).details.length}
+              <Dropdown triggerText="Add player" width="100%" options={[{ value: 'riley', label: 'Riley' }]} />
+            {/if}
+          </svelte:fragment>
+          <svelte:fragment slot="subEmpty">
+            <button type="button" data-suu-table-pin-content>Invite player</button>
+          </svelte:fragment>
+        </DataTable>
+      {/if}
     </div>
   </DataTableScrollArea>
 </div>
